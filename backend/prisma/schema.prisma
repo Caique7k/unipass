@@ -1,15 +1,95 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  cnpj      String   @unique
+  createdAt DateTime @default(now())
+
+  users     User[]
+  students  Student[]
+  buses     Bus[]
+  devices   Device[]
+  rfidCards    RfidCard[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+}
+
+model Bus {
+  id         String   @id @default(uuid())
+  plate      String   @unique
+  capacity   Int
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id])
+
+  createdAt  DateTime @default(now())
+
+  @@index([companyId])
+}
+
+model Student {
+  id           String   @id @default(uuid())
+  name         String
+  registration String
+  active       Boolean  @default(true)
+
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+
+  rfidCards    RfidCard[]
+
+  createdAt    DateTime @default(now())
+
+  @@unique([registration, companyId])
+  @@index([companyId])
+}
+
+model Device {
+  id         String   @id @default(uuid())
+  identifier String   @unique
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id])
+
+  createdAt  DateTime @default(now())
+
+  @@index([companyId])
+}
+model RfidCard {
+  id          String   @id @default(uuid())
+  tag         String   @unique
+  active      Boolean  @default(true)
+
+  studentId   String?
+  student     Student? @relation(fields: [studentId], references: [id])
+
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
 }

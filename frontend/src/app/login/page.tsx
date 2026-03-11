@@ -36,10 +36,8 @@ export default function LoginPage() {
         email,
         password,
       });
-
       const { access_token } = response.data;
-
-      localStorage.setItem("token", access_token);
+      document.cookie = `token=${access_token}; path=/`;
 
       router.push("/dashboard");
     } catch {

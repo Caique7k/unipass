@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [currentImage, setCurrentImage] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [errorModal, setErrorModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -32,15 +33,18 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
+      setLoading(true);
       const response = await api.post("/auth/login", {
         email,
         password,
       });
+      setLoading(false);
       const { access_token } = response.data;
       document.cookie = `token=${access_token}; path=/`;
 
       router.push("/dashboard");
     } catch {
+      setLoading(false);
       setErrorModal(true);
     }
   }
@@ -128,9 +132,14 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full cursor-pointer bg-[#ff5c00] text-white py-3 rounded-lg font-medium hover:opacity-90 transition"
+              disabled={loading}
+              className="w-full bg-[#ff5c00] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer"
             >
-              Login
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                "Login"
+              )}
             </button>
           </form>
 
@@ -138,11 +147,29 @@ export default function LoginPage() {
         </div>
       </div>
       {errorModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 relative">
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          {/* BACKGROUND */}
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-fade-soft"
+            onClick={() => setErrorModal(false)}
+          />
+
+          {/* MODAL */}
+          <div
+            className="
+      relative
+      bg-white
+      rounded-2xl
+      shadow-[0_20px_60px_rgba(0,0,0,0.25)]
+      w-full
+      max-w-sm
+      p-6
+      animate-modal-soft
+      "
+          >
             <button
               onClick={() => setErrorModal(false)}
-              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition"
             >
               <X size={20} />
             </button>

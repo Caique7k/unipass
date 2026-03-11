@@ -1,0 +1,27 @@
+@keyframes fadeInSoft {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSoft {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-soft {
+  animation: fadeInSoft 0.35s ease;
+}
+
+.animate-modal-soft {
+  animation: modalSoft 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}

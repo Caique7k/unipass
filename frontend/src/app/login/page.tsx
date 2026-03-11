@@ -39,8 +39,6 @@ export default function LoginPage() {
         password,
       });
       setLoading(false);
-      const { access_token } = response.data;
-      document.cookie = `token=${access_token}; path=/`;
 
       router.push("/dashboard");
     } catch {

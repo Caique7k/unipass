@@ -53,7 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser();
   }, []);
 
-  function logout() {
+  async function logout() {
+    try {
+      await api.post("/auth/logout"); // rota backend que limpa o cookie
+    } catch {}
     setUser(null);
     router.push("/login");
   }

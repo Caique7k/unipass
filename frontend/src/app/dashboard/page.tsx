@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { api } from "@/services/api";
 import { redirect } from "next/navigation";
+import LogoutButton from "../logout";
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
@@ -31,6 +32,7 @@ export default async function DashboardPage() {
       <p>Email: {user.email}</p>
       <p>Role: {user.role}</p>
       <p>Company ID: {user.companyId}</p>
+      <LogoutButton />
     </div>
   );
 }

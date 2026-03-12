@@ -41,4 +41,9 @@ export class AuthController {
   getMe(@Req() req) {
     return req.user;
   }
+  @Post('logout')
+logout(@Res({ passthrough: true }) res: Response) {
+  res.clearCookie('token', { path: '/' });
+  return { success: true };
+}
 }

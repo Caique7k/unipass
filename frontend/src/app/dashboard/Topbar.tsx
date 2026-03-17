@@ -1,19 +1,15 @@
 "use client";
 
-import { User } from "../contexts/AuthContext";
 import { Moon, Sun, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
 
-interface TopbarProps {
-  user: User | null;
-}
-
-export default function Topbar({ user }: TopbarProps) {
-  const { logout } = useAuth();
+export default function Topbar() {
+  const { logout, user, loading } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [isOpen] = useState(true);
 
   function toggleTheme() {
     setDarkMode(!darkMode);
@@ -23,7 +19,7 @@ export default function Topbar({ user }: TopbarProps) {
       document.documentElement.classList.add("dark");
     }
   }
-  const [isOpen, setIsOpen] = useState(true);
+  
   return (
     <div className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 shadow">
       {/* Logo + Nome */}
@@ -50,13 +46,19 @@ export default function Topbar({ user }: TopbarProps) {
       </button>
 
       <div className="flex items-center gap-4">
-        {user && <span className="font-medium">Bem-vindo, {user.name} !</span>}
-        <button
-          onClick={logout}
-          className="flex items-center gap-1 text-red-500 hover:opacity-80 cursor-pointer"
-        >
-          <LogOut size={18} /> Logout
-        </button>
+        {loading ? (
+          <span className="h-5 w-40 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        ) : (
+          <>
+            {user && <span className="font-medium">Bem-vindo, {user.name}!</span>}
+            <button
+              onClick={logout}
+              className="flex items-center gap-1 text-red-500 hover:opacity-80 cursor-pointer"
+            >
+              <LogOut size={18} /> Logout
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { Mail, Lock, Eye, EyeOff, X } from "lucide-react";
 
 const images = [
@@ -13,6 +14,7 @@ const images = [
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,16 +36,14 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-      });
-      setLoading(false);
-
+      await api.post("/auth/login", { email, password });
+      await refreshUser();
       router.push("/dashboard");
     } catch {
       setLoading(false);
       setErrorModal(true);
+    } finally {
+      setLoading(false);
     }
   }
 

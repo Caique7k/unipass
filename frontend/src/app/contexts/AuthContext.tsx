@@ -43,15 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(res.data);
     } catch {
       setUser(null);
-      router.push("/login"); // redireciona automaticamente se não logado
     } finally {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    refreshUser();
-  }, []);
 
   async function logout() {
     try {
@@ -60,6 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     router.push("/login");
   }
+
+  useEffect(() => {
+    refreshUser();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, logout, refreshUser }}>

@@ -9,26 +9,59 @@ export class DashboardService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Quantidade de alunos ativos
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    // --- ALUNOS ---
     const activeStudents = await this.prisma.student.count({
       where: { companyId, active: true },
     });
 
-    // Quantidade de RFIDs lidos hoje (boarding events)
+    const activeStudentsYesterday = await this.prisma.student.count({
+      where: { companyId, active: true, createdAt: { lte: yesterday } },
+    });
+
+    const changeStudents = activeStudents - activeStudentsYesterday;
+    const trendStudents = changeStudents >= 0 ? 'up' : 'down';
+
+    // --- RFIDs ---
     const rfidReads = await this.prisma.transportEvent.count({
+      where: { companyId, type: 'BOARDING', createdAt: { gte: today } },
+    });
+
+    const rfidReadsYesterday = await this.prisma.transportEvent.count({
       where: {
         companyId,
         type: 'BOARDING',
-        createdAt: { gte: today },
+        createdAt: {
+          gte: yesterday,
+          lte: new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1),
+        },
       },
     });
 
-    // Quantidade de trips hoje
+    const changeRfid = rfidReads - rfidReadsYesterday;
+    const trendRfid = changeRfid >= 0 ? 'up' : 'down';
+
+    // --- VIAGENS ---
     const tripsToday = await this.prisma.trip.count({
       where: { companyId, startedAt: { gte: today } },
     });
 
-    // Capacidade de ônibus utilizada hoje
+    const tripsYesterday = await this.prisma.trip.count({
+      where: {
+        companyId,
+        startedAt: {
+          gte: yesterday,
+          lte: new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1),
+        },
+      },
+    });
+
+    const changeTrips = tripsToday - tripsYesterday;
+    const trendTrips = changeTrips >= 0 ? 'up' : 'down';
+
+    // --- ÔNIBUS EM OPERAÇÃO ---
     const buses = await this.prisma.bus.findMany({
       where: { companyId },
       include: {
@@ -47,30 +80,53 @@ export class DashboardService {
       return acc + totalBoarded;
     }, 0);
 
-    // Dados para gráficos
-    const boardings = await this.prisma.transportEvent.groupBy({
-      by: ['createdAt'],
-      _count: { id: true },
-      where: { companyId, type: 'BOARDING', createdAt: { gte: today } },
+    // Para trend e change, podemos comparar com ontem
+    const busesYesterday = await this.prisma.bus.findMany({
+      where: { companyId },
+      include: {
+        trips: {
+          where: {
+            startedAt: {
+              gte: yesterday,
+              lte: new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1),
+            },
+          },
+          include: { transportEvents: true },
+        },
+      },
     });
 
-    const trips = await this.prisma.trip.groupBy({
-      by: ['startedAt'],
-      _count: { id: true },
-      where: { companyId, startedAt: { gte: today } },
-    });
+    const busCapacityYesterday = busesYesterday.reduce((acc, bus) => {
+      const totalBoarded = bus.trips.reduce(
+        (sum, trip) => sum + trip.transportEvents.length,
+        0,
+      );
+      return acc + totalBoarded;
+    }, 0);
 
-    // Formata datas para frontend
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    const changeBuses = busCapacityUsed - busCapacityYesterday;
+    const trendBuses = changeBuses >= 0 ? 'up' : 'down';
+
+    // --- GRÁFICOS ---
+    const charts = await this.getChartData(companyId);
 
     return {
       activeStudents,
       rfidReads,
       tripsToday,
       busCapacityUsed,
-      charts: await this.getChartData(companyId),
+      changeStudents,
+      trendStudents,
+      changeRfid,
+      trendRfid,
+      changeTrips,
+      trendTrips,
+      changeBuses,
+      trendBuses,
+      charts,
     };
   }
+
   async getChartData(companyId: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -94,19 +150,17 @@ export class DashboardService {
       const boardingsCount = await this.prisma.transportEvent.count({
         where: {
           companyId,
+          type: 'BOARDING',
           createdAt: { gte: dayStart, lte: dayEnd },
         },
       });
 
       const tripsCount = await this.prisma.trip.count({
-        where: {
-          companyId,
-          startedAt: { gte: dayStart, lte: dayEnd },
-        },
+        where: { companyId, startedAt: { gte: dayStart, lte: dayEnd } },
       });
 
       boardings.push({
-        date: day.toISOString().split('T')[0],
+        date: day.toISOString().split('T')[0], // 2026-03-20
         count: boardingsCount,
       });
       trips.push({ date: day.toISOString().split('T')[0], count: tripsCount });

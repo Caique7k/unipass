@@ -18,14 +18,14 @@ export function DashboardContent() {
         <KpiCard
           title="Alunos Ativos"
           value={data.activeStudents}
-          change={data.changeStudents} // opcional, se tiver variação
-          trend={data.trendStudents} // "up" ou "down"
+          change={data.changeStudents}
+          trend={data.trendStudents}
           icon={<Users size={18} />}
         />
 
         <KpiCard
-          title="Ônibus em Operação"
-          value={data.activeBuses}
+          title="Alunos Embarcados Hoje"
+          value={data.busCapacityUsed}
           change={data.changeBuses}
           trend={data.trendBuses}
           icon={<Bus size={18} />}
@@ -82,7 +82,8 @@ function KpiCard({ title, value, icon, change, trend }: any) {
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
 
-        {change && trend && (
+        {/* Setinha de tendência */}
+        {change !== undefined && trend !== undefined && (
           <div className="flex items-center gap-1 mt-1">
             <ArrowUpRight
               size={14}
@@ -97,7 +98,6 @@ function KpiCard({ title, value, icon, change, trend }: any) {
             >
               {change}
             </p>
-
             <span className="text-xs text-muted-foreground">vs ontem</span>
           </div>
         )}

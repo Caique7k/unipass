@@ -16,6 +16,7 @@ export function useDashboard() {
         if (!res.ok) throw new Error("Erro ao buscar dashboard");
         const json = await res.json();
         setData(json);
+        console.log("Dashboard data:", json);
       } catch (err: any) {
         setError(err.message);
       } finally {

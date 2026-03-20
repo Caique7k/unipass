@@ -1,14 +1,17 @@
 "use client";
 
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { format } from "date-fns";
 
 interface UsageChartProps {
   data: { date: string; count: number }[];
 }
 
 export function UsageChart({ data }: UsageChartProps) {
-  // Se não tiver dados, retorna vazio para não quebrar
-  const chartData = data || [];
+  const chartData = data.map((item) => ({
+    date: format(new Date(item.date), "dd/MM/yy"), // formata a data
+    count: item.count,
+  }));
 
   return (
     <ResponsiveContainer width="100%" height="100%">

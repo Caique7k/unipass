@@ -11,11 +11,15 @@ export function useDashboard() {
     async function fetchDashboard() {
       try {
         const res = await fetch("http://localhost:3000/dashboard", {
-          credentials: "include", // ESSENCIAL para cookies httpOnly
+          credentials: "include",
+          cache: "no-store",
         });
+
         if (!res.ok) throw new Error("Erro ao buscar dashboard");
+
         const json = await res.json();
         setData(json);
+        setError(null);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -24,6 +28,12 @@ export function useDashboard() {
     }
 
     fetchDashboard();
+
+    const interval = setInterval(() => {
+      fetchDashboard();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return { data, loading, error };

@@ -1,12 +1,20 @@
 "use client";
 
-import { useDashboard } from "../../hooks/useDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Bus, Route, Radio, ArrowUpRight } from "lucide-react";
 import { UsageChart } from "../components/charts/UsageChart";
 
-export function DashboardContent() {
-  const { data, loading, error } = useDashboard();
+type DashboardContentProps = {
+  data: any;
+  loading: boolean;
+  error: string | null;
+};
+
+export function DashboardContent({
+  data,
+  loading,
+  error,
+}: DashboardContentProps) {
 
   if (loading) return <p>Carregando...</p>;
   if (error) return <p>{error}</p>;

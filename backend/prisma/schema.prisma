@@ -24,6 +24,7 @@ model Company {
   devices         Device[]
   rfidCards       RfidCard[]
   transportEvents TransportEvent[]
+  trips           Trip[]
 }
 
 model User {
@@ -48,6 +49,8 @@ model Bus {
   company   Company @relation(fields: [companyId], references: [id])
 
   createdAt DateTime @default(now())
+  devices   Device[]
+  trips     Trip[]
 
   @@index([companyId])
 }
@@ -68,18 +71,26 @@ model Student {
 
   @@unique([registration, companyId])
   @@index([companyId])
+  @@index([companyId, createdAt])
 }
 
 model Device {
-  id              String           @id @default(uuid())
-  identifier      String           @unique
-  companyId       String
-  company         Company          @relation(fields: [companyId], references: [id])
+  id         String  @id @default(uuid())
+  identifier String  @unique
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id])
+  busId      String?
+  bus        Bus?    @relation(fields: [busId], references: [id])
+
+  lastLat    Float?
+  lastLng    Float?
+  lastUpdate DateTime?
+
   transportEvents TransportEvent[]
 
   createdAt DateTime @default(now())
 
-  @@index([companyId])
+  @@index([companyId, busId])
 }
 
 model RfidCard {
@@ -116,11 +127,42 @@ model TransportEvent {
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
 
+  tripId String?
+  trip   Trip?   @relation(fields: [tripId], references: [id])
+
   @@index([companyId])
   @@index([studentId])
+  @@index([deviceId])
+  @@index([companyId, createdAt])
 }
 
 enum EventType {
   BOARDING
+  LEAVING
   DENIED
+}
+
+enum TripStatus {
+  ACTIVE
+  FINISHED
+  CANCELLED
+}
+
+model Trip {
+  id    String  @id @default(uuid())
+  busId String?
+  bus   Bus?    @relation(fields: [busId], references: [id])
+
+  companyId String
+  company   Company    @relation(fields: [companyId], references: [id])
+  status    TripStatus @default(ACTIVE)
+
+  startedAt DateTime
+  endedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  transportEvents TransportEvent[]
+
+  @@index([companyId])
 }

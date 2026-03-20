@@ -1,73 +1,143 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { Home, Users, Truck, FileText } from "lucide-react";
-import { useState } from "react";
+import { Home, Users, Truck, FileText, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useSidebar } from "@/app/contexts/SidebarContext";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 export default function Sidebar() {
-  const [isOpen, setIsOpen] = useState(true);
+  const pathname = usePathname();
+  const { isOpen } = useSidebar();
+  const { user, loading, logout } = useAuth();
 
   return (
-    <div className="flex relative">
-      {/* Botão Hamburger fixo sobre a sidebar */}
-      <button
-        className="absolute top-4 left-4 flex flex-col justify-between w-6 h-6 z-50 p-1"
-        onClick={() => setIsOpen(!isOpen)}
+    <aside
+      className={`
+        bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+        shadow-sm flex flex-col
+        transition-all duration-300
+        ${isOpen ? "w-64" : "w-20"}
+      `}
+    >
+      {/* TOPO - USUÁRIO */}
+      <div
+        className={`
+    h-16 flex items-center
+    ${isOpen ? "px-4 justify-start" : "justify-center"}
+  `}
       >
-        <span
-          className={`block h-0.5 w-full bg-gray-700 dark:bg-gray-200 transform transition duration-300 ease-in-out origin-center
-            ${isOpen ? "rotate-45 translate-y-2" : ""}`}
-        />
-        <span
-          className={`block h-0.5 w-full bg-gray-700 dark:bg-gray-200 my-1 transition-opacity duration-300
-            ${isOpen ? "opacity-0" : "opacity-100"}`}
-        />
-        <span
-          className={`block h-0.5 w-full bg-gray-700 dark:bg-gray-200 transform transition duration-300 ease-in-out origin-center
-            ${isOpen ? "-rotate-45 -translate-y-2" : ""}`}
-        />
-      </button>
-      <div className="w-16" /> {/* Espaço para o botão hamburger */}
-      {/* Sidebar */}
-      <aside
-        className={`bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-4 flex flex-col
-          transition-all duration-300 ease-in-out
-          ${isOpen ? "w-64" : "w-16"}
-        `}
-      >
-        {/* Navegação */}
-        <nav className="flex flex-col gap-2">
-          <Link
+        {loading ? (
+          <span className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        ) : (
+          user &&
+          (isOpen ? (
+            <span className="font-medium text-sm truncate">
+              Bem vindo, {user.name}!
+            </span>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-[#ff5c00] flex items-center justify-center text-white text-sm font-bold">
+              {user.name?.charAt(0)}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* NAVEGAÇÃO */}
+      <nav className="flex-1 p-2 space-y-6">
+        {/* Principal */}
+        <div>
+          {isOpen && (
+            <p className="text-xs uppercase text-gray-400 mb-2">Principal</p>
+          )}
+
+          <SidebarItem
             href="/dashboard"
-            className="flex items-center gap-2 hover:text-[#ff5c00] transition-colors"
-          >
-            <Home size={20} />
-            {isOpen && "Dashboard"}
-          </Link>
-          <Link
+            icon={<Home size={20} />}
+            label="Dashboard"
+            isOpen={isOpen}
+            active={pathname === "/dashboard"}
+          />
+        </div>
+
+        {/* Gestão */}
+        <div>
+          {isOpen && (
+            <p className="text-xs uppercase text-gray-400 mb-2">Gestão</p>
+          )}
+
+          <SidebarItem
             href="/students"
-            className="flex items-center gap-2 hover:text-[#ff5c00] transition-colors"
-          >
-            <Users size={20} />
-            {isOpen && "Alunos"}
-          </Link>
-          <Link
+            icon={<Users size={20} />}
+            label="Alunos"
+            isOpen={isOpen}
+            active={pathname === "/students"}
+          />
+
+          <SidebarItem
             href="/buses"
-            className="flex items-center gap-2 hover:text-[#ff5c00] transition-colors"
-          >
-            <Truck size={20} />
-            {isOpen && "Ônibus"}
-          </Link>
-          <Link
+            icon={<Truck size={20} />}
+            label="Ônibus"
+            isOpen={isOpen}
+            active={pathname === "/buses"}
+          />
+        </div>
+
+        {/* Sistema */}
+        <div>
+          {isOpen && (
+            <p className="text-xs uppercase text-gray-400 mb-2">Sistema</p>
+          )}
+
+          <SidebarItem
             href="/reports"
-            className="flex items-center gap-2 hover:text-[#ff5c00] transition-colors"
-          >
-            <FileText size={20} />
-            {isOpen && "Relatórios"}
-          </Link>
-        </nav>
-      </aside>
-    </div>
+            icon={<FileText size={20} />}
+            label="Relatórios"
+            isOpen={isOpen}
+            active={pathname === "/reports"}
+          />
+        </div>
+      </nav>
+
+      {/* RODAPÉ - LOGOUT */}
+      <div className="p-2">
+        <button
+          onClick={logout}
+          className={`
+            flex items-center w-full
+            ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
+            py-2 rounded-lg
+            text-red-500
+            hover:bg-red-100 dark:hover:bg-red-900/30
+            transition-all cursor-pointer
+          `}
+        >
+          <LogOut size={20} />
+          {isOpen && <span>Sair</span>}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function SidebarItem({ href, icon, label, isOpen, active }: any) {
+  return (
+    <Link
+      href={href}
+      className={`
+        flex items-center
+        ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
+        py-2 rounded-lg
+        transition-all
+        ${
+          active
+            ? "bg-[#ff5c00] text-white"
+            : "hover:bg-gray-200 dark:hover:bg-gray-700"
+        }
+      `}
+    >
+      {icon}
+      {isOpen && <span>{label}</span>}
+    </Link>
   );
 }

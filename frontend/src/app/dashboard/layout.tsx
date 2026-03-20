@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import { SidebarProvider } from "@/app/contexts/SidebarContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -32,12 +33,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   if (!user) return null;
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
+    <SidebarProvider>
+      <div className="h-screen flex flex-col">
         <Topbar />
-        <main className="p-6 flex-1 overflow-auto">{children}</main>
+
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 p-6 overflow-auto">{children}</main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

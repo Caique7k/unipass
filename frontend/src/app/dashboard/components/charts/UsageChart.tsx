@@ -2,25 +2,44 @@
 
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-const data = [
-  { day: "Seg", usage: 120 },
-  { day: "Ter", usage: 210 },
-  { day: "Qua", usage: 180 },
-  { day: "Qui", usage: 250 },
-  { day: "Sex", usage: 300 },
-];
+interface UsageChartProps {
+  data: { date: string; count: number }[];
+}
 
-export function UsageChart() {
+export function UsageChart({ data }: UsageChartProps) {
+  // Se não tiver dados, retorna vazio para não quebrar
+  const chartData = data || [];
+
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data}>
-        <XAxis dataKey="day" />
-        <Tooltip />
+      <LineChart
+        data={chartData}
+        margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+      >
+        <XAxis
+          dataKey="date"
+          tick={{ fill: "#cbd5e1", fontSize: 12 }}
+          axisLine={{ stroke: "#475569" }}
+          tickLine={false}
+        />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: "#1e293b",
+            borderRadius: 6,
+            border: "none",
+            color: "#fff",
+          }}
+          labelStyle={{ color: "#94a3b8" }}
+        />
         <Line
           type="monotone"
-          dataKey="usage"
+          dataKey="count"
           stroke="#ff5c00"
           strokeWidth={3}
+          dot={{ r: 4, fill: "#ff5c00" }}
+          activeDot={{ r: 6 }}
+          isAnimationActive={true}
+          animationDuration={1500}
         />
       </LineChart>
     </ResponsiveContainer>

@@ -18,4 +18,8 @@ export class CreateStudentDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsString()
+  rfidTag?: string;
 }

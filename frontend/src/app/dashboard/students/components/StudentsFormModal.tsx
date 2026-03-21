@@ -21,8 +21,7 @@ type Student = {
   active?: boolean;
 };
 
-type StudentFormErrors = Partial<Record<keyof Student, string>>;
-type StudentFormTouched = Partial<Record<keyof Student, boolean>>;
+type Errors = Partial<Record<keyof Student, string>>;
 
 const emptyForm: Student = {
   name: "",
@@ -31,53 +30,6 @@ const emptyForm: Student = {
   phone: "",
   active: true,
 };
-
-function normalizeForm(form: Student): Student {
-  return {
-    ...form,
-    name: form.name?.trim() ?? "",
-    registration: form.registration?.trim() ?? "",
-    email: form.email?.trim() ?? "",
-    phone: form.phone?.trim() ?? "",
-  };
-}
-
-function validateStudentForm(form: Student): StudentFormErrors {
-  const normalized = normalizeForm(form);
-  const errors: StudentFormErrors = {};
-
-  if (!normalized.name) {
-    errors.name = "Informe o nome do aluno.";
-  } else if (normalized.name.length < 3) {
-    errors.name = "O nome precisa ter pelo menos 3 caracteres.";
-  }
-
-  if (!normalized.registration) {
-    errors.registration = "Informe a matricula.";
-  } else if (normalized.registration.length < 3) {
-    errors.registration = "A matricula parece curta demais.";
-  }
-
-  if (!normalized.email) {
-    errors.email = "Informe um email.";
-  } else {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalized.email)) {
-      errors.email = "Digite um email valido, como nome@exemplo.com.";
-    }
-  }
-
-  if (!normalized.phone) {
-    errors.phone = "Informe um telefone.";
-  } else {
-    const digits = normalized.phone.replace(/\D/g, "");
-    if (digits.length < 10 || digits.length > 11) {
-      errors.phone = "Digite um telefone com DDD, com 10 ou 11 numeros.";
-    }
-  }
-
-  return errors;
-}
 
 export function StudentModal({
   open,
@@ -91,184 +43,211 @@ export function StudentModal({
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState<Student>(emptyForm);
-  const [touched, setTouched] = useState<StudentFormTouched>({});
-  const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [serverError, setServerError] = useState("");
+  const [errors, setErrors] = useState<Errors>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  const [isLinking, setIsLinking] = useState(false);
+  const [rfidTag, setRfidTag] = useState("");
+  const [createdStudent, setCreatedStudent] = useState<Student | null>(null);
+
+  const [serverError, setServerError] = useState("");
+
   const isEdit = !!student?.id;
-  const errors = validateStudentForm(form);
-  const visibleErrors: StudentFormErrors = submitAttempted
-    ? errors
-    : Object.fromEntries(
-        Object.entries(errors).filter(([field]) => touched[field as keyof Student]),
-      );
+
   useEffect(() => {
-    setForm(student ? normalizeForm({ ...emptyForm, ...student }) : emptyForm);
-    setTouched({});
-    setSubmitAttempted(false);
+    setForm(student ?? emptyForm);
+    setErrors({});
     setServerError("");
+    setIsLinking(false);
+    setCreatedStudent(null);
+    setRfidTag("");
   }, [student, open]);
 
   const handleChange = (field: keyof Student, value: string) => {
-    setServerError("");
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleBlur = (field: keyof Student) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
+  // ✅ VALIDAÇÃO (voltou, do jeito certo)
+  const validate = (): boolean => {
+    const newErrors: Errors = {};
+
+    if (!form.name || form.name.length < 3) {
+      newErrors.name = "Nome inválido";
+    }
+
+    if (!form.registration || form.registration.length < 3) {
+      newErrors.registration = "Matrícula inválida";
+    }
+
+    if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = "Email inválido";
+    }
+
+    if (!form.phone || form.phone.replace(/\D/g, "").length < 10) {
+      newErrors.phone = "Telefone inválido";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ CREATE
+  const createStudent = async () => {
+    const res = await fetch("http://localhost:3000/students", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(form),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+    return res.json();
+  };
+
+  // ✅ UPDATE
+  const updateStudent = async () => {
+    const res = await fetch(`http://localhost:3000/students/${student?.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(form),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+  };
+
+  // 🚀 BOTÃO PRINCIPAL
   const handleSubmit = async () => {
-    const normalizedForm = normalizeForm(form);
-    const formErrors = validateStudentForm(normalizedForm);
-
-    setForm(normalizedForm);
-    setSubmitAttempted(true);
-
-    if (Object.keys(formErrors).length > 0) {
-      setTouched({
-        name: true,
-        registration: true,
-        email: true,
-        phone: true,
-      });
-      return;
-    }
+    if (!validate()) return;
 
     try {
       setIsSaving(true);
 
-      const url = isEdit
-        ? `http://localhost:3000/students/${student?.id}`
-        : "http://localhost:3000/students";
-
-      const method = isEdit ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(normalizedForm),
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error);
+      if (isEdit) {
+        await updateStudent();
+        onSuccess();
+        onOpenChange(false);
+        return;
       }
 
-      onSuccess();
-      onOpenChange(false);
+      // 🔥 fluxo criação + RFID
+      const student = await createStudent();
+      setCreatedStudent(student);
+      setIsLinking(true);
     } catch (err) {
-      console.error("Erro ao salvar:", err);
-      setServerError(
-        "Nao foi possivel salvar o aluno. Revise os dados e tente novamente.",
-      );
+      console.error(err);
+      setServerError("Erro ao salvar aluno");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      setTouched({});
-      setSubmitAttempted(false);
-      setServerError("");
-      setForm(student ? normalizeForm({ ...emptyForm, ...student }) : emptyForm);
-    }
+  // 🔗 RFID
+  const handleConfirmLink = async () => {
+    try {
+      await fetch("http://localhost:3000/rfid/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          studentId: createdStudent?.id,
+          rfidTag,
+        }),
+      });
 
-    onOpenChange(nextOpen);
+      onSuccess();
+      onOpenChange(false);
+    } catch (err) {
+      console.error(err);
+      setServerError("Erro ao vincular RFID");
+    }
   };
 
-  const renderFieldError = (field: keyof Student) => {
-    const message = visibleErrors[field];
-
-    if (!message) return null;
-
-    return <p className="mt-1 text-sm text-destructive">{message}</p>;
+  const renderError = (field: keyof Student) => {
+    if (!errors[field]) return null;
+    return <p className="text-sm text-red-500">{errors[field]}</p>;
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar aluno" : "Novo aluno"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div>
-            <Label>Nome</Label>
-            <Input
-              value={form.name ?? ""}
-              aria-invalid={!!visibleErrors.name}
-              className={cn(visibleErrors.name && "border-destructive")}
-              onChange={(e) => handleChange("name", e.target.value)}
-              onBlur={() => handleBlur("name")}
-              placeholder="Ex.: Maria Silva"
-            />
-            {renderFieldError("name")}
-          </div>
+          {!isLinking ? (
+            <>
+              <div>
+                <Label>Nome</Label>
+                <Input
+                  value={form.name || ""}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  className={cn(errors.name && "border-red-500")}
+                />
+                {renderError("name")}
+              </div>
 
-          <div>
-            <Label>Matricula</Label>
-            <Input
-              value={form.registration ?? ""}
-              aria-invalid={!!visibleErrors.registration}
-              className={cn(visibleErrors.registration && "border-destructive")}
-              onChange={(e) => handleChange("registration", e.target.value)}
-              onBlur={() => handleBlur("registration")}
-              placeholder="Ex.: 202400123"
-            />
-            {renderFieldError("registration")}
-          </div>
+              <div>
+                <Label>Matrícula</Label>
+                <Input
+                  value={form.registration || ""}
+                  onChange={(e) => handleChange("registration", e.target.value)}
+                  className={cn(errors.registration && "border-red-500")}
+                />
+                {renderError("registration")}
+              </div>
 
-          <div>
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={form.email ?? ""}
-              aria-invalid={!!visibleErrors.email}
-              className={cn(visibleErrors.email && "border-destructive")}
-              onChange={(e) => handleChange("email", e.target.value)}
-              onBlur={() => handleBlur("email")}
-              placeholder="nome@escola.com"
-            />
-            {renderFieldError("email")}
-          </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  value={form.email || ""}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                />
+                {renderError("email")}
+              </div>
 
-          <div>
-            <Label>Telefone</Label>
-            <Input
-              type="tel"
-              value={form.phone ?? ""}
-              aria-invalid={!!visibleErrors.phone}
-              className={cn(visibleErrors.phone && "border-destructive")}
-              onChange={(e) => handleChange("phone", e.target.value)}
-              onBlur={() => handleBlur("phone")}
-              placeholder="(11) 99999-9999"
-            />
-            {renderFieldError("phone")}
-          </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input
+                  value={form.phone || ""}
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                />
+                {renderError("phone")}
+              </div>
 
-          {serverError ? (
-            <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              {serverError}
-            </p>
-          ) : null}
+              {serverError && (
+                <p className="text-sm text-red-500">{serverError}</p>
+              )}
 
-          <Button
-            onClick={handleSubmit}
-            className="w-full cursor-pointer"
-            disabled={isSaving}
-          >
-            {isSaving
-              ? "Salvando..."
-              : isEdit
-                ? "Salvar alteracoes"
-                : "Criar aluno"}
-          </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="w-full"
+              >
+                {isSaving
+                  ? "Salvando..."
+                  : isEdit
+                    ? "Salvar alterações"
+                    : "Criar e vincular RFID"}
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-4 text-center">
+              <p>Aproxime o cartão</p>
+
+              <Input
+                placeholder="Simular RFID"
+                value={rfidTag}
+                onChange={(e) => setRfidTag(e.target.value)}
+              />
+
+              <Button onClick={handleConfirmLink} className="w-full">
+                Confirmar
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

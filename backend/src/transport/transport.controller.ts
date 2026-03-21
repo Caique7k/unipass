@@ -14,4 +14,9 @@ export class TransportController {
   register(@Body() dto: BoardingDto) {
     return this.transportService.registerBoarding(dto);
   }
+  @Roles('DRIVER', 'ADMIN')
+  @Post('deboarding')
+  async registerDeboarding(@Body() dto: BoardingDto) {
+    return this.transportService.registerDeboarding(dto);
+  }
 }

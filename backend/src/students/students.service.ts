@@ -37,27 +37,50 @@ export class StudentsService {
   }
 
   async create(companyId: string, dto: CreateStudentDto) {
-    //  evita duplicidade de matrícula
-    const exists = await this.prisma.student.findFirst({
-      where: {
-        companyId,
-        registration: dto.registration,
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const exists = await tx.student.findFirst({
+        where: {
+          companyId,
+          registration: dto.registration,
+        },
+      });
 
-    if (exists) {
-      throw new BadRequestException('Matrícula já cadastrada');
-    }
+      if (exists) {
+        throw new BadRequestException('Matrícula já cadastrada');
+      }
 
-    return this.prisma.student.create({
-      data: {
-        companyId,
-        name: dto.name,
-        registration: dto.registration,
-        active: dto.active ?? true,
-        email: dto.email ?? null,
-        phone: dto.phone ?? null,
-      },
+      if (dto.rfidTag) {
+        const existingTag = await tx.rfidCard.findUnique({
+          where: { tag: dto.rfidTag },
+        });
+
+        if (existingTag) {
+          throw new BadRequestException('RFID já cadastrado');
+        }
+      }
+
+      const student = await tx.student.create({
+        data: {
+          companyId,
+          name: dto.name,
+          registration: dto.registration,
+          active: dto.active ?? true,
+          email: dto.email ?? null,
+          phone: dto.phone ?? null,
+        },
+      });
+
+      if (dto.rfidTag) {
+        await tx.rfidCard.create({
+          data: {
+            tag: dto.rfidTag,
+            studentId: student.id,
+            companyId,
+          },
+        });
+      }
+
+      return student;
     });
   }
 

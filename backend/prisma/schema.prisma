@@ -118,11 +118,11 @@ model TransportEvent {
   type      EventType
   createdAt DateTime  @default(now())
 
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id])
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id])
 
-  rfidCardId String
-  rfidCard   RfidCard @relation(fields: [rfidCardId], references: [id])
+  rfidCardId String?
+  rfidCard   RfidCard? @relation(fields: [rfidCardId], references: [id])
 
   deviceId String
   device   Device @relation(fields: [deviceId], references: [id])
@@ -141,6 +141,7 @@ model TransportEvent {
 
 enum EventType {
   BOARDING
+  DEBOARDING  
   LEAVING
   DENIED
 }

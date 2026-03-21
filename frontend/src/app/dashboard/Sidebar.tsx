@@ -67,11 +67,11 @@ export default function Sidebar() {
           )}
 
           <SidebarItem
-            href="/students"
+            href="/dashboard/students"
             icon={<Users size={20} />}
             label="Alunos"
             isOpen={isOpen}
-            active={pathname === "/students"}
+            active={pathname === "/dashboard/students"}
           />
 
           <SidebarItem
@@ -79,7 +79,7 @@ export default function Sidebar() {
             icon={<Truck size={20} />}
             label="Ônibus"
             isOpen={isOpen}
-            active={pathname === "/buses"}
+            active={pathname === "/dashboard/buses"}
           />
         </div>
 

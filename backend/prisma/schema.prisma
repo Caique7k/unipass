@@ -61,6 +61,9 @@ model Student {
   registration String
   active       Boolean @default(true)
 
+  email String?
+  phone String?
+
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
 

@@ -21,11 +21,13 @@ export function DashboardView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Visao geral do sistema UniPass</p>
+          <p className="text-muted-foreground">
+            Visao geral do sistema UniPass
+          </p>
         </div>
 
         <div className="text-sm text-muted-foreground">
-          Atualizado as {formatLastUpdated(lastUpdated)}
+          Atualizado em: {formatLastUpdated(lastUpdated)}
         </div>
       </div>
 

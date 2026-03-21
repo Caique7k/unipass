@@ -37,7 +37,7 @@ export class StudentsService {
   }
 
   async create(companyId: string, dto: CreateStudentDto) {
-    // 🔥 evita duplicidade de matrícula
+    //  evita duplicidade de matrícula
     const exists = await this.prisma.student.findFirst({
       where: {
         companyId,
@@ -55,6 +55,8 @@ export class StudentsService {
         name: dto.name,
         registration: dto.registration,
         active: dto.active ?? true,
+        email: dto.email ?? null,
+        phone: dto.phone ?? null,
       },
     });
   }
@@ -68,15 +70,31 @@ export class StudentsService {
         name: dto.name ?? student.name,
         registration: dto.registration ?? student.registration,
         active: dto.active ?? student.active,
+        email: dto.email ?? student.email,
+        phone: dto.phone ?? student.phone,
       },
     });
   }
 
-  async remove(companyId: string, id: string) {
-    const student = await this.findOne(companyId, id);
-
-    return this.prisma.student.delete({
-      where: { id: student.id },
+  async deleteMany(ids: string[]) {
+    return this.prisma.student.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  }
+  async desactivateMany(ids: string[]) {
+    return this.prisma.student.updateMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      data: {
+        active: false,
+      },
     });
   }
 }

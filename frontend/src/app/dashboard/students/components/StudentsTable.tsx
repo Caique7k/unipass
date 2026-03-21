@@ -18,12 +18,6 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 type Student = {
   id: string;
@@ -41,7 +35,7 @@ export function StudentsTable({
 }: {
   data: Student[];
   onDelete: (ids: string[]) => void;
-  onEdit: (student: Student) => void;
+  onEdit: (student?: Student | null) => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -68,11 +62,21 @@ export function StudentsTable({
     <div className="space-y-4">
       {/* AÇÕES */}
       <div className="flex justify-between">
-        <Button onClick={() => onDelete(selected)} variant="destructive">
-          Excluir selecionados ({selected.length})
+        <Button
+          className="cursor-pointer"
+          onClick={() => onDelete(selected)}
+          variant="destructive"
+          disabled={selected.length === 0}
+        >
+          Desativar selecionados ({selected.length})
         </Button>
 
-        <Button onClick={() => onEdit({} as Student)}>+ Novo aluno</Button>
+        <Button
+          className="cursor-pointer"
+          onClick={() => onEdit(null)}
+        >
+          + Novo aluno
+        </Button>
         <div className="flex items-center gap-4">
           <Select
             value={status}
@@ -80,14 +84,20 @@ export function StudentsTable({
               setStatus(value as "Todos" | "Ativos" | "Inativos")
             }
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] cursor-pointer">
               <SelectValue placeholder="Filtrar status" />
             </SelectTrigger>
 
             <SelectContent>
-              <SelectItem value="Todos">Todos</SelectItem>
-              <SelectItem value="Ativos">Ativos</SelectItem>
-              <SelectItem value="Inativos">Inativos</SelectItem>
+              <SelectItem className="cursor-pointer" value="Todos">
+                Todos
+              </SelectItem>
+              <SelectItem className="cursor-pointer" value="Ativos">
+                Ativos
+              </SelectItem>
+              <SelectItem className="cursor-pointer" value="Inativos">
+                Inativos
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

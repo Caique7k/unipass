@@ -171,15 +171,15 @@ export function StudentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar aluno" : "Novo aluno"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {!isLinking ? (
             <>
-              <div>
+              <div className="md:col-span-2">
                 <Label>Nome</Label>
                 <Input
                   value={form.name || ""}
@@ -208,7 +208,7 @@ export function StudentModal({
                 {renderError("email")}
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <Label>Telefone</Label>
                 <Input
                   value={form.phone || ""}
@@ -221,17 +221,19 @@ export function StudentModal({
                 <p className="text-sm text-red-500">{serverError}</p>
               )}
 
-              <Button
-                onClick={handleSubmit}
-                disabled={isSaving}
-                className="w-full"
-              >
-                {isSaving
-                  ? "Salvando..."
-                  : isEdit
-                    ? "Salvar alterações"
-                    : "Criar e vincular RFID"}
-              </Button>
+              <div className="md:col-span-2 flex justify-end gap-2">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSaving}
+                  className="p-4 cursor-pointer mt-4"
+                >
+                  {isSaving
+                    ? "Salvando..."
+                    : isEdit
+                      ? "Salvar alterações"
+                      : "Criar e vincular RFID"}
+                </Button>
+              </div>
             </>
           ) : (
             <div className="space-y-4 text-center">

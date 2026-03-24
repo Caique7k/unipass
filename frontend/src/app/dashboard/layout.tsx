@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { SidebarProvider } from "@/app/contexts/SidebarContext";
+import { Toaster } from "sonner";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -39,6 +40,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <div className="flex flex-1">
           <Sidebar />
+          <Toaster richColors position="top-right" />
           <main className="flex-1 p-6 overflow-auto">{children}</main>
         </div>
       </div>

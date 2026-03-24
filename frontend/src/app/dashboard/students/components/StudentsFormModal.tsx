@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type Student = {
   id?: string;
@@ -100,8 +101,6 @@ export function StudentModal({
       body: JSON.stringify(form),
     });
 
-    if (!res.ok) throw new Error(await res.text());
-
     return res.json();
   };
 
@@ -114,7 +113,11 @@ export function StudentModal({
       body: JSON.stringify(form),
     });
 
-    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Erro na requisição");
+    }
   };
 
   // 🚀 BOTÃO PRINCIPAL
@@ -126,24 +129,25 @@ export function StudentModal({
 
       if (isEdit) {
         await updateStudent();
+        toast.success("Aluno atualizado com sucesso");
         onSuccess();
         onOpenChange(false);
         return;
       }
 
-      // 🔥 fluxo criação + RFID
       const student = await createStudent();
+      toast.success("Aluno criado com sucesso");
+
       setCreatedStudent(student);
       setIsLinking(true);
-    } catch (err) {
-      console.error(err);
-      setServerError("Erro ao salvar aluno");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar aluno");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // 🔗 RFID
+  //  RFID
   const handleConfirmLink = async () => {
     try {
       await fetch("http://localhost:3000/rfid/link", {
@@ -156,11 +160,11 @@ export function StudentModal({
         }),
       });
 
+      toast.success("RFID vinculado com sucesso");
       onSuccess();
       onOpenChange(false);
     } catch (err) {
-      console.error(err);
-      setServerError("Erro ao vincular RFID");
+      toast.error("Erro ao vincular RFID");
     }
   };
 

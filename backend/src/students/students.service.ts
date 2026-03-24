@@ -130,16 +130,27 @@ export class StudentsService {
   async update(companyId: string, id: string, dto: UpdateStudentDto) {
     const student = await this.findOne(companyId, id);
 
-    return this.prisma.student.update({
-      where: { id },
-      data: {
-        name: dto.name ?? student.name,
-        registration: dto.registration ?? student.registration,
-        active: dto.active ?? student.active,
-        email: dto.email ?? student.email,
-        phone: dto.phone ?? student.phone,
-      },
-    });
+    try {
+      return await this.prisma.student.update({
+        where: { id },
+        data: {
+          name: dto.name ?? student.name,
+          registration: dto.registration ?? student.registration,
+          active: dto.active ?? student.active,
+          email: dto.email ?? student.email,
+          phone: dto.phone ?? student.phone,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException('Matrícula já cadastrada');
+      }
+
+      throw error;
+    }
   }
 
   async deleteMany(ids: string[]) {

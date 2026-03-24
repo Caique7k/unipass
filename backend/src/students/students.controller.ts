@@ -20,8 +20,18 @@ export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
   @Get()
-  findAll(@Req() req: any, @Query('search') search?: string) {
-    return this.studentsService.findAll(req.user.companyId, search);
+  findAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('search') search?: string,
+    @Query('active') active?: string,
+  ) {
+    return this.studentsService.findAll({
+      page: Number(page),
+      limit: Number(limit),
+      search,
+      active: active === undefined ? undefined : active === 'true',
+    });
   }
 
   @Get(':id')

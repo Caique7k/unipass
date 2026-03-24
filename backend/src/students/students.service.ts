@@ -6,24 +6,67 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class StudentsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(companyId: string, search?: string) {
-    return this.prisma.student.findMany({
-      where: {
-        companyId,
-        ...(search && {
-          name: {
-            contains: search,
-            mode: 'insensitive',
+  async findAll({
+    page,
+    limit,
+    search,
+    active,
+  }: {
+    page: number;
+    limit: number;
+    search?: string;
+    active?: boolean;
+  }) {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.StudentWhereInput = {
+      ...(search && {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
           },
-        }),
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+          {
+            registration: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }),
+
+      ...(active !== undefined && {
+        active,
+      }),
+    };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.student.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          rfidCards: true,
+        },
+      }),
+      this.prisma.student.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      lastPage: limit > 0 ? Math.ceil(total / limit) : 1,
+    };
   }
 
   async findOne(companyId: string, id: string) {

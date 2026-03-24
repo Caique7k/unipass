@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { api } from "@/services/api";
 
 type Student = {
   id: string;
@@ -11,35 +12,41 @@ type Student = {
   createdAt: string;
 };
 
-export function useStudents(search: string) {
-  const [data, setData] = useState<Student[]>([]);
+export function useStudents(search: string, page: number, active?: boolean) {
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchStudents = async () => {
-    try {
-      setLoading(true);
+    setIsFetching(true);
 
-      const res = await fetch(
-        `http://localhost:3000/students?search=${search}`,
-        {
-          credentials: "include",
-        },
-      );
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: "10",
+      ...(search && { search }),
+      ...(active !== undefined && { active: String(active) }), // 🔥 AQUI
+    });
 
-      const json = await res.json();
+    const res = await fetch(
+      `http://localhost:3000/students?${params.toString()}`,
+      {
+        credentials: "include",
+      },
+    );
 
-      setData(Array.isArray(json) ? json : []);
-    } catch (err) {
-      console.error(err);
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
+    const json = await res.json();
+
+    setData(json.data);
+    setLastPage(json.lastPage);
+
+    setLoading(false);
+    setIsFetching(false);
   };
 
   useEffect(() => {
     fetchStudents();
-  }, [search]);
+  }, [search, page, active]); // 🔥 MUITO IMPORTANTE
 
-  return { data, loading, refetch: fetchStudents };
+  return { data, loading, isFetching, lastPage, refetch: fetchStudents };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,16 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 
+// 🔥 PAGINAÇÃO SHADCN
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
 type Student = {
   id: string;
   name: string;
@@ -26,36 +37,53 @@ type Student = {
   email?: string;
   phone?: string;
   active: boolean;
+  rfidCards?: {
+    tag: string;
+  }[];
 };
 
 export function StudentsTable({
   data,
   onDelete,
   onEdit,
+  page,
+  setPage,
+  lastPage,
+  status,
+  setStatus,
 }: {
   data: Student[];
   onDelete: (ids: string[]) => void;
   onEdit: (student?: Student | null) => void;
+  page: number;
+  setPage: (page: number) => void;
+  lastPage: number;
+  status: "Todos" | "Ativos" | "Inativos";
+  setStatus: (value: "Todos" | "Ativos" | "Inativos") => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
+  useEffect(() => {
+    // remove ids que não existem mais ou ficaram inativos
+    setSelected((prev) =>
+      prev.filter((id) =>
+        data.some((student) => student.id === id && student.active),
+      ),
+    );
+  }, [data]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
-  const [status, setStatus] = useState<"Todos" | "Ativos" | "Inativos">(
-    "Todos",
-  );
 
-  const filteredData = data.filter((student) => {
-    if (status === "Ativos") return student.active;
-    if (status === "Inativos") return !student.active;
-    return true;
-  });
+  // 🔥 PAGINAÇÃO INTELIGENTE
+  const pages: number[] = [];
+  const start = Math.max(1, page - 2);
+  const end = Math.min(lastPage, page + 2);
 
-  if (!data || data.length === 0) {
-    return <p className="text-muted-foreground">Nenhum aluno encontrado</p>;
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
   }
 
   return (
@@ -71,12 +99,6 @@ export function StudentsTable({
           Desativar selecionados ({selected.length})
         </Button>
 
-        <Button
-          className="cursor-pointer"
-          onClick={() => onEdit(null)}
-        >
-          + Novo aluno
-        </Button>
         <div className="flex items-center gap-4">
           <Select
             value={status}
@@ -103,6 +125,7 @@ export function StudentsTable({
         </div>
       </div>
 
+      {/* TABELA */}
       <div className="rounded-xl border">
         <Table>
           <TableHeader>
@@ -112,49 +135,116 @@ export function StudentsTable({
               <TableHead>Matrícula</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
+              <TableHead>RFID</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {filteredData.map((student) => (
-              <TableRow
-                key={student.id}
-                onDoubleClick={() => onEdit(student)}
-                className="cursor-pointer"
-              >
-                {/* CHECKBOX */}
-                <TableCell>
-                  <Checkbox
-                    checked={selected.includes(student.id)}
-                    onCheckedChange={() => toggleSelect(student.id)}
-                  />
-                </TableCell>
-
-                <TableCell className="font-medium">{student.name}</TableCell>
-
-                <TableCell>{student.registration}</TableCell>
-
-                <TableCell>{student.email || "-"}</TableCell>
-
-                <TableCell>{student.phone || "-"}</TableCell>
-
-                <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      student.active
-                        ? "bg-green-100 text-green-600"
-                        : "bg-red-100 text-red-600"
-                    }`}
-                  >
-                    {student.active ? "Ativo" : "Inativo"}
-                  </span>
+            {data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-6">
+                  Nenhum aluno encontrado
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              data.map((student) => (
+                <TableRow
+                  key={student.id}
+                  onDoubleClick={() => onEdit(student)}
+                  className="cursor-pointer"
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={selected.includes(student.id)}
+                      onCheckedChange={() => toggleSelect(student.id)}
+                    />
+                  </TableCell>
+
+                  <TableCell className="max-w-[150px] truncate">
+                    {student.name}
+                  </TableCell>
+
+                  <TableCell>{student.registration}</TableCell>
+
+                  <TableCell>{student.email || "-"}</TableCell>
+
+                  <TableCell>{student.phone || "-"}</TableCell>
+                  <TableCell className="max-w-[120px] truncate">
+                    {student.rfidCards && student.rfidCards.length > 0
+                      ? student.rfidCards.map((card) => card.tag).join(", ")
+                      : "-"}
+                  </TableCell>
+
+                  <TableCell>
+                    <span
+                      className={`px-2 py-1 rounded text-xs ${
+                        student.active
+                          ? "bg-green-100 text-green-600"
+                          : "bg-red-100 text-red-600"
+                      }`}
+                    >
+                      {student.active ? "Ativo" : "Inativo"}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
+
+      {/* PAGINAÇÃO SHADCN */}
+      <Pagination>
+        <PaginationContent>
+          {/* ANTERIOR */}
+          <PaginationItem>
+            <PaginationPrevious
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+            />
+          </PaginationItem>
+
+          {/* INÍCIO */}
+          {start > 1 && (
+            <>
+              <PaginationItem>
+                <PaginationLink onClick={() => setPage(1)}>1</PaginationLink>
+              </PaginationItem>
+              {start > 2 && <span className="px-2">...</span>}
+            </>
+          )}
+
+          {/* MEIO */}
+          {pages.map((p) => (
+            <PaginationItem key={p}>
+              <PaginationLink isActive={p === page} onClick={() => setPage(p)}>
+                {p}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+
+          {/* FINAL */}
+          {end < lastPage && (
+            <>
+              {end < lastPage - 1 && <span className="px-2">...</span>}
+              <PaginationItem>
+                <PaginationLink onClick={() => setPage(lastPage)}>
+                  {lastPage}
+                </PaginationLink>
+              </PaginationItem>
+            </>
+          )}
+
+          {/* PRÓXIMO */}
+          <PaginationItem>
+            <PaginationNext
+              onClick={() => setPage(page + 1)}
+              disabled={page === lastPage}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
     </div>
   );
 }

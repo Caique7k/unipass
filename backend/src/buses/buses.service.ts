@@ -16,8 +16,11 @@ export class BusesService {
           companyId,
         },
       });
-    } catch (error) {
-      throw new BadRequestException('Placa já cadastrada');
+    } catch (err) {
+      if (err.code === 'P2002') {
+        throw new BadRequestException('Placa já cadastrada');
+      }
+      throw err;
     }
   }
 
@@ -51,8 +54,11 @@ export class BusesService {
           plate: dto.plate?.toUpperCase(),
         },
       });
-    } catch (error) {
-      throw new BadRequestException('Placa já cadastrada');
+    } catch (err) {
+      if (err.code === 'P2002') {
+        throw new BadRequestException('Placa já cadastrada');
+      }
+      throw err;
     }
   }
 

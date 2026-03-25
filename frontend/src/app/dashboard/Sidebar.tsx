@@ -75,7 +75,7 @@ export default function Sidebar() {
           />
 
           <SidebarItem
-            href="/buses"
+            href="/dashboard/buses"
             icon={<Truck size={20} />}
             label="Ônibus"
             isOpen={isOpen}

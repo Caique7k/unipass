@@ -1,63 +1,144 @@
 "use client";
 
-import { useBuses } from "../hooks/useBuses";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import {
   Table,
-  TableHeader,
-  TableRow,
-  TableHead,
   TableBody,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { Trash, Pencil } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Bus } from "../types/bus";
 
-export function BusesTable({ buses, deleteBus }: any) {
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+export function BusesTable({
+  data,
+  onDelete,
+  onEdit,
+  page,
+  setPage,
+  lastPage,
+}: {
+  data: Bus[];
+  onDelete: (ids: string[]) => void;
+  onEdit: (bus?: Bus | null) => void;
+  page: number;
+  setPage: (page: number) => void;
+  lastPage: number;
+}) {
+  const [selected, setSelected] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelected((prev) =>
+      prev.filter((id) => data.some((bus) => bus.id === id)),
+    );
+  }, [data]);
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
+
+  const pages: number[] = [];
+  const start = Math.max(1, page - 2);
+  const end = Math.min(lastPage, page + 2);
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Placa</TableHead>
-            <TableHead>Capacidade</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
+    <div className="space-y-4">
+      {/* AÇÕES */}
+      <div className="flex justify-between">
+        <Button
+          variant="destructive"
+          disabled={selected.length === 0}
+          onClick={() => onDelete(selected)}
+        >
+          Excluir selecionados ({selected.length})
+        </Button>
+      </div>
 
-        <TableBody>
-          {buses.map((bus: any) => (
-            <TableRow key={bus.id}>
-              <TableCell className="font-medium">{bus.plate}</TableCell>
-              <TableCell>{bus.capacity}</TableCell>
-
-              <TableCell className="text-right space-x-2">
-                <Button size="icon" variant="outline">
-                  <Pencil size={16} />
-                </Button>
-
-                <Button
-                  size="icon"
-                  variant="destructive"
-                  onClick={() => deleteBus(bus.id)}
-                >
-                  <Trash size={16} />
-                </Button>
-              </TableCell>
+      {/* TABELA */}
+      <div className="rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead></TableHead>
+              <TableHead>Placa</TableHead>
+              <TableHead>Capacidade</TableHead>
             </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-6">
+                  Nenhum ônibus encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              data.map((bus) => (
+                <TableRow
+                  key={bus.id}
+                  onDoubleClick={() => onEdit(bus)}
+                  className="cursor-pointer"
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={selected.includes(bus.id)}
+                      onCheckedChange={() => toggleSelect(bus.id)}
+                    />
+                  </TableCell>
+
+                  <TableCell>{bus.plate}</TableCell>
+                  <TableCell>{bus.capacity}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* PAGINAÇÃO */}
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+            />
+          </PaginationItem>
+
+          {pages.map((p) => (
+            <PaginationItem key={p}>
+              <PaginationLink isActive={p === page} onClick={() => setPage(p)}>
+                {p}
+              </PaginationLink>
+            </PaginationItem>
           ))}
 
-          {buses.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={3}
-                className="text-center text-muted-foreground"
-              >
-                Nenhum ônibus cadastrado
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          <PaginationItem>
+            <PaginationNext
+              onClick={() => setPage(page + 1)}
+              disabled={page === lastPage}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
     </div>
   );
 }

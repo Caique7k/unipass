@@ -92,7 +92,7 @@ export function StudentModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ CREATE
+  // CREATE
   const createStudent = async () => {
     const res = await fetch("http://localhost:3000/students", {
       method: "POST",
@@ -120,7 +120,7 @@ export function StudentModal({
     }
   };
 
-  // 🚀 BOTÃO PRINCIPAL
+  //  BOTÃO PRINCIPAL
   const handleSubmit = async () => {
     if (!validate()) return;
 

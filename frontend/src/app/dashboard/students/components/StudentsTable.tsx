@@ -77,7 +77,7 @@ export function StudentsTable({
     );
   };
 
-  // 🔥 PAGINAÇÃO INTELIGENTE
+  //  PAGINAÇÃO INTELIGENTE
   const pages: number[] = [];
   const start = Math.max(1, page - 2);
   const end = Math.min(lastPage, page + 2);

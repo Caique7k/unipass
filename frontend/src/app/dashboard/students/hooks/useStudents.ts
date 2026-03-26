@@ -25,7 +25,7 @@ export function useStudents(search: string, page: number, active?: boolean) {
       page: String(page),
       limit: "10",
       ...(search && { search }),
-      ...(active !== undefined && { active: String(active) }), // 🔥 AQUI
+      ...(active !== undefined && { active: String(active) }),
     });
 
     const res = await fetch(
@@ -46,7 +46,7 @@ export function useStudents(search: string, page: number, active?: boolean) {
 
   useEffect(() => {
     fetchStudents();
-  }, [search, page, active]); // 🔥 MUITO IMPORTANTE
+  }, [search, page, active]);
 
   return { data, loading, isFetching, lastPage, refetch: fetchStudents };
 }

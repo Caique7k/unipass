@@ -7,12 +7,15 @@ import {
   Delete,
   Put,
   Req,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { BusesService } from './buses.service';
 import { CreateBusDto } from './dto/create-bus.dto';
 import { UpdateBusDto } from './dto/update-bus.dto';
-import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { FindBusesDto } from './dto/find-buses.dto';
+import { DeleteBusesDto } from './dto/delete-buses.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('buses')
@@ -25,8 +28,18 @@ export class BusesController {
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.busesService.findAll(req.user.companyId);
+  findAll(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Req() req: any,
+  ) {
+    return this.busesService.findAll({
+      page: Number(page) || 1,
+      limit: Number(limit) || 10,
+      search,
+      companyId: req.user.companyId,
+    });
   }
 
   @Get(':id')
@@ -39,8 +52,8 @@ export class BusesController {
     return this.busesService.update(req.user.companyId, id, dto);
   }
 
-  @Delete(':id')
-  remove(@Req() req, @Param('id') id: string) {
-    return this.busesService.remove(req.user.companyId, id);
+  @Delete()
+  deleteMany(@Body() body: { ids: string[] }) {
+    return this.busesService.deleteMany(body.ids);
   }
 }

@@ -24,11 +24,51 @@ export class BusesService {
     }
   }
 
-  async findAll(companyId: string) {
-    return this.prisma.bus.findMany({
-      where: { companyId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll({
+    page = 1,
+    limit = 10,
+    companyId,
+    search,
+  }: {
+    page?: number;
+    limit?: number;
+    companyId: string;
+    search?: string;
+  }) {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.bus.findMany({
+        where: {
+          companyId,
+          ...(search && {
+            plate: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          }),
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.bus.count({
+        where: {
+          companyId,
+          ...(search && {
+            plate: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          }),
+        },
+      }),
+    ]);
+
+    return {
+      data,
+      total,
+      lastPage: Math.ceil(total / limit),
+    };
   }
 
   async findOne(companyId: string, id: string) {
@@ -62,11 +102,13 @@ export class BusesService {
     }
   }
 
-  async remove(companyId: string, id: string) {
-    await this.findOne(companyId, id);
-
-    return this.prisma.bus.delete({
-      where: { id },
+  async deleteMany(ids: string[]) {
+    return this.prisma.bus.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
     });
   }
 }

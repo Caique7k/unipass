@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import api from "@/services/api";
+import { toast } from "sonner";
 
 type Device = {
   id?: string;
@@ -69,6 +70,7 @@ export function DeviceModal({
       } catch (err) {
         console.error("Erro ao buscar onibus:", err);
         setBuses([]);
+        toast.error("Nao foi possivel carregar os onibus.");
       } finally {
         setLoadingBuses(false);
       }
@@ -117,11 +119,13 @@ export function DeviceModal({
         await api.patch(`/devices/${device.id}/bus`, {
           busId,
         });
+        toast.success("Onibus alterado com sucesso.");
       } else {
         await api.post("/devices/link", {
           pairingCode,
           busId,
         });
+        toast.success("UniHub pareado com sucesso.");
       }
 
       onOpenChange(false);
@@ -136,6 +140,7 @@ export function DeviceModal({
               : err.message;
 
         setErrorMessage(backendMessage || "Nao foi possivel salvar o device.");
+        toast.error(backendMessage || "Nao foi possivel salvar o UniHub.");
         console.error("Erro ao salvar device:", {
           status: err.response?.status,
           data: err.response?.data,
@@ -143,6 +148,7 @@ export function DeviceModal({
         });
       } else {
         setErrorMessage("Nao foi possivel salvar o device.");
+        toast.error("Nao foi possivel salvar o UniHub.");
         console.error("Erro ao salvar device:", err);
       }
     } finally {

@@ -9,6 +9,7 @@ import { CreateDeviceModal } from "./components/CreateDeviceModal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
 
 import api from "@/services/api";
 import { useDevices } from "./hooks/useDevices";
@@ -61,6 +62,12 @@ export default function DevicesPage() {
         data: { ids: selectedIds },
       });
 
+      toast.success(
+        selectedIds.length === 1
+          ? "UniHub desativado com sucesso."
+          : "UniHubs desativados com sucesso.",
+      );
+
       setDeleteOpen(false);
       setSelectedIds([]);
 
@@ -69,6 +76,7 @@ export default function DevicesPage() {
       refetch();
     } catch (err) {
       console.error("Erro ao desativar devices:", err);
+      toast.error("Nao foi possivel desativar o UniHub.");
     }
   };
 

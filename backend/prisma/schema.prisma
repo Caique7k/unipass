@@ -81,8 +81,13 @@ model Student {
 model Device {
   id        String   @id @default(uuid())
 
-  code      String   @unique 
-  secret    String          
+  hardwareId            String   @unique
+  pairingCode           String?  @unique
+  pairingCodeExpiresAt  DateTime?
+  pairedAt              DateTime?
+
+  code      String?   @unique 
+  secret    String?          
 
   name      String?
   active    Boolean  @default(true)

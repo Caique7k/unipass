@@ -8,6 +8,7 @@ import {
   FileText,
   LogOut,
   SmartphoneNfcIcon,
+  BookUserIcon,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/app/contexts/SidebarContext";
@@ -75,7 +76,7 @@ export default function Sidebar() {
 
           <SidebarItem
             href="/dashboard/students"
-            icon={<Users size={25} />}
+            icon={<BookUserIcon size={25} />}
             label="Alunos"
             isOpen={isOpen}
             active={pathname === "/dashboard/students"}
@@ -91,9 +92,25 @@ export default function Sidebar() {
           <SidebarItem
             href="/dashboard/devices"
             icon={<SmartphoneNfcIcon size={25} />}
-            label="Dispositivos"
+            label="UniHub"
             isOpen={isOpen}
             active={pathname === "/dashboard/devices"}
+          />
+        </div>
+
+        <div>
+          {isOpen && (
+            <p className="text-xs uppercase text-gray-400 mb-2">
+              Cadastro de Usuários
+            </p>
+          )}
+
+          <SidebarItem
+            href="/reports"
+            icon={<Users size={25} />}
+            label="Usuários"
+            isOpen={isOpen}
+            active={pathname === "/reports"}
           />
         </div>
 

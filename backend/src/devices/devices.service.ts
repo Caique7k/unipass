@@ -1,51 +1,267 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { CreateDeviceDto } from './dto/create-device.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { ClaimDevicePairingDto } from './dto/claim-device-pairing.dto';
+import { DeleteDevicesDto } from './dto/delete-devices.dto';
 import { LinkDeviceDto } from './dto/link-device.dto';
 import { ListDevicesDto } from './dto/find-devices.dto';
-import { DeleteDevicesDto } from './dto/delete-devices.dto';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { StartDevicePairingDto } from './dto/start-device-pairing.dto';
+
+const PAIRING_TTL_MINUTES = 10;
 
 function generateCode() {
-  return 'UNP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+  return `UNP-${randomBytes(4).toString('hex').toUpperCase()}`;
 }
 
 function generateSecret() {
   return randomBytes(16).toString('hex');
 }
+
+function generatePairingCode() {
+  return randomBytes(3).toString('hex').toUpperCase();
+}
+
 @Injectable()
 export class DevicesService {
-  constructor(private prisma: PrismaService) {}
-  async create(dto: CreateDeviceDto) {
-    return this.prisma.device.create({
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async generateUniqueDeviceCode() {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = generateCode();
+      const existingDevice = await this.prisma.device.findUnique({
+        where: { code },
+      });
+
+      if (!existingDevice) {
+        return code;
+      }
+    }
+
+    throw new BadRequestException(
+      'Nao foi possivel gerar um codigo unico para o device',
+    );
+  }
+
+  private async generateUniquePairingCode() {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const pairingCode = generatePairingCode();
+      const existingDevice = await this.prisma.device.findUnique({
+        where: { pairingCode },
+      });
+
+      if (!existingDevice) {
+        return pairingCode;
+      }
+    }
+
+    throw new BadRequestException(
+      'Nao foi possivel gerar um codigo temporario para o device',
+    );
+  }
+
+  private getPairingExpiresAt() {
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + PAIRING_TTL_MINUTES);
+    return expiresAt;
+  }
+
+  private isPairingValid(device: {
+    pairingCode: string | null;
+    pairingCodeExpiresAt: Date | null;
+  }) {
+    return Boolean(
+      device.pairingCode &&
+      device.pairingCodeExpiresAt &&
+      device.pairingCodeExpiresAt > new Date(),
+    );
+  }
+
+  async startPairing(dto: StartDevicePairingDto) {
+    const existingDevice = await this.prisma.device.findUnique({
+      where: { hardwareId: dto.hardwareId },
+    });
+
+    if (!existingDevice) {
+      const pairingCode = await this.generateUniquePairingCode();
+      const device = await this.prisma.device.create({
+        data: {
+          hardwareId: dto.hardwareId,
+          pairingCode,
+          pairingCodeExpiresAt: this.getPairingExpiresAt(),
+          active: true,
+        },
+      });
+
+      return {
+        hardwareId: device.hardwareId,
+        pairingCode: device.pairingCode,
+        pairingCodeExpiresAt: device.pairingCodeExpiresAt,
+        linked: false,
+        credentialsReady: false,
+      };
+    }
+
+    if (!existingDevice.active) {
+      throw new BadRequestException('Device inativo');
+    }
+
+    if (
+      existingDevice.code &&
+      existingDevice.secret &&
+      existingDevice.pairedAt
+    ) {
+      return {
+        hardwareId: existingDevice.hardwareId,
+        linked: Boolean(existingDevice.companyId),
+        credentialsReady: true,
+        alreadyPaired: true,
+      };
+    }
+
+    if (this.isPairingValid(existingDevice)) {
+      return {
+        hardwareId: existingDevice.hardwareId,
+        pairingCode: existingDevice.pairingCode,
+        pairingCodeExpiresAt: existingDevice.pairingCodeExpiresAt,
+        linked: Boolean(existingDevice.companyId),
+        credentialsReady: Boolean(
+          existingDevice.companyId &&
+          existingDevice.code &&
+          existingDevice.secret,
+        ),
+      };
+    }
+
+    const pairingCode = await this.generateUniquePairingCode();
+    const device = await this.prisma.device.update({
+      where: { id: existingDevice.id },
       data: {
-        code: generateCode(),
-        secret: generateSecret(),
+        pairingCode,
+        pairingCodeExpiresAt: this.getPairingExpiresAt(),
       },
     });
+
+    return {
+      hardwareId: device.hardwareId,
+      pairingCode: device.pairingCode,
+      pairingCodeExpiresAt: device.pairingCodeExpiresAt,
+      linked: Boolean(device.companyId),
+      credentialsReady: Boolean(
+        device.companyId && device.code && device.secret,
+      ),
+    };
   }
-  async linkDevice(user, dto: LinkDeviceDto) {
+
+  async claimPairing(dto: ClaimDevicePairingDto) {
     const device = await this.prisma.device.findUnique({
-      where: { code: dto.code },
+      where: { hardwareId: dto.hardwareId },
     });
 
     if (!device) {
-      throw new NotFoundException('Device não encontrado');
+      throw new NotFoundException('Device nao encontrado');
     }
 
-    if (device.companyId) {
-      throw new BadRequestException('Device já vinculado');
+    if (!device.active) {
+      throw new BadRequestException('Device inativo');
+    }
+
+    if (
+      device.pairingCode !== dto.pairingCode ||
+      !device.pairingCodeExpiresAt ||
+      device.pairingCodeExpiresAt <= new Date()
+    ) {
+      throw new BadRequestException('Codigo temporario invalido ou expirado');
+    }
+
+    if (!device.companyId || !device.code || !device.secret) {
+      return {
+        linked: false,
+        credentialsReady: false,
+      };
+    }
+
+    const updatedDevice = await this.prisma.device.update({
+      where: { id: device.id },
+      data: {
+        pairedAt: new Date(),
+        pairingCode: null,
+        pairingCodeExpiresAt: null,
+      },
+    });
+
+    return {
+      linked: true,
+      credentialsReady: true,
+      code: updatedDevice.code,
+      secret: updatedDevice.secret,
+      name: updatedDevice.name,
+      companyId: updatedDevice.companyId,
+    };
+  }
+
+  async linkDevice(user, dto: LinkDeviceDto) {
+    const device = await this.prisma.device.findUnique({
+      where: { pairingCode: dto.pairingCode },
+    });
+
+    if (
+      !device ||
+      !device.pairingCodeExpiresAt ||
+      device.pairingCodeExpiresAt <= new Date()
+    ) {
+      throw new NotFoundException(
+        'Codigo temporario nao encontrado ou expirado',
+      );
+    }
+
+    if (device.companyId && device.companyId !== user.companyId) {
+      throw new BadRequestException('Device ja vinculado a outra empresa');
+    }
+
+    const bus = await this.prisma.bus.findFirst({
+      where: {
+        id: dto.busId,
+        companyId: user.companyId,
+      },
+    });
+
+    if (!bus) {
+      throw new NotFoundException('Onibus nao encontrado');
+    }
+
+    const data: {
+      companyId?: string;
+      name: string;
+      busId: string;
+      code?: string;
+      secret?: string;
+    } = {
+      name: bus.plate,
+      busId: bus.id,
+    };
+
+    if (!device.companyId) {
+      data.companyId = user.companyId;
+    }
+
+    if (!device.code) {
+      data.code = await this.generateUniqueDeviceCode();
+    }
+
+    if (!device.secret) {
+      data.secret = generateSecret();
     }
 
     return this.prisma.device.update({
       where: { id: device.id },
-      data: {
-        companyId: user.companyId,
-        name: dto.name,
-      },
+      data,
     });
   }
+
   async findAll(user, query: ListDevicesDto) {
     const { page = 1, limit = 10, search, active } = query;
 
@@ -54,10 +270,26 @@ export class DevicesService {
     };
 
     if (search) {
-      where.name = {
-        contains: search,
-        mode: 'insensitive',
-      };
+      where.OR = [
+        {
+          name: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          code: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          hardwareId: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      ];
     }
 
     if (active !== undefined) {
@@ -80,6 +312,7 @@ export class DevicesService {
       lastPage: Math.ceil(total / limit),
     };
   }
+
   async deleteMany(user, dto: DeleteDevicesDto) {
     return this.prisma.device.updateMany({
       where: {
@@ -88,6 +321,59 @@ export class DevicesService {
       },
       data: {
         active: false,
+      },
+    });
+  }
+
+  async update(user, id: string, dto: { name: string }) {
+    const device = await this.prisma.device.findFirst({
+      where: {
+        id,
+        companyId: user.companyId,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException('Device nao encontrado');
+    }
+
+    return this.prisma.device.update({
+      where: { id },
+      data: {
+        name: dto.name,
+      },
+    });
+  }
+
+  async linkBus(user, id: string, dto: { busId: string }) {
+    const [device, bus] = await Promise.all([
+      this.prisma.device.findFirst({
+        where: {
+          id,
+          companyId: user.companyId,
+        },
+      }),
+      this.prisma.bus.findFirst({
+        where: {
+          id: dto.busId,
+          companyId: user.companyId,
+        },
+      }),
+    ]);
+
+    if (!device) {
+      throw new NotFoundException('Device nao encontrado');
+    }
+
+    if (!bus) {
+      throw new NotFoundException('Onibus nao encontrado');
+    }
+
+    return this.prisma.device.update({
+      where: { id },
+      data: {
+        busId: dto.busId,
+        name: bus.plate,
       },
     });
   }

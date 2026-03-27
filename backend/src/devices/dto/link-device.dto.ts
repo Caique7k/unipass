@@ -1,4 +1,11 @@
+import { IsString, IsNotEmpty } from 'class-validator';
+
 export class LinkDeviceDto {
-  code: string;
-  name?: string;
+  @IsString()
+  @IsNotEmpty()
+  pairingCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  busId: string;
 }

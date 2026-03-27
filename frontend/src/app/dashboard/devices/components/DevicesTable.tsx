@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Table,
@@ -68,7 +68,6 @@ export function DevicesTable({
     );
   };
 
-  // 🔥 PAGINAÇÃO
   const pages: number[] = [];
   const start = Math.max(1, page - 2);
   const end = Math.min(lastPage, page + 2);
@@ -79,7 +78,6 @@ export function DevicesTable({
 
   return (
     <div className="space-y-4">
-      {/* AÇÕES */}
       <div className="flex justify-between">
         <Button
           className="cursor-pointer"
@@ -110,15 +108,14 @@ export function DevicesTable({
         </div>
       </div>
 
-      {/* TABELA */}
       <div className="rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead></TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>Identifier</TableHead>
-              <TableHead>Code</TableHead>
+              <TableHead>Hardware</TableHead>
+              <TableHead>Código</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -126,7 +123,7 @@ export function DevicesTable({
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6">
+                <TableCell colSpan={5} className="py-6 text-center">
                   Nenhum device encontrado
                 </TableCell>
               </TableRow>
@@ -149,16 +146,16 @@ export function DevicesTable({
                   </TableCell>
 
                   <TableCell className="font-mono text-xs">
-                    {device.identifier}
+                    {device.hardwareId}
                   </TableCell>
 
-                  <TableCell className="font-mono text-xs max-w-[120px] truncate">
-                    {device.code}
+                  <TableCell className="max-w-[120px] truncate font-mono text-xs">
+                    {device.code || "Aguardando claim"}
                   </TableCell>
 
                   <TableCell>
                     <span
-                      className={`px-2 py-1 rounded text-xs ${
+                      className={`rounded px-2 py-1 text-xs ${
                         device.active
                           ? "bg-green-100 text-green-600"
                           : "bg-red-100 text-red-600"
@@ -174,7 +171,6 @@ export function DevicesTable({
         </Table>
       </div>
 
-      {/* PAGINAÇÃO */}
       <Pagination>
         <PaginationContent>
           <PaginationItem>

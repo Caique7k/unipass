@@ -79,12 +79,19 @@ model Student {
 }
 
 model Device {
-  id         String  @id @default(uuid())
-  identifier String  @unique
-  companyId  String
-  company    Company @relation(fields: [companyId], references: [id])
-  busId      String?
-  bus        Bus?    @relation(fields: [busId], references: [id])
+  id        String   @id @default(uuid())
+
+  code      String   @unique 
+  secret    String          
+
+  name      String?
+  active    Boolean  @default(true)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  busId String?
+  bus   Bus? @relation(fields: [busId], references: [id])
 
   lastLat    Float?
   lastLng    Float?
@@ -94,7 +101,8 @@ model Device {
 
   createdAt DateTime @default(now())
 
-  @@index([companyId, busId])
+  @@index([companyId])
+  @@index([busId])
 }
 
 model RfidCard {

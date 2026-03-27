@@ -10,30 +10,40 @@ import { BoardingDto } from './dto/boarding.dto';
 @Injectable()
 export class TransportService {
   constructor(private readonly prisma: PrismaService) {}
-
-  // 🔵 EMBARQUE
-  async registerBoarding(dto: BoardingDto) {
-    const { deviceIdentifier, rfidTag } = dto;
-
-    // 1️⃣ device
+  private async validateDevice(deviceIdentifier: string) {
     const device = await this.prisma.device.findUnique({
-      where: { identifier: deviceIdentifier },
+      where: { code: deviceIdentifier },
     });
 
     if (!device) {
       throw new NotFoundException('Device não encontrado');
     }
 
-    // 2️⃣ tag + aluno
-    const card = await this.prisma.rfidCard.findFirst({
+    if (!device.companyId) {
+      throw new BadRequestException('Device não vinculado');
+    }
+
+    return device;
+  }
+  private async getCardWithStudent(tag: string, companyId: string) {
+    return this.prisma.rfidCard.findFirst({
       where: {
-        tag: rfidTag,
-        companyId: device.companyId,
+        tag,
+        companyId,
       },
       include: {
         student: true,
       },
     });
+  }
+
+  // 🔵 EMBARQUE
+  async registerBoarding(dto: BoardingDto) {
+    const { deviceIdentifier, rfidTag } = dto;
+
+    const device = await this.validateDevice(deviceIdentifier);
+
+    const card = await this.getCardWithStudent(rfidTag, device.companyId!);
 
     if (!card || !card.student) {
       await this.logDenied(device, card);
@@ -42,35 +52,30 @@ export class TransportService {
 
     const student = card.student;
 
-    // 3️⃣ aluno ativo
     if (!student.active) {
       await this.logDenied(device, card, student.id);
       throw new ForbiddenException('Aluno inativo');
     }
 
-    // 4️⃣ evitar embarque duplicado (REGRA IMPORTANTE)
     const lastEvent = await this.prisma.transportEvent.findFirst({
       where: {
         studentId: student.id,
         deviceId: device.id,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (lastEvent?.type === 'BOARDING') {
       throw new BadRequestException('Aluno já está no ônibus');
     }
 
-    // 5️⃣ registrar embarque
     const event = await this.prisma.transportEvent.create({
       data: {
         type: 'BOARDING',
         studentId: student.id,
         rfidCardId: card.id,
         deviceId: device.id,
-        companyId: device.companyId,
+        companyId: device.companyId!,
       },
     });
 
@@ -90,17 +95,19 @@ export class TransportService {
     const { deviceIdentifier, rfidTag } = dto;
 
     const device = await this.prisma.device.findUnique({
-      where: { identifier: deviceIdentifier },
+      where: { code: deviceIdentifier },
     });
 
     if (!device) {
       throw new NotFoundException('Device não encontrado');
     }
-
+    if (!device.companyId) {
+      throw new BadRequestException('Device não vinculado');
+    }
     const card = await this.prisma.rfidCard.findFirst({
       where: {
         tag: rfidTag,
-        companyId: device.companyId,
+        companyId: device.companyId!,
       },
       include: {
         student: true,
@@ -135,7 +142,7 @@ export class TransportService {
         studentId: student.id,
         rfidCardId: card.id,
         deviceId: device.id,
-        companyId: device.companyId,
+        companyId: device.companyId!,
       },
     });
 

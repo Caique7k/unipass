@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Users, Truck, FileText, LogOut } from "lucide-react";
+import {
+  Home,
+  Users,
+  Truck,
+  FileText,
+  LogOut,
+  SmartphoneNfcIcon,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/app/contexts/SidebarContext";
 import { useAuth } from "@/app/contexts/AuthContext";
@@ -53,7 +60,7 @@ export default function Sidebar() {
 
           <SidebarItem
             href="/dashboard"
-            icon={<Home size={20} />}
+            icon={<Home size={25} />}
             label="Dashboard"
             isOpen={isOpen}
             active={pathname === "/dashboard"}
@@ -68,7 +75,7 @@ export default function Sidebar() {
 
           <SidebarItem
             href="/dashboard/students"
-            icon={<Users size={20} />}
+            icon={<Users size={25} />}
             label="Alunos"
             isOpen={isOpen}
             active={pathname === "/dashboard/students"}
@@ -76,10 +83,17 @@ export default function Sidebar() {
 
           <SidebarItem
             href="/dashboard/buses"
-            icon={<Truck size={20} />}
+            icon={<Truck size={25} />}
             label="Ônibus"
             isOpen={isOpen}
             active={pathname === "/dashboard/buses"}
+          />
+          <SidebarItem
+            href="/dashboard/devices"
+            icon={<SmartphoneNfcIcon size={25} />}
+            label="Dispositivos"
+            isOpen={isOpen}
+            active={pathname === "/dashboard/devices"}
           />
         </div>
 
@@ -91,7 +105,7 @@ export default function Sidebar() {
 
           <SidebarItem
             href="/reports"
-            icon={<FileText size={20} />}
+            icon={<FileText size={25} />}
             label="Relatórios"
             isOpen={isOpen}
             active={pathname === "/reports"}
@@ -112,7 +126,7 @@ export default function Sidebar() {
             transition-all cursor-pointer
           `}
         >
-          <LogOut size={20} />
+          <LogOut size={25} />
           {isOpen && <span>Sair</span>}
         </button>
       </div>

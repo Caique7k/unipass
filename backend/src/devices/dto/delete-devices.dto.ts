@@ -1,8 +1,8 @@
-import { ArrayMinSize, IsArray, IsUUID } from 'class-validator';
+import { ArrayMinSize, IsArray, IsString } from 'class-validator';
 
 export class DeleteDevicesDto {
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
   ids: string[];
 }

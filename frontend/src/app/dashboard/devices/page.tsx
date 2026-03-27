@@ -52,16 +52,24 @@ export default function DevicesPage() {
   };
 
   const handleConfirmDelete = async () => {
-    await api.delete("/devices", {
-      data: { ids: selectedIds },
-    });
+    if (selectedIds.length === 0) {
+      return;
+    }
 
-    setDeleteOpen(false);
-    setSelectedIds([]);
+    try {
+      await api.delete("/devices", {
+        data: { ids: selectedIds },
+      });
 
-    if (page > 1) setPage(1);
+      setDeleteOpen(false);
+      setSelectedIds([]);
 
-    refetch();
+      if (page > 1) setPage(1);
+
+      refetch();
+    } catch (err) {
+      console.error("Erro ao desativar devices:", err);
+    }
   };
 
   const handleEdit = (device: Device) => {

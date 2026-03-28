@@ -31,28 +31,31 @@ export default function Sidebar() {
   return (
     <aside
       className={`
-        bg-slate-900 text-slate-200 shadow-sm flex flex-col transition-all duration-300 border-r border-slate-800
+        unipass-scrollbar bg-sidebar text-sidebar-foreground shadow-sm flex h-full min-h-0 flex-col overflow-y-auto transition-all duration-300 border-r border-sidebar-border
         ${isOpen ? "w-64" : "w-20"}
       `}
     >
       <div
         className={`
-          h-16 flex items-center
-          ${isOpen ? "px-4 justify-start" : "justify-center"}
+          min-h-16 flex items-center
+          ${isOpen ? "px-3 py-3 justify-start" : "justify-center"}
         `}
       >
         {loading ? (
-          <span className="h-5 w-24 animate-pulse rounded bg-slate-700" />
+          <span className="h-5 w-24 animate-pulse rounded bg-sidebar-accent" />
         ) : (
           user &&
           (isOpen ? (
-            <span className="font-medium text-sm truncate">
-              Bem vindo, {user.name}!
-            </span>
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-[#ff5c00] flex items-center justify-center text-white text-sm font-bold">
-              {user.name?.charAt(0)}
+            <div className="flex w-full items-center gap-3 rounded-2xl  px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                  Bem-vindo
+                </p>
+                <p className="truncate text-sm font-semibold">{user.name}</p>
+              </div>
             </div>
+          ) : (
+            <div></div>
           ))
         )}
       </div>
@@ -60,7 +63,9 @@ export default function Sidebar() {
       <nav className="flex-1 p-2 space-y-6">
         <div>
           {isOpen && (
-            <p className="text-xs uppercase text-slate-400 mb-2">Principal</p>
+            <p className="text-xs uppercase text-muted-foreground mb-2">
+              Principal
+            </p>
           )}
 
           {isPlatformAdmin ? (
@@ -85,9 +90,10 @@ export default function Sidebar() {
         {canViewOperations && (
           <div>
             {isOpen && (
-              <p className="text-xs uppercase text-slate-400 mb-2">Gestao</p>
+              <p className="text-xs uppercase text-muted-foreground mb-2">
+                Gestao
+              </p>
             )}
-
             <SidebarItem
               href="/dashboard/students"
               icon={<BookUserIcon size={25} />}
@@ -103,7 +109,6 @@ export default function Sidebar() {
               isOpen={isOpen}
               active={pathname === "/dashboard/buses"}
             />
-
             {canManageCompany && (
               <SidebarItem
                 href="/dashboard/devices"
@@ -119,7 +124,9 @@ export default function Sidebar() {
         {canManageCompany && (
           <div>
             {isOpen && (
-              <p className="text-xs uppercase text-slate-400 mb-2">Usuarios</p>
+              <p className="text-xs uppercase text-muted-foreground mb-2">
+                Usuarios
+              </p>
             )}
 
             <SidebarItem
@@ -134,8 +141,10 @@ export default function Sidebar() {
 
         {isStudentUser && isOpen && (
           <div>
-            <p className="text-xs uppercase text-slate-400 mb-2">App aluno</p>
-            <p className="px-3 text-xs text-slate-400">
+            <p className="text-xs uppercase text-muted-foreground mb-2">
+              App aluno
+            </p>
+            <p className="px-3 text-xs text-muted-foreground">
               Rastreamento, boleto e presenca entram nos proximos passos.
             </p>
           </div>
@@ -147,7 +156,7 @@ export default function Sidebar() {
           onClick={logout}
           className={`
             flex items-center w-full py-2 rounded-lg text-red-500 transition-all cursor-pointer
-            hover:bg-slate-800
+            hover:bg-sidebar-accent
             ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
           `}
         >
@@ -181,7 +190,7 @@ function SidebarItem({
         ${
           active
             ? "bg-[#ff5c00] text-white"
-            : "hover:bg-slate-800 text-slate-200"
+            : "hover:bg-sidebar-accent text-sidebar-foreground"
         }
       `}
     >

@@ -3,6 +3,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -16,23 +17,56 @@ export function CreateDeviceModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Como funciona o pareamento?</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[620px]">
+        <div className="border-b border-[#ff5c00]/10 bg-[#ff5c00]/[0.04] px-6 py-5">
+          <DialogHeader className="gap-1">
+            <DialogTitle className="text-2xl font-bold text-foreground">
+              Como funciona o pareamento?
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Um passo a passo rápido para conectar um novo UniHub.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>
-            1. Ligue o UniHub e deixe o dispositivo solicitar um código
-            temporário ao servidor.
-          </p>
-          <p>
-            2. O dispositivo deve exibir esse código na tela, serial ou QR code.
-          </p>
-          <p>
-            3. No painel, clique em "Parear dispositivo" e informe o código
-            temporário.
-          </p>
+        <div className="space-y-6 bg-background px-6 py-6">
+          <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
+                1
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                Gere o código
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ligue o UniHub e solicite um código temporário ao servidor.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                2
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                Veja o código
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                O dispositivo pode exibir esse código em tela, serial ou QR code.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                3
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                Conclua no painel
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Clique em &quot;Parear dispositivo&quot; e informe o código temporário.
+              </p>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

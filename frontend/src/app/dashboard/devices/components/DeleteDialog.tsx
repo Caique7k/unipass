@@ -27,11 +27,11 @@ export function DeleteDevicesDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Desativar device{count > 1 ? "s" : ""}
+            Desativar dispositivo{count > 1 ? "s" : ""}
           </AlertDialogTitle>
 
           <AlertDialogDescription>
-            Você tem certeza que deseja desativar {count} device
+            Você tem certeza de que deseja desativar {count} dispositivo
             {count > 1 ? "s" : ""}? Essa ação pode ser revertida depois.
           </AlertDialogDescription>
         </AlertDialogHeader>

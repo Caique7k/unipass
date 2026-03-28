@@ -26,7 +26,7 @@ export function DeleteStudentsDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Tem certeza que deseja desativar?</AlertDialogTitle>
+          <AlertDialogTitle>Tem certeza de que deseja desativar?</AlertDialogTitle>
 
           <AlertDialogDescription>
             Você está prestes a desativar {count} aluno(s). Essa ação não pode

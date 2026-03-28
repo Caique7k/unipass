@@ -44,7 +44,7 @@ export default function CompaniesPage() {
 
   if (user?.role !== "PLATFORM_ADMIN") {
     return (
-      <AccessDenied description="Somente o dono da plataforma pode acessar a visao global de empresas." />
+      <AccessDenied description="Somente o dono da plataforma pode acessar a visão global de empresas." />
     );
   }
 
@@ -57,7 +57,7 @@ export default function CompaniesPage() {
       <div>
         <h1 className="text-2xl font-bold">Empresas cadastradas</h1>
         <p className="text-sm text-muted-foreground">
-          Visao global da plataforma UniPass.
+          Visão global da plataforma UniPass.
         </p>
       </div>
 
@@ -68,13 +68,13 @@ export default function CompaniesPage() {
               <h2 className="text-lg font-semibold">{company.name}</h2>
               <p className="text-sm text-muted-foreground">{company.cnpj}</p>
               <p className="text-sm text-muted-foreground">
-                Dominio: @{company.emailDomain}
+                Domínio: @{company.emailDomain}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-muted-foreground">Usuarios</p>
+                <p className="text-muted-foreground">Usuários</p>
                 <p className="font-semibold">{company._count.users}</p>
               </div>
               <div>
@@ -82,7 +82,7 @@ export default function CompaniesPage() {
                 <p className="font-semibold">{company._count.students}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Onibus</p>
+                <p className="text-muted-foreground">Ônibus</p>
                 <p className="font-semibold">{company._count.buses}</p>
               </div>
               <div>

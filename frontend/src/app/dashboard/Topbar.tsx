@@ -27,7 +27,7 @@ export default function Topbar() {
         <div className="absolute left-1/2 -translate-x-1/2">
           <Link
             href={homeHref}
-            className="flex items-center gap-2 md:gap-3 rounded-[24px]  px-3 py-2 md:px-4 md:py-2.5 backdrop-blur"
+            className="flex cursor-pointer items-center gap-2 rounded-[24px] px-3 py-2 backdrop-blur md:gap-3 md:px-4 md:py-2.5"
           >
             <div className="flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-2xl">
               <Image

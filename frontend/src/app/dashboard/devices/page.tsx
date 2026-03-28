@@ -78,8 +78,8 @@ export default function DevicesPage() {
 
       refetch();
     } catch (error) {
-      console.error("Erro ao desativar devices:", error);
-      toast.error("Nao foi possivel desativar o UniHub.");
+      console.error("Erro ao desativar dispositivos:", error);
+      toast.error("Não foi possível desativar o UniHub.");
     }
   };
 
@@ -94,7 +94,7 @@ export default function DevicesPage() {
 
       <Card className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
         <Input
-          placeholder="Buscar por nome, codigo ou hardware..."
+          placeholder="Buscar por nome, código ou hardware..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -131,7 +131,9 @@ export default function DevicesPage() {
 
       <Card className="p-4">
         {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando devices...</p>
+          <p className="text-sm text-muted-foreground">
+            Carregando dispositivos...
+          </p>
         ) : (
           <DevicesTable
             data={data}

@@ -87,7 +87,7 @@ export function UsersTable({
           placeholder="Pesquisar por nome, email ou perfil..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
+          className="h-11 max-w-sm rounded-xl"
         />
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -95,8 +95,8 @@ export function UsersTable({
             value={status}
             onValueChange={(value) => setStatus(value as UserStatusFilter)}
           >
-            <SelectTrigger className="w-[170px] cursor-pointer">
-              <SelectValue placeholder="Filtrar status" />
+            <SelectTrigger className="h-11 w-[170px] cursor-pointer rounded-xl">
+              <SelectValue>{status}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todos">Todos</SelectItem>
@@ -109,15 +109,17 @@ export function UsersTable({
             value={roleFilter}
             onValueChange={(value) => setRoleFilter(value as UserRole | "Todos")}
           >
-            <SelectTrigger className="w-[190px] cursor-pointer">
-              <SelectValue placeholder="Filtrar perfil" />
+            <SelectTrigger className="h-11 w-[190px] cursor-pointer rounded-xl">
+              <SelectValue>
+                {roleFilter === "Todos" ? "Todos os perfis" : roleLabels[roleFilter]}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todos">Todos os perfis</SelectItem>
-              <SelectItem value="ADMIN">Administrador</SelectItem>
-              <SelectItem value="DRIVER">Motorista</SelectItem>
-              <SelectItem value="COORDINATOR">Coordenador</SelectItem>
-              <SelectItem value="USER">Aluno</SelectItem>
+              <SelectItem value="ADMIN">{roleLabels.ADMIN}</SelectItem>
+              <SelectItem value="DRIVER">{roleLabels.DRIVER}</SelectItem>
+              <SelectItem value="COORDINATOR">{roleLabels.COORDINATOR}</SelectItem>
+              <SelectItem value="USER">{roleLabels.USER}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -150,7 +152,7 @@ export function UsersTable({
             {data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-6 text-center">
-                  Nenhum usuario encontrado
+                  Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
             ) : (

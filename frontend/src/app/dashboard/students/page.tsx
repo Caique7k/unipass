@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { AccessDenied } from "@/components/AccessDenied";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,7 @@ export default function StudentsPage() {
 
   if (!canView) {
     return (
-      <AccessDenied description="Este perfil nao pode acessar a gestao de alunos." />
+      <AccessDenied description="Este perfil não pode acessar a gestão de alunos." />
     );
   }
 
@@ -53,19 +54,35 @@ export default function StudentsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    await fetch("http://localhost:3000/students/desactivate", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ ids: selectedIds }),
-    });
+    try {
+      const response = await fetch("http://localhost:3000/students/desactivate", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ids: selectedIds }),
+      });
 
-    setDeleteOpen(false);
-    setSelectedIds([]);
+      if (!response.ok) {
+        throw new Error();
+      }
 
-    if (page > 1) setPage(1);
+      setDeleteOpen(false);
+      setSelectedIds([]);
 
-    refetch();
+      if (page > 1) setPage(1);
+
+      toast.success(
+        selectedIds.length === 1
+          ? "Aluno desativado com sucesso."
+          : "Alunos desativados com sucesso.",
+      );
+
+      refetch();
+    } catch {
+      toast.error("Erro ao desativar alunos.", {
+        description: "Tente novamente em instantes.",
+      });
+    }
   };
 
   return (
@@ -75,13 +92,13 @@ export default function StudentsPage() {
         <p className="text-muted-foreground text-sm">
           {canManage
             ? "Gerencie os alunos cadastrados no sistema"
-            : "Visualize os alunos, status de embarque e informacoes da operacao"}
+            : "Visualize os alunos, status de embarque e informações da operação"}
         </p>
       </div>
 
-      <Card className="p-4 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+      <Card className="p-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Input
-          placeholder="Buscar por nome ou matricula..."
+          placeholder="Buscar por nome ou matrícula..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);

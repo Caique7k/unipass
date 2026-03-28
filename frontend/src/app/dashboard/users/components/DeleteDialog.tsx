@@ -5,13 +5,13 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export function DeleteBusesDialog({
+export function DeleteUsersDialog({
   open,
   onOpenChange,
   onConfirm,
@@ -27,10 +27,9 @@ export function DeleteBusesDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Tem certeza de que deseja desativar?</AlertDialogTitle>
-
           <AlertDialogDescription>
-            Você está prestes a desativar {count} ônibus. Essa ação não pode ser
-            desfeita.
+            Você está prestes a desativar {count} usuário(s). Essa ação não pode
+            ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -38,7 +37,6 @@ export function DeleteBusesDialog({
           <AlertDialogCancel className="cursor-pointer">
             Cancelar
           </AlertDialogCancel>
-
           <AlertDialogAction
             className="bg-red-600 hover:bg-red-700 cursor-pointer"
             onClick={onConfirm}

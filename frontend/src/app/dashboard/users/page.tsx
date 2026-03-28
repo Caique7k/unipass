@@ -16,6 +16,7 @@ import {
 } from "./hooks/useUsers";
 import { UsersTable } from "./components/UsersTable";
 import { UserFormModal } from "./components/UserFormModal";
+import { DeleteUsersDialog } from "./components/DeleteDialog";
 
 export default function UsersPage() {
   const { user } = useAuth();
@@ -31,31 +32,52 @@ export default function UsersPage() {
   );
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   if (!canManage) {
     return (
-      <AccessDenied description="Somente o administrador da empresa pode cadastrar e gerenciar usuarios." />
+      <AccessDenied description="Somente o administrador da empresa pode cadastrar e gerenciar usuários." />
     );
   }
 
   async function handleDeactivate(ids: string[]) {
     try {
       await api.patch("/users/deactivate", { ids });
-      toast.success("Usuários desativados com sucesso");
+      toast.success(
+        ids.length === 1
+          ? "Usuário desativado com sucesso."
+          : "Usuários desativados com sucesso.",
+      );
       await refetch();
     } catch (error: unknown) {
       toast.error(
         axios.isAxiosError(error)
-          ? (error.response?.data?.message ?? "Erro ao desativar usuarios")
-          : "Erro ao desativar usuarios",
+          ? (error.response?.data?.message ?? "Erro ao desativar usuários")
+          : "Erro ao desativar usuários",
       );
     }
+  }
+
+  function handleAskDeactivate(ids: string[]) {
+    setSelectedIds(ids);
+    setDeleteOpen(true);
+  }
+
+  async function handleConfirmDeactivate() {
+    if (selectedIds.length === 0) {
+      return;
+    }
+
+    await handleDeactivate(selectedIds);
+    setDeleteOpen(false);
+    setSelectedIds([]);
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Usuarios</h1>
+        <h1 className="text-2xl font-bold">Usuários</h1>
         <p className="text-sm text-muted-foreground">
           Cadastre administradores, motoristas, coordenadores e alunos da sua
           empresa.
@@ -64,7 +86,7 @@ export default function UsersPage() {
 
       <Card className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-sm font-medium">Dominio da empresa</p>
+          <p className="text-sm font-medium">Domínio da empresa</p>
           <div className="mt-2 inline-flex items-center rounded-full border bg-muted/40 px-3 py-1 text-sm text-muted-foreground">
             @{user.emailDomain}
           </div>
@@ -77,14 +99,14 @@ export default function UsersPage() {
           }}
           className="cursor-pointer"
         >
-          + Novo usuario
+          + Novo usuário
         </Button>
       </Card>
 
       <Card className="p-4">
         {loading ? (
           <p className="text-sm text-muted-foreground">
-            Carregando usuarios...
+            Carregando usuários...
           </p>
         ) : (
           <UsersTable
@@ -111,7 +133,7 @@ export default function UsersPage() {
               setSelectedUser(managedUser);
               setOpen(true);
             }}
-            onDeactivate={handleDeactivate}
+            onDeactivate={handleAskDeactivate}
           />
         )}
       </Card>
@@ -122,6 +144,12 @@ export default function UsersPage() {
         user={selectedUser}
         emailDomain={user.emailDomain}
         onSuccess={refetch}
+      />
+      <DeleteUsersDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={handleConfirmDeactivate}
+        count={selectedIds.length}
       />
     </div>
   );

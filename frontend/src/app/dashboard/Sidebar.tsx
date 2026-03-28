@@ -91,7 +91,7 @@ export default function Sidebar() {
           <div>
             {isOpen && (
               <p className="text-xs uppercase text-muted-foreground mb-2">
-                Gestao
+                Gestão
               </p>
             )}
             <SidebarItem
@@ -105,7 +105,7 @@ export default function Sidebar() {
             <SidebarItem
               href="/dashboard/buses"
               icon={<Truck size={25} />}
-              label="Onibus"
+              label="Ônibus"
               isOpen={isOpen}
               active={pathname === "/dashboard/buses"}
             />
@@ -125,14 +125,14 @@ export default function Sidebar() {
           <div>
             {isOpen && (
               <p className="text-xs uppercase text-muted-foreground mb-2">
-                Usuarios
+                Usuários
               </p>
             )}
 
             <SidebarItem
               href="/dashboard/users"
               icon={<Users size={25} />}
-              label="Usuarios"
+              label="Usuários"
               isOpen={isOpen}
               active={pathname === "/dashboard/users"}
             />
@@ -145,7 +145,7 @@ export default function Sidebar() {
               App aluno
             </p>
             <p className="px-3 text-xs text-muted-foreground">
-              Rastreamento, boleto e presenca entram nos proximos passos.
+              Rastreamento, boleto e presença entram nos próximos passos.
             </p>
           </div>
         )}
@@ -185,7 +185,7 @@ function SidebarItem({
     <Link
       href={href}
       className={`
-        flex items-center py-2 rounded-lg transition-all
+        flex cursor-pointer items-center py-2 rounded-lg transition-all
         ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
         ${
           active

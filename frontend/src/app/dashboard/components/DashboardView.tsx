@@ -23,7 +23,7 @@ function CompanyDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Visao geral do sistema UniPass</p>
+          <p className="text-muted-foreground">Visão geral do sistema UniPass</p>
         </div>
 
         <div className="text-sm text-muted-foreground">
@@ -44,7 +44,7 @@ export function DashboardView() {
       <Card className="max-w-3xl p-6">
         <h1 className="text-3xl font-bold tracking-tight">Painel da plataforma</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Este perfil representa o dono do UniPass e agora tem uma area separada
+          Este perfil representa o dono do UniPass e agora tem uma área separada
           para acompanhar as empresas cadastradas.
         </p>
       </Card>
@@ -54,10 +54,10 @@ export function DashboardView() {
   if (user?.role === "USER") {
     return (
       <Card className="max-w-3xl p-6">
-        <h1 className="text-3xl font-bold tracking-tight">Area do aluno</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Área do aluno</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Este perfil ficou reservado para os proximos passos: rastreamento em
-          tempo real, lembretes de boleto e presenca de ida e volta.
+          Este perfil ficou reservado para os próximos passos: rastreamento em
+          tempo real, lembretes de boleto e presença de ida e volta.
         </p>
       </Card>
     );

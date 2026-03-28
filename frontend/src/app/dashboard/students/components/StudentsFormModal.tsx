@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -46,11 +47,9 @@ export function StudentModal({
   const [form, setForm] = useState<Student>(emptyForm);
   const [errors, setErrors] = useState<Errors>({});
   const [isSaving, setIsSaving] = useState(false);
-
   const [isLinking, setIsLinking] = useState(false);
   const [rfidTag, setRfidTag] = useState("");
   const [createdStudent, setCreatedStudent] = useState<Student | null>(null);
-
   const [serverError, setServerError] = useState("");
 
   const isEdit = !!student?.id;
@@ -68,7 +67,6 @@ export function StudentModal({
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // ✅ VALIDAÇÃO (voltou, do jeito certo)
   const validate = (): boolean => {
     const newErrors: Errors = {};
 
@@ -77,11 +75,11 @@ export function StudentModal({
     }
 
     if (!form.registration || form.registration.length < 3) {
-      newErrors.registration = "Matrícula inválida";
+      newErrors.registration = "Matricula invalida";
     }
 
     if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = "Email inválido";
+      newErrors.email = "E-mail inválido";
     }
 
     if (!form.phone || form.phone.replace(/\D/g, "").length < 10) {
@@ -92,7 +90,6 @@ export function StudentModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  // CREATE
   const createStudent = async () => {
     const res = await fetch("http://localhost:3000/students", {
       method: "POST",
@@ -101,10 +98,15 @@ export function StudentModal({
       body: JSON.stringify(form),
     });
 
-    return res.json();
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Erro ao criar aluno");
+    }
+
+    return data;
   };
 
-  // ✅ UPDATE
   const updateStudent = async () => {
     const res = await fetch(`http://localhost:3000/students/${student?.id}`, {
       method: "PUT",
@@ -116,13 +118,15 @@ export function StudentModal({
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || "Erro na requisição");
+      throw new Error(data.message || "Erro na requisicao");
     }
   };
 
-  //  BOTÃO PRINCIPAL
   const handleSubmit = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error("Revise os campos obrigatórios antes de salvar.");
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -140,31 +144,50 @@ export function StudentModal({
 
       setCreatedStudent(student);
       setIsLinking(true);
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar aluno");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar aluno");
     } finally {
       setIsSaving(false);
     }
   };
 
-  //  RFID
   const handleConfirmLink = async () => {
+    if (!rfidTag.trim()) {
+      toast.error("Informe o código RFID para concluir o vínculo.");
+      return;
+    }
+
+    const studentId = createdStudent?.id ?? student?.id;
+
+    if (!studentId) {
+      toast.error("Não foi possível identificar o aluno para vincular o RFID.");
+      return;
+    }
+
     try {
-      await fetch("http://localhost:3000/rfid/link", {
+      const response = await fetch("http://localhost:3000/rfid/link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          studentId: createdStudent?.id,
-          rfidTag,
+          studentId,
+          rfidTag: rfidTag.trim(),
         }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erro ao vincular RFID");
+      }
 
       toast.success("RFID vinculado com sucesso");
       onSuccess();
       onOpenChange(false);
-    } catch (err) {
-      toast.error("Erro ao vincular RFID");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao vincular RFID",
+      );
     }
   };
 
@@ -175,83 +198,168 @@ export function StudentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar aluno" : "Novo aluno"}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[620px]">
+        <div className="border-b border-[#ff5c00]/10 bg-[#ff5c00]/[0.04] px-6 py-5">
+          <DialogHeader className="gap-1">
+            <DialogTitle className="text-2xl font-bold text-foreground">
+              {isEdit ? "Editar aluno" : "Novo aluno"}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {isEdit
+                ? "Atualize os dados cadastrais deste aluno."
+                : "Preencha os dados para criar um aluno e vincular o RFID."}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-6 bg-background px-6 py-6">
           {!isLinking ? (
             <>
-              <div className="md:col-span-2">
-                <Label>Nome</Label>
-                <Input
-                  value={form.name || ""}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  className={cn(errors.name && "border-red-500")}
-                />
-                {renderError("name")}
+              <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
+                    Cadastro
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-foreground">
+                    {isEdit ? "Edição de aluno" : "Novo aluno"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Confira nome, matrícula e contato antes de salvar.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Proxima etapa
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-foreground">
+                    {isEdit ? "Atualizacao imediata" : "Vinculo com RFID"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {isEdit
+                      ? "As alteracoes sao salvas direto no cadastro."
+                      : "Depois do cadastro você confirma o cartão do aluno."}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <Label>Matrícula</Label>
-                <Input
-                  value={form.registration || ""}
-                  onChange={(e) => handleChange("registration", e.target.value)}
-                  className={cn(errors.registration && "border-red-500")}
-                />
-                {renderError("registration")}
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-sm font-medium">Nome</Label>
+                  <Input
+                    value={form.name || ""}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    className={cn(
+                      "h-11 rounded-xl border-border/70 bg-background px-3",
+                      errors.name && "border-red-500",
+                    )}
+                    placeholder="Digite o nome completo"
+                  />
+                  {renderError("name")}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Matrícula</Label>
+                  <Input
+                    value={form.registration || ""}
+                    onChange={(e) => handleChange("registration", e.target.value)}
+                    className={cn(
+                      "h-11 rounded-xl border-border/70 bg-background px-3",
+                      errors.registration && "border-red-500",
+                    )}
+                    placeholder="Informe a matrícula"
+                  />
+                  {renderError("registration")}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Email</Label>
+                  <Input
+                    value={form.email || ""}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    className="h-11 rounded-xl border-border/70 bg-background px-3"
+                    placeholder="aluno@empresa.com.br"
+                  />
+                  {renderError("email")}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-sm font-medium">Telefone</Label>
+                  <Input
+                    value={form.phone || ""}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    className="h-11 rounded-xl border-border/70 bg-background px-3"
+                    placeholder="(00) 00000-0000"
+                  />
+                  {renderError("phone")}
+                </div>
               </div>
 
-              <div>
-                <Label>Email</Label>
-                <Input
-                  value={form.email || ""}
-                  onChange={(e) => handleChange("email", e.target.value)}
-                />
-                {renderError("email")}
-              </div>
+              {serverError && <p className="text-sm text-red-500">{serverError}</p>}
 
-              <div className="md:col-span-2">
-                <Label>Telefone</Label>
-                <Input
-                  value={form.phone || ""}
-                  onChange={(e) => handleChange("phone", e.target.value)}
-                />
-                {renderError("phone")}
-              </div>
-
-              {serverError && (
-                <p className="text-sm text-red-500">{serverError}</p>
-              )}
-
-              <div className="md:col-span-2 flex justify-end gap-2">
+              <div className="flex justify-end border-t border-border/60 pt-2">
                 <Button
                   onClick={handleSubmit}
                   disabled={isSaving}
-                  className="p-4 cursor-pointer mt-4"
+                  className="h-11 rounded-xl px-6 cursor-pointer"
                 >
                   {isSaving
                     ? "Salvando..."
                     : isEdit
-                      ? "Salvar alterações"
+                      ? "Salvar alteracoes"
                       : "Criar e vincular RFID"}
                 </Button>
               </div>
             </>
           ) : (
-            <div className="space-y-4 text-center">
-              <p>Aproxime o cartão</p>
+            <div className="space-y-6">
+              <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
+                    Vinculo
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-foreground">
+                    Cartao do aluno
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Aproxime o cartão ou informe o código RFID manualmente.
+                  </p>
+                </div>
 
-              <Input
-                placeholder="Simular RFID"
-                value={rfidTag}
-                onChange={(e) => setRfidTag(e.target.value)}
-              />
+                <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Aluno criado
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-foreground">
+                    {createdStudent?.name || "Cadastro concluido"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Finalize o processo confirmando o identificador RFID.
+                  </p>
+                </div>
+              </div>
 
-              <Button onClick={handleConfirmLink} className="w-full">
-                Confirmar
-              </Button>
+              <div className="space-y-2 text-center">
+                <p className="text-sm font-medium text-foreground">
+                  Aproxime o cartão ou insira o código abaixo
+                </p>
+
+                <Input
+                  placeholder="Simular RFID"
+                  value={rfidTag}
+                  onChange={(e) => setRfidTag(e.target.value)}
+                  className="h-11 rounded-xl border-border/70 bg-background px-3"
+                />
+              </div>
+
+              <div className="flex justify-end border-t border-border/60 pt-2">
+                <Button
+                  onClick={handleConfirmLink}
+                  className="h-11 rounded-xl px-6 cursor-pointer"
+                >
+                  Confirmar
+                </Button>
+              </div>
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 
 export function AccessDenied({
   title = "Acesso restrito",
-  description = "Seu perfil nao tem permissao para acessar esta area.",
+  description = "Seu perfil não tem permissão para acessar esta área.",
 }: {
   title?: string;
   description?: string;

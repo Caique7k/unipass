@@ -39,7 +39,7 @@ export function PaginationLink({
   return (
     <button
       className={cn(
-        "px-3 py-1 text-sm rounded-md border",
+        "cursor-pointer rounded-md border px-3 py-1 text-sm disabled:cursor-not-allowed",
         isActive ? "bg-primary text-white" : "bg-background",
         className,
       )}

@@ -96,7 +96,7 @@ export function DevicesTable({
             }
           >
             <SelectTrigger className="w-[180px] cursor-pointer">
-              <SelectValue placeholder="Filtrar status" />
+              <SelectValue>{status}</SelectValue>
             </SelectTrigger>
 
             <SelectContent>
@@ -115,7 +115,7 @@ export function DevicesTable({
               {canManage && <TableHead />}
               <TableHead>Nome</TableHead>
               <TableHead>Hardware</TableHead>
-              <TableHead>Codigo</TableHead>
+              <TableHead>Código</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -124,7 +124,7 @@ export function DevicesTable({
             {data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={canManage ? 5 : 4} className="py-6 text-center">
-                  Nenhum device encontrado
+                  Nenhum dispositivo encontrado
                 </TableCell>
               </TableRow>
             ) : (

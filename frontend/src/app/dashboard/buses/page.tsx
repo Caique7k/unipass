@@ -26,7 +26,7 @@ export default function BusesPage() {
 
   if (!canView) {
     return (
-      <AccessDenied description="Este perfil nao pode acessar a gestao de onibus." />
+      <AccessDenied description="Este perfil não pode acessar a gestão de ônibus." />
     );
   }
 
@@ -37,21 +37,31 @@ export default function BusesPage() {
 
   const handleConfirmDelete = async () => {
     try {
-      await fetch("http://localhost:3000/buses/", {
+      const response = await fetch("http://localhost:3000/buses/", {
         method: "delete",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ ids: selectedIds }),
       });
 
+      if (!response.ok) {
+        throw new Error();
+      }
+
       setDeleteOpen(false);
       setSelectedIds([]);
 
       if (page > 1) setPage(1);
 
+      toast.success(
+        selectedIds.length === 1
+          ? "Ônibus desativado com sucesso."
+          : "Ônibus desativados com sucesso.",
+      );
+
       refetch();
     } catch {
-      toast.error("Erro ao remover onibus", {
+      toast.error("Erro ao remover ônibus", {
         description: "Tente novamente mais tarde.",
       });
     }
@@ -60,15 +70,15 @@ export default function BusesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Onibus</h1>
+        <h1 className="text-2xl font-bold">Ônibus</h1>
         <p className="text-muted-foreground text-sm">
           {canManage
-            ? "Gerencie os onibus cadastrados"
-            : "Visualize todos os onibus da operacao"}
+            ? "Gerencie os ônibus cadastrados"
+            : "Visualize todos os ônibus da operação"}
         </p>
       </div>
 
-      <Card className="p-4 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+      <Card className="p-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Input
           placeholder="Buscar pela placa..."
           value={search}
@@ -87,7 +97,7 @@ export default function BusesPage() {
             }}
             className="cursor-pointer"
           >
-            + Novo onibus
+            + Novo ônibus
           </Button>
         )}
       </Card>

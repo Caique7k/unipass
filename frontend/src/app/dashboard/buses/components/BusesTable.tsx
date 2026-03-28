@@ -67,7 +67,7 @@ export function BusesTable({
             disabled={validSelected.length === 0}
             onClick={() => onDelete(validSelected)}
           >
-            Excluir selecionados ({validSelected.length})
+            Desativar selecionados ({validSelected.length})
           </Button>
         ) : (
           <div />
@@ -88,7 +88,7 @@ export function BusesTable({
             {data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={canManage ? 3 : 2} className="text-center py-6">
-                  Nenhum onibus encontrado
+                  Nenhum ônibus encontrado
                 </TableCell>
               </TableRow>
             ) : (

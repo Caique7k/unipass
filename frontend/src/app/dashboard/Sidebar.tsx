@@ -9,6 +9,7 @@ import {
   LogOut,
   SmartphoneNfcIcon,
   BookUserIcon,
+  Compass,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/app/contexts/SidebarContext";
@@ -31,14 +32,15 @@ export default function Sidebar() {
   return (
     <aside
       className={`
-        unipass-scrollbar bg-background/85 text-sidebar-foreground shadow-sm backdrop-blur-xl flex h-full min-h-0 flex-col overflow-y-auto transition-all duration-300 border-r border-sidebar-border
+        unipass-scrollbar flex h-full min-h-0 flex-col overflow-y-auto border-r border-sidebar-border
+        bg-background/85 text-sidebar-foreground shadow-sm backdrop-blur-xl transition-all duration-300
         ${isOpen ? "w-64" : "w-20"}
       `}
     >
       <div
         className={`
           min-h-16 flex items-center
-          ${isOpen ? "px-3 py-3 justify-start" : "justify-center"}
+          ${isOpen ? "justify-start px-3 py-3" : "justify-center"}
         `}
       >
         {loading ? (
@@ -55,15 +57,15 @@ export default function Sidebar() {
               </div>
             </div>
           ) : (
-            <div></div>
+            <div />
           ))
         )}
       </div>
 
-      <nav className="flex-1 p-2 space-y-6">
+      <nav className="flex-1 space-y-6 p-2">
         <div>
           {isOpen && (
-            <p className="text-xs uppercase text-muted-foreground mb-2">
+            <p className="mb-2 text-xs uppercase text-muted-foreground">
               Principal
             </p>
           )}
@@ -90,10 +92,29 @@ export default function Sidebar() {
         {canViewOperations && (
           <div>
             {isOpen && (
-              <p className="text-xs uppercase text-muted-foreground mb-2">
+              <p className="mb-2 text-xs uppercase text-muted-foreground">
+                Localização
+              </p>
+            )}
+
+            <SidebarItem
+              href="/dashboard/location"
+              icon={<Compass size={25} />}
+              label="Localização"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/location"}
+            />
+          </div>
+        )}
+
+        {canViewOperations && (
+          <div>
+            {isOpen && (
+              <p className="mb-2 text-xs uppercase text-muted-foreground">
                 Gestão
               </p>
             )}
+
             <SidebarItem
               href="/dashboard/students"
               icon={<BookUserIcon size={25} />}
@@ -109,6 +130,7 @@ export default function Sidebar() {
               isOpen={isOpen}
               active={pathname === "/dashboard/buses"}
             />
+
             {canManageCompany && (
               <SidebarItem
                 href="/dashboard/devices"
@@ -124,7 +146,7 @@ export default function Sidebar() {
         {canManageCompany && (
           <div>
             {isOpen && (
-              <p className="text-xs uppercase text-muted-foreground mb-2">
+              <p className="mb-2 text-xs uppercase text-muted-foreground">
                 Usuários
               </p>
             )}
@@ -141,7 +163,7 @@ export default function Sidebar() {
 
         {isStudentUser && isOpen && (
           <div>
-            <p className="text-xs uppercase text-muted-foreground mb-2">
+            <p className="mb-2 text-xs uppercase text-muted-foreground">
               App aluno
             </p>
             <p className="px-3 text-xs text-muted-foreground">
@@ -155,9 +177,9 @@ export default function Sidebar() {
         <button
           onClick={logout}
           className={`
-            flex items-center w-full py-2 rounded-lg text-red-500 transition-all cursor-pointer
+            flex w-full items-center rounded-lg py-2 text-red-500 transition-all cursor-pointer
             hover:bg-sidebar-accent/80
-            ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
+            ${isOpen ? "justify-start gap-3 px-3" : "justify-center"}
           `}
         >
           <LogOut size={25} />
@@ -185,12 +207,12 @@ function SidebarItem({
     <Link
       href={href}
       className={`
-        flex cursor-pointer items-center py-2 rounded-lg transition-all
-        ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
+        flex cursor-pointer items-center rounded-lg py-2 transition-all
+        ${isOpen ? "justify-start gap-3 px-3" : "justify-center"}
         ${
           active
             ? "bg-[#ff5c00] text-white"
-            : "hover:bg-sidebar-accent/80 text-sidebar-foreground"
+            : "text-sidebar-foreground hover:bg-sidebar-accent/80"
         }
       `}
     >

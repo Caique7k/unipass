@@ -11,6 +11,7 @@ import { BusesModule } from './buses/buses.module';
 import { DevicesModule } from './devices/devices.module';
 import { UsersModule } from './users/users.module';
 import { CompaniesModule } from './companies/companies.module';
+import { LocationModule } from './location/location.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CompaniesModule } from './companies/companies.module';
     DevicesModule,
     UsersModule,
     CompaniesModule,
+    LocationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

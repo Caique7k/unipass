@@ -1,6 +1,12 @@
 "use client";
 
-import { Compass, LoaderCircle, RefreshCcw, Route, SmartphoneNfcIcon } from "lucide-react";
+import {
+  Compass,
+  LoaderCircle,
+  RefreshCcw,
+  Route,
+  SmartphoneNfcIcon,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +24,7 @@ export default function LocationPage() {
     buses,
     selectedBusId,
     setSelectedBusId,
+    selectedBus,
     loading,
     isRefreshing,
     error,
@@ -36,11 +43,7 @@ export default function LocationPage() {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          onClick={() => refetch()}
-          className="w-full md:w-auto"
-        >
+        <Button variant="outline" onClick={() => refetch()} className="w-full md:w-auto">
           <RefreshCcw className={isRefreshing ? "animate-spin" : ""} />
           Atualizar visão
         </Button>
@@ -55,10 +58,10 @@ export default function LocationPage() {
             <Select value={selectedBusId} onValueChange={setSelectedBusId}>
               <SelectTrigger className="h-11 w-full rounded-xl bg-background">
                 <SelectValue
-                  placeholder={
-                    loading ? "Carregando ônibus..." : "Selecione um ônibus"
-                  }
-                />
+                  placeholder={loading ? "Carregando ônibus..." : "Selecione um ônibus"}
+                >
+                  {selectedBus?.plate}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {buses.map((bus) => (
@@ -131,7 +134,9 @@ function SummaryCard({
   );
 }
 
-function labelForState(state: ReturnType<typeof useLocationOverview>["viewModel"]["state"]) {
+function labelForState(
+  state: ReturnType<typeof useLocationOverview>["viewModel"]["state"],
+) {
   switch (state) {
     case "no-buses":
       return "Sem ônibus";
@@ -139,8 +144,10 @@ function labelForState(state: ReturnType<typeof useLocationOverview>["viewModel"
       return "Pareamento necessário";
     case "no-online-device":
       return "Sem dispositivo online";
-    case "awaiting-gps":
-      return "Aguardando GPS";
+    case "live":
+      return "Ao vivo";
+    case "stale":
+      return "Última posição";
     default:
       return "Indefinido";
   }

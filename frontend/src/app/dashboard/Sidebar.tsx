@@ -31,7 +31,7 @@ export default function Sidebar() {
   return (
     <aside
       className={`
-        unipass-scrollbar bg-sidebar text-sidebar-foreground shadow-sm flex h-full min-h-0 flex-col overflow-y-auto transition-all duration-300 border-r border-sidebar-border
+        unipass-scrollbar bg-background/85 text-sidebar-foreground shadow-sm backdrop-blur-xl flex h-full min-h-0 flex-col overflow-y-auto transition-all duration-300 border-r border-sidebar-border
         ${isOpen ? "w-64" : "w-20"}
       `}
     >
@@ -46,7 +46,7 @@ export default function Sidebar() {
         ) : (
           user &&
           (isOpen ? (
-            <div className="flex w-full items-center gap-3 rounded-2xl  px-3 py-2">
+            <div className="flex w-full items-center gap-3 rounded-2xl bg-sidebar-accent/80 px-3 py-2.5">
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                   Bem-vindo
@@ -156,7 +156,7 @@ export default function Sidebar() {
           onClick={logout}
           className={`
             flex items-center w-full py-2 rounded-lg text-red-500 transition-all cursor-pointer
-            hover:bg-sidebar-accent
+            hover:bg-sidebar-accent/80
             ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
           `}
         >
@@ -190,7 +190,7 @@ function SidebarItem({
         ${
           active
             ? "bg-[#ff5c00] text-white"
-            : "hover:bg-sidebar-accent text-sidebar-foreground"
+            : "hover:bg-sidebar-accent/80 text-sidebar-foreground"
         }
       `}
     >

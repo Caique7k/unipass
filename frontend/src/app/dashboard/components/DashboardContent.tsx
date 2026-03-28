@@ -3,9 +3,34 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Bus, Route, Radio, ArrowUpRight } from "lucide-react";
 import { UsageChart } from "../components/charts/UsageChart";
+import { DashboardContentSkeleton } from "./DashboardSkeletons";
+
+type ChartPoint = {
+  date: string;
+  count: number;
+};
+
+type DashboardData = {
+  activeStudents: number;
+  changeStudents?: string;
+  trendStudents?: "up" | "down";
+  busCapacityUsed: number;
+  changeBuses?: string;
+  trendBuses?: "up" | "down";
+  tripsToday: number;
+  changeTrips?: string;
+  trendTrips?: "up" | "down";
+  rfidReads: number;
+  changeRfid?: string;
+  trendRfid?: "up" | "down";
+  charts: {
+    boardings: ChartPoint[];
+    trips: ChartPoint[];
+  };
+};
 
 type DashboardContentProps = {
-  data: any;
+  data: DashboardData;
   loading: boolean;
   error: string | null;
 };
@@ -16,7 +41,7 @@ export function DashboardContent({
   error,
 }: DashboardContentProps) {
 
-  if (loading) return <p>Carregando...</p>;
+  if (loading) return <DashboardContentSkeleton />;
   if (error) return <p>{error}</p>;
 
   return (
@@ -74,7 +99,19 @@ export function DashboardContent({
 
 // COMPONENTES AUXILIARES
 
-function KpiCard({ title, value, icon, change, trend }: any) {
+function KpiCard({
+  title,
+  value,
+  icon,
+  change,
+  trend,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  change?: string;
+  trend?: "up" | "down";
+}) {
   return (
     <Card className="bg-background/60 backdrop-blur-xl border border-border/50 transition-all hover:-translate-y-1 hover:shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -114,7 +151,13 @@ function KpiCard({ title, value, icon, change, trend }: any) {
   );
 }
 
-function ChartCard({ title, children }: any) {
+function ChartCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <Card className="h-[340px] flex flex-col bg-background/60 backdrop-blur-xl border border-border/50">
       <CardHeader className="flex flex-row items-center justify-between">

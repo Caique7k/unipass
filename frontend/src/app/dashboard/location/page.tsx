@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Compass,
-  LoaderCircle,
-  RefreshCcw,
-  Route,
-  SmartphoneNfcIcon,
-} from "lucide-react";
+import { Compass, RefreshCcw, Route, SmartphoneNfcIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { LocationMapPanel } from "./components/LocationMapPanel";
 import { useLocationOverview } from "./hooks/useLocationOverview";
+import { LocationPageSkeleton } from "../components/DashboardSkeletons";
 
 export default function LocationPage() {
   const {
@@ -32,6 +27,10 @@ export default function LocationPage() {
     viewModel,
   } = useLocationOverview();
 
+  if (loading) {
+    return <LocationPageSkeleton />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -43,7 +42,11 @@ export default function LocationPage() {
           </p>
         </div>
 
-        <Button variant="outline" onClick={() => refetch()} className="w-full md:w-auto">
+        <Button
+          variant="outline"
+          onClick={() => refetch()}
+          className="w-full md:w-auto"
+        >
           <RefreshCcw className={isRefreshing ? "animate-spin" : ""} />
           Atualizar visão
         </Button>
@@ -57,9 +60,7 @@ export default function LocationPage() {
             </p>
             <Select value={selectedBusId} onValueChange={setSelectedBusId}>
               <SelectTrigger className="h-11 w-full rounded-xl bg-background">
-                <SelectValue
-                  placeholder={loading ? "Carregando ônibus..." : "Selecione um ônibus"}
-                >
+                <SelectValue placeholder="Selecione um ônibus">
                   {selectedBus?.plate}
                 </SelectValue>
               </SelectTrigger>
@@ -93,14 +94,7 @@ export default function LocationPage() {
         </div>
       </Card>
 
-      {loading ? (
-        <Card className="flex min-h-[440px] items-center justify-center border-0 p-6 shadow-sm ring-1 ring-border/60">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <LoaderCircle className="size-5 animate-spin text-[#ff5c00]" />
-            Carregando visão de localização...
-          </div>
-        </Card>
-      ) : error ? (
+      {error ? (
         <Card className="border-0 p-6 shadow-sm ring-1 ring-border/60">
           <p className="text-sm font-medium text-red-600">{error}</p>
           <p className="mt-2 text-sm text-muted-foreground">

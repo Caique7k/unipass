@@ -12,13 +12,14 @@ import { BusesTable } from "./components/BusesTable";
 import { BusFormModal } from "./components/BusFormModal";
 import { DeleteBusesDialog } from "./components/DeleteDialog";
 import { Bus } from "./types/bus";
+import { PageTableSkeleton } from "../components/DashboardSkeletons";
 
 export default function BusesPage() {
   const { user } = useAuth();
   const canView = ["ADMIN", "DRIVER", "COORDINATOR"].includes(user?.role ?? "");
   const canManage = user?.role === "ADMIN";
   const [search, setSearch] = useState("");
-  const { buses, page, setPage, lastPage, refetch } = useBuses(search);
+  const { buses, loading, page, setPage, lastPage, refetch } = useBuses(search);
   const [open, setOpen] = useState(false);
   const [selectedBus, setSelectedBus] = useState<Bus | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -28,6 +29,10 @@ export default function BusesPage() {
     return (
       <AccessDenied description="Este perfil não pode acessar a gestão de ônibus." />
     );
+  }
+
+  if (loading) {
+    return <PageTableSkeleton showAction={canManage} />;
   }
 
   const handleAskDelete = (ids: string[]) => {
@@ -71,14 +76,14 @@ export default function BusesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Ônibus</h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           {canManage
             ? "Gerencie os ônibus cadastrados"
             : "Visualize todos os ônibus da operação"}
         </p>
       </div>
 
-      <Card className="p-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <Card className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
         <Input
           placeholder="Buscar pela placa..."
           value={search}

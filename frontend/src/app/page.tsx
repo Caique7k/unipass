@@ -288,14 +288,14 @@ export default function Home() {
           </div>
 
           <div className="rounded-[34px] border border-white/75 bg-white/64 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-            <Accordion defaultValue="item-1" className="gap-2">
+            <Accordion defaultValue="item-1" className="gap-2 ">
               {steps.map((step) => (
                 <AccordionItem
                   key={step.value}
                   value={step.value}
-                  className="rounded-[22px] border border-transparent px-4 transition hover:border-black/5 hover:bg-white/65"
+                  className="rounded-[22px] border border-transparent px-4 transition hover:border-black/5 hover:bg-white/65 "
                 >
-                  <AccordionTrigger className="py-5 text-base font-semibold text-[#111111] no-underline hover:no-underline">
+                  <AccordionTrigger className="py-5 text-base font-semibold text-[#111111] no-underline hover:no-underline cursor-pointer">
                     {step.title}
                   </AccordionTrigger>
                   <AccordionContent className="pb-5 text-sm leading-7 text-[#62625d]">

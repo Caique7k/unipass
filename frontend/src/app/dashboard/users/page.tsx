@@ -17,6 +17,7 @@ import {
 import { UsersTable } from "./components/UsersTable";
 import { UserFormModal } from "./components/UserFormModal";
 import { DeleteUsersDialog } from "./components/DeleteDialog";
+import { PageTableSkeleton } from "../components/DashboardSkeletons";
 
 export default function UsersPage() {
   const { user } = useAuth();
@@ -39,6 +40,10 @@ export default function UsersPage() {
     return (
       <AccessDenied description="Somente o administrador da empresa pode cadastrar e gerenciar usuários." />
     );
+  }
+
+  if (loading) {
+    return <PageTableSkeleton />;
   }
 
   async function handleDeactivate(ids: string[]) {
@@ -104,38 +109,32 @@ export default function UsersPage() {
       </Card>
 
       <Card className="p-4">
-        {loading ? (
-          <p className="text-sm text-muted-foreground">
-            Carregando usuários...
-          </p>
-        ) : (
-          <UsersTable
-            data={data}
-            page={page}
-            setPage={setPage}
-            lastPage={lastPage}
-            search={search}
-            setSearch={(value) => {
-              setSearch(value);
-              setPage(1);
-            }}
-            status={status}
-            setStatus={(value) => {
-              setStatus(value);
-              setPage(1);
-            }}
-            roleFilter={roleFilter}
-            setRoleFilter={(value) => {
-              setRoleFilter(value);
-              setPage(1);
-            }}
-            onEdit={(managedUser) => {
-              setSelectedUser(managedUser);
-              setOpen(true);
-            }}
-            onDeactivate={handleAskDeactivate}
-          />
-        )}
+        <UsersTable
+          data={data}
+          page={page}
+          setPage={setPage}
+          lastPage={lastPage}
+          search={search}
+          setSearch={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          status={status}
+          setStatus={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          roleFilter={roleFilter}
+          setRoleFilter={(value) => {
+            setRoleFilter(value);
+            setPage(1);
+          }}
+          onEdit={(managedUser) => {
+            setSelectedUser(managedUser);
+            setOpen(true);
+          }}
+          onDeactivate={handleAskDeactivate}
+        />
       </Card>
 
       <UserFormModal

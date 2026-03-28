@@ -13,6 +13,7 @@ import { DevicesTable } from "./components/DevicesTable";
 import { DeviceModal } from "./components/DeviceFormModal";
 import { DeleteDevicesDialog } from "./components/DeleteDialog";
 import { CreateDeviceModal } from "./components/CreateDeviceModal";
+import { PageTableSkeleton } from "../components/DashboardSkeletons";
 
 type Device = {
   id?: string;
@@ -48,6 +49,10 @@ export default function DevicesPage() {
     return (
       <AccessDenied description="Somente o administrador da empresa pode gerenciar UniHubs." />
     );
+  }
+
+  if (loading) {
+    return <PageTableSkeleton />;
   }
 
   const handleAskDelete = (ids: string[]) => {
@@ -87,7 +92,7 @@ export default function DevicesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">UniHub</h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           Gerencie os dispositivos cadastrados no sistema
         </p>
       </div>
@@ -130,29 +135,23 @@ export default function DevicesPage() {
       )}
 
       <Card className="p-4">
-        {loading ? (
-          <p className="text-sm text-muted-foreground">
-            Carregando dispositivos...
-          </p>
-        ) : (
-          <DevicesTable
-            data={data}
-            canManage
-            page={page}
-            setPage={setPage}
-            lastPage={lastPage}
-            status={status}
-            setStatus={(value) => {
-              setStatus(value);
-              setPage(1);
-            }}
-            onDelete={handleAskDelete}
-            onEdit={(device) => {
-              setSelectedDevice(device ?? null);
-              setOpen(true);
-            }}
-          />
-        )}
+        <DevicesTable
+          data={data}
+          canManage
+          page={page}
+          setPage={setPage}
+          lastPage={lastPage}
+          status={status}
+          setStatus={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          onDelete={handleAskDelete}
+          onEdit={(device) => {
+            setSelectedDevice(device ?? null);
+            setOpen(true);
+          }}
+        />
       </Card>
 
       <DeleteDevicesDialog

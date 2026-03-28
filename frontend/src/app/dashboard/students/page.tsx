@@ -11,6 +11,7 @@ import { useStudents } from "../students/hooks/useStudents";
 import { StudentsTable } from "./components/StudentsTable";
 import { StudentModal } from "./components/StudentsFormModal";
 import { DeleteStudentsDialog } from "./components/DeleteDialog";
+import { PageTableSkeleton } from "../components/DashboardSkeletons";
 
 type Student = {
   id?: string;
@@ -46,6 +47,10 @@ export default function StudentsPage() {
     return (
       <AccessDenied description="Este perfil não pode acessar a gestão de alunos." />
     );
+  }
+
+  if (loading) {
+    return <PageTableSkeleton showAction={canManage} />;
   }
 
   const handleAskDelete = (ids: string[]) => {
@@ -89,14 +94,14 @@ export default function StudentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Alunos</h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           {canManage
             ? "Gerencie os alunos cadastrados no sistema"
             : "Visualize os alunos, status de embarque e informações da operação"}
         </p>
       </div>
 
-      <Card className="p-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <Card className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
         <Input
           placeholder="Buscar por nome ou matrícula..."
           value={search}
@@ -121,34 +126,30 @@ export default function StudentsPage() {
       </Card>
 
       {isFetching && (
-        <p className="text-xs text-muted-foreground animate-pulse">
+        <p className="animate-pulse text-xs text-muted-foreground">
           Atualizando...
         </p>
       )}
 
       <Card className="p-4">
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando alunos...</p>
-        ) : (
-          <StudentsTable
-            data={data}
-            canManage={canManage}
-            page={page}
-            setPage={setPage}
-            lastPage={lastPage}
-            status={status}
-            setStatus={(value) => {
-              setStatus(value);
-              setPage(1);
-            }}
-            onDelete={handleAskDelete}
-            onEdit={(student) => {
-              if (!canManage) return;
-              setSelectedStudent(student ?? null);
-              setOpen(true);
-            }}
-          />
-        )}
+        <StudentsTable
+          data={data}
+          canManage={canManage}
+          page={page}
+          setPage={setPage}
+          lastPage={lastPage}
+          status={status}
+          setStatus={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          onDelete={handleAskDelete}
+          onEdit={(student) => {
+            if (!canManage) return;
+            setSelectedStudent(student ?? null);
+            setOpen(true);
+          }}
+        />
       </Card>
 
       {canManage && (

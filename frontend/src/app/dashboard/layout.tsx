@@ -8,6 +8,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { SidebarProvider } from "@/app/contexts/SidebarContext";
 import { Toaster } from "sonner";
+import { DashboardShellSkeleton } from "./components/DashboardSkeletons";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -24,11 +25,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [loading, user, sessionExpired, router]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#ff5c00] border-t-transparent" />
-      </div>
-    );
+    return <DashboardShellSkeleton />;
   }
 
   if (!user && sessionExpired) {

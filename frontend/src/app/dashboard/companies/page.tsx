@@ -5,6 +5,7 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import { AccessDenied } from "@/components/AccessDenied";
 import { Card } from "@/components/ui/card";
 import api from "@/services/api";
+import { CompaniesSkeleton } from "../components/DashboardSkeletons";
 
 type Company = {
   id: string;
@@ -49,7 +50,7 @@ export default function CompaniesPage() {
   }
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Carregando empresas...</p>;
+    return <CompaniesSkeleton />;
   }
 
   return (

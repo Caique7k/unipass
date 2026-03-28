@@ -174,3 +174,69 @@
   border: 2px solid transparent;
   background-clip: padding-box;
 }
+
+.unipass-reveal {
+  opacity: 0;
+  transform: translateY(40px) scale(0.985);
+  transition:
+    opacity 700ms ease,
+    transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.unipass-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.unipass-float-slow {
+  animation: unipassFloatSlow 14s ease-in-out infinite;
+}
+
+.unipass-float-medium {
+  animation: unipassFloatMedium 10s ease-in-out infinite;
+}
+
+.unipass-glow-drift {
+  animation: unipassGlowDrift 18s ease-in-out infinite alternate;
+}
+
+@keyframes unipassFloatSlow {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
+@keyframes unipassFloatMedium {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -18px, 0);
+  }
+}
+
+@keyframes unipassGlowDrift {
+  0% {
+    transform: translate3d(-2%, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(2%, -3%, 0) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unipass-reveal,
+  .unipass-reveal.is-visible,
+  .unipass-float-slow,
+  .unipass-float-medium,
+  .unipass-glow-drift {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    animation: none;
+  }
+}

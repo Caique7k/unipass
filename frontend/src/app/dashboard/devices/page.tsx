@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { AccessDenied } from "@/components/AccessDenied";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import api from "@/services/api";
+import { useDevices } from "./hooks/useDevices";
 import { DevicesTable } from "./components/DevicesTable";
 import { DeviceModal } from "./components/DeviceFormModal";
 import { DeleteDevicesDialog } from "./components/DeleteDialog";
 import { CreateDeviceModal } from "./components/CreateDeviceModal";
-
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
-
-import api from "@/services/api";
-import { useDevices } from "./hooks/useDevices";
 
 type Device = {
   id?: string;
@@ -25,27 +25,30 @@ type Device = {
 };
 
 export default function DevicesPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "ADMIN";
   const [search, setSearch] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
-
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<"Todos" | "Ativos" | "Inativos">(
     "Ativos",
   );
-
   const activeFilter = status === "Todos" ? undefined : status === "Ativos";
-
   const { data, loading, isFetching, lastPage, refetch } = useDevices(
     search,
     page,
     activeFilter,
   );
-
   const [open, setOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  if (!canManage) {
+    return (
+      <AccessDenied description="Somente o administrador da empresa pode gerenciar UniHubs." />
+    );
+  }
 
   const handleAskDelete = (ids: string[]) => {
     setSelectedIds(ids);
@@ -74,20 +77,10 @@ export default function DevicesPage() {
       if (page > 1) setPage(1);
 
       refetch();
-    } catch (err) {
-      console.error("Erro ao desativar devices:", err);
+    } catch (error) {
+      console.error("Erro ao desativar devices:", error);
       toast.error("Nao foi possivel desativar o UniHub.");
     }
-  };
-
-  const handleEdit = (device: Device) => {
-    setSelectedDevice(device);
-    setOpen(true);
-  };
-
-  const handleCreate = () => {
-    setSelectedDevice(null);
-    setOpen(true);
   };
 
   return (
@@ -101,7 +94,7 @@ export default function DevicesPage() {
 
       <Card className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
         <Input
-          placeholder="Buscar por nome, código ou hardware..."
+          placeholder="Buscar por nome, codigo ou hardware..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -111,7 +104,13 @@ export default function DevicesPage() {
         />
 
         <div className="flex gap-2">
-          <Button onClick={handleCreate} className="cursor-pointer">
+          <Button
+            onClick={() => {
+              setSelectedDevice(null);
+              setOpen(true);
+            }}
+            className="cursor-pointer"
+          >
             + Parear dispositivo
           </Button>
           <Button
@@ -136,6 +135,7 @@ export default function DevicesPage() {
         ) : (
           <DevicesTable
             data={data}
+            canManage
             page={page}
             setPage={setPage}
             lastPage={lastPage}
@@ -146,8 +146,8 @@ export default function DevicesPage() {
             }}
             onDelete={handleAskDelete}
             onEdit={(device) => {
-              if (device) handleEdit(device);
-              else handleCreate();
+              setSelectedDevice(device ?? null);
+              setOpen(true);
             }}
           />
         )}

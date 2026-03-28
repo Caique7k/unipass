@@ -16,18 +16,22 @@ import { UpdateBusDto } from './dto/update-bus.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FindBusesDto } from './dto/find-buses.dto';
 import { DeleteBusesDto } from './dto/delete-buses.dto';
+import { Roles } from 'src/auth/roles.decorator';
+import { RolesGuard } from 'src/auth/roles.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('buses')
 export class BusesController {
   constructor(private readonly busesService: BusesService) {}
 
   @Post()
+  @Roles('ADMIN')
   create(@Req() req, @Body() dto: CreateBusDto) {
     return this.busesService.create(req.user.companyId, dto);
   }
 
   @Get()
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
   findAll(
     @Query('page') page: string,
     @Query('limit') limit: string,
@@ -43,16 +47,19 @@ export class BusesController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
   findOne(@Req() req, @Param('id') id: string) {
     return this.busesService.findOne(req.user.companyId, id);
   }
 
   @Put(':id')
+  @Roles('ADMIN')
   update(@Req() req, @Param('id') id: string, @Body() dto: UpdateBusDto) {
     return this.busesService.update(req.user.companyId, id, dto);
   }
 
   @Delete()
+  @Roles('ADMIN')
   deleteMany(@Body() body: { ids: string[] }) {
     return this.busesService.deleteMany(body.ids);
   }

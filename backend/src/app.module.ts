@@ -9,6 +9,8 @@ import { StudentsModule } from './students/students.module';
 import { RfidModule } from './rfid/rfid.module';
 import { BusesModule } from './buses/buses.module';
 import { DevicesModule } from './devices/devices.module';
+import { UsersModule } from './users/users.module';
+import { CompaniesModule } from './companies/companies.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { DevicesModule } from './devices/devices.module';
     RfidModule,
     BusesModule,
     DevicesModule,
+    UsersModule,
+    CompaniesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

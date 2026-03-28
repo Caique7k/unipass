@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useEffect } from "react";
+import { useMemo, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -19,8 +18,6 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-
-// 🔥 PAGINAÇÃO SHADCN
 import {
   Pagination,
   PaginationContent,
@@ -44,6 +41,7 @@ type Student = {
 
 export function StudentsTable({
   data,
+  canManage,
   onDelete,
   onEdit,
   page,
@@ -53,6 +51,7 @@ export function StudentsTable({
   setStatus,
 }: {
   data: Student[];
+  canManage: boolean;
   onDelete: (ids: string[]) => void;
   onEdit: (student?: Student | null) => void;
   page: number;
@@ -62,22 +61,20 @@ export function StudentsTable({
   setStatus: (value: "Todos" | "Ativos" | "Inativos") => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
-  useEffect(() => {
-    // remove ids que não existem mais ou ficaram inativos
-    setSelected((prev) =>
-      prev.filter((id) =>
+  const validSelected = useMemo(
+    () =>
+      selected.filter((id) =>
         data.some((student) => student.id === id && student.active),
       ),
-    );
-  }, [data]);
+    [data, selected],
+  );
 
   const toggleSelect = (id: string) => {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
-  //  PAGINAÇÃO INTELIGENTE
   const pages: number[] = [];
   const start = Math.max(1, page - 2);
   const end = Math.min(lastPage, page + 2);
@@ -88,16 +85,19 @@ export function StudentsTable({
 
   return (
     <div className="space-y-4">
-      {/* AÇÕES */}
       <div className="flex justify-between">
-        <Button
-          className="cursor-pointer"
-          onClick={() => onDelete(selected)}
-          variant="destructive"
-          disabled={selected.length === 0}
-        >
-          Desativar selecionados ({selected.length})
-        </Button>
+        {canManage ? (
+          <Button
+            className="cursor-pointer"
+            onClick={() => onDelete(validSelected)}
+            variant="destructive"
+            disabled={validSelected.length === 0}
+          >
+            Desativar selecionados ({validSelected.length})
+          </Button>
+        ) : (
+          <div />
+        )}
 
         <div className="flex items-center gap-4">
           <Select
@@ -125,14 +125,13 @@ export function StudentsTable({
         </div>
       </div>
 
-      {/* TABELA */}
       <div className="rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead></TableHead>
+              {canManage && <TableHead />}
               <TableHead>Nome</TableHead>
-              <TableHead>Matrícula</TableHead>
+              <TableHead>Matricula</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>RFID</TableHead>
@@ -143,7 +142,7 @@ export function StudentsTable({
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-6">
+                <TableCell colSpan={canManage ? 7 : 6} className="text-center py-6">
                   Nenhum aluno encontrado
                 </TableCell>
               </TableRow>
@@ -151,31 +150,29 @@ export function StudentsTable({
               data.map((student) => (
                 <TableRow
                   key={student.id}
-                  onDoubleClick={() => onEdit(student)}
-                  className="cursor-pointer"
+                  onDoubleClick={() => canManage && onEdit(student)}
+                  className={canManage ? "cursor-pointer" : ""}
                 >
-                  <TableCell>
-                    <Checkbox
-                      checked={selected.includes(student.id)}
-                      onCheckedChange={() => toggleSelect(student.id)}
-                    />
-                  </TableCell>
+                  {canManage && (
+                    <TableCell>
+                      <Checkbox
+                        checked={validSelected.includes(student.id)}
+                        onCheckedChange={() => toggleSelect(student.id)}
+                      />
+                    </TableCell>
+                  )}
 
                   <TableCell className="max-w-[150px] truncate">
                     {student.name}
                   </TableCell>
-
                   <TableCell>{student.registration}</TableCell>
-
                   <TableCell>{student.email || "-"}</TableCell>
-
                   <TableCell>{student.phone || "-"}</TableCell>
                   <TableCell className="max-w-[120px] truncate">
                     {student.rfidCards && student.rfidCards.length > 0
                       ? student.rfidCards.map((card) => card.tag).join(", ")
                       : "-"}
                   </TableCell>
-
                   <TableCell>
                     <span
                       className={`px-2 py-1 rounded text-xs ${
@@ -194,10 +191,8 @@ export function StudentsTable({
         </Table>
       </div>
 
-      {/* PAGINAÇÃO SHADCN */}
       <Pagination>
         <PaginationContent>
-          {/* ANTERIOR */}
           <PaginationItem>
             <PaginationPrevious
               onClick={() => setPage(page - 1)}
@@ -205,7 +200,6 @@ export function StudentsTable({
             />
           </PaginationItem>
 
-          {/* INÍCIO */}
           {start > 1 && (
             <>
               <PaginationItem>
@@ -215,16 +209,17 @@ export function StudentsTable({
             </>
           )}
 
-          {/* MEIO */}
-          {pages.map((p) => (
-            <PaginationItem key={p}>
-              <PaginationLink isActive={p === page} onClick={() => setPage(p)}>
-                {p}
+          {pages.map((currentPage) => (
+            <PaginationItem key={currentPage}>
+              <PaginationLink
+                isActive={currentPage === page}
+                onClick={() => setPage(currentPage)}
+              >
+                {currentPage}
               </PaginationLink>
             </PaginationItem>
           ))}
 
-          {/* FINAL */}
           {end < lastPage && (
             <>
               {end < lastPage - 1 && <span className="px-2">...</span>}
@@ -236,7 +231,6 @@ export function StudentsTable({
             </>
           )}
 
-          {/* PRÓXIMO */}
           <PaginationItem>
             <PaginationNext
               onClick={() => setPage(page + 1)}

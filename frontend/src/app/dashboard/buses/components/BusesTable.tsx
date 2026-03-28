@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -11,8 +11,6 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Bus } from "../types/bus";
-
 import {
   Pagination,
   PaginationContent,
@@ -21,9 +19,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Bus } from "../types/bus";
 
 export function BusesTable({
   data,
+  canManage,
   onDelete,
   onEdit,
   page,
@@ -31,6 +31,7 @@ export function BusesTable({
   lastPage,
 }: {
   data: Bus[];
+  canManage: boolean;
   onDelete: (ids: string[]) => void;
   onEdit: (bus?: Bus | null) => void;
   page: number;
@@ -38,16 +39,14 @@ export function BusesTable({
   lastPage: number;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
-
-  useEffect(() => {
-    setSelected((prev) =>
-      prev.filter((id) => data.some((bus) => bus.id === id)),
-    );
-  }, [data]);
+  const validSelected = useMemo(
+    () => selected.filter((id) => data.some((bus) => bus.id === id)),
+    [data, selected],
+  );
 
   const toggleSelect = (id: string) => {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -61,23 +60,25 @@ export function BusesTable({
 
   return (
     <div className="space-y-4">
-      {/* AÇÕES */}
       <div className="flex justify-between">
-        <Button
-          variant="destructive"
-          disabled={selected.length === 0}
-          onClick={() => onDelete(selected)}
-        >
-          Excluir selecionados ({selected.length})
-        </Button>
+        {canManage ? (
+          <Button
+            variant="destructive"
+            disabled={validSelected.length === 0}
+            onClick={() => onDelete(validSelected)}
+          >
+            Excluir selecionados ({validSelected.length})
+          </Button>
+        ) : (
+          <div />
+        )}
       </div>
 
-      {/* TABELA */}
       <div className="rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead></TableHead>
+              {canManage && <TableHead />}
               <TableHead>Placa</TableHead>
               <TableHead>Capacidade</TableHead>
             </TableRow>
@@ -86,23 +87,25 @@ export function BusesTable({
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-6">
-                  Nenhum ônibus encontrado
+                <TableCell colSpan={canManage ? 3 : 2} className="text-center py-6">
+                  Nenhum onibus encontrado
                 </TableCell>
               </TableRow>
             ) : (
               data.map((bus) => (
                 <TableRow
                   key={bus.id}
-                  onDoubleClick={() => onEdit(bus)}
-                  className="cursor-pointer"
+                  onDoubleClick={() => canManage && onEdit(bus)}
+                  className={canManage ? "cursor-pointer" : ""}
                 >
-                  <TableCell>
-                    <Checkbox
-                      checked={selected.includes(bus.id)}
-                      onCheckedChange={() => toggleSelect(bus.id)}
-                    />
-                  </TableCell>
+                  {canManage && (
+                    <TableCell>
+                      <Checkbox
+                        checked={validSelected.includes(bus.id)}
+                        onCheckedChange={() => toggleSelect(bus.id)}
+                      />
+                    </TableCell>
+                  )}
 
                   <TableCell>{bus.plate}</TableCell>
                   <TableCell>{bus.capacity}</TableCell>
@@ -113,7 +116,6 @@ export function BusesTable({
         </Table>
       </div>
 
-      {/* PAGINAÇÃO */}
       <Pagination>
         <PaginationContent>
           <PaginationItem>
@@ -123,10 +125,13 @@ export function BusesTable({
             />
           </PaginationItem>
 
-          {pages.map((p) => (
-            <PaginationItem key={p}>
-              <PaginationLink isActive={p === page} onClick={() => setPage(p)}>
-                {p}
+          {pages.map((currentPage) => (
+            <PaginationItem key={currentPage}>
+              <PaginationLink
+                isActive={currentPage === page}
+                onClick={() => setPage(currentPage)}
+              >
+                {currentPage}
               </PaginationLink>
             </PaginationItem>
           ))}

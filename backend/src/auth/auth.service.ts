@@ -13,9 +13,16 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
+      include: {
+        company: {
+          select: {
+            emailDomain: true,
+          },
+        },
+      },
     });
 
-    if (!user) {
+    if (!user || !user.active) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -31,6 +38,7 @@ export class AuthService {
       name: user.name,
       role: user.role,
       companyId: user.companyId,
+      emailDomain: user.company?.emailDomain ?? null,
     };
 
     return {

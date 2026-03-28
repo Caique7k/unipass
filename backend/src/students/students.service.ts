@@ -13,11 +13,13 @@ export class StudentsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll({
+    companyId,
     page,
     limit,
     search,
     active,
   }: {
+    companyId: string;
     page: number;
     limit: number;
     search?: string;
@@ -26,6 +28,7 @@ export class StudentsService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.StudentWhereInput = {
+      companyId,
       ...(search && {
         OR: [
           {
@@ -153,18 +156,20 @@ export class StudentsService {
     }
   }
 
-  async deleteMany(ids: string[]) {
+  async deleteMany(companyId: string, ids: string[]) {
     return this.prisma.student.deleteMany({
       where: {
+        companyId,
         id: {
           in: ids,
         },
       },
     });
   }
-  async desactivateMany(ids: string[]) {
+  async desactivateMany(companyId: string, ids: string[]) {
     return this.prisma.student.updateMany({
       where: {
+        companyId,
         id: {
           in: ids,
         },

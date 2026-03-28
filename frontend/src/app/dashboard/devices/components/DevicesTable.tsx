@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
+import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,10 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-
 import {
   Select,
   SelectContent,
@@ -21,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import {
   Pagination,
   PaginationContent,
@@ -30,11 +26,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-
 import { Device } from "../types/device";
 
 export function DevicesTable({
   data,
+  canManage,
   onDelete,
   onEdit,
   page,
@@ -44,6 +40,7 @@ export function DevicesTable({
   setStatus,
 }: {
   data: Device[];
+  canManage: boolean;
   onDelete: (ids: string[]) => void;
   onEdit: (device?: Device | null) => void;
   page: number;
@@ -53,18 +50,17 @@ export function DevicesTable({
   setStatus: (value: "Todos" | "Ativos" | "Inativos") => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
-
-  useEffect(() => {
-    setSelected((prev) =>
-      prev.filter((id) =>
+  const validSelected = useMemo(
+    () =>
+      selected.filter((id) =>
         data.some((device) => device.id === id && device.active),
       ),
-    );
-  }, [data]);
+    [data, selected],
+  );
 
   const toggleSelect = (id: string) => {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -79,14 +75,18 @@ export function DevicesTable({
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
-        <Button
-          className="cursor-pointer"
-          onClick={() => onDelete(selected)}
-          variant="destructive"
-          disabled={selected.length === 0}
-        >
-          Desativar selecionados ({selected.length})
-        </Button>
+        {canManage ? (
+          <Button
+            className="cursor-pointer"
+            onClick={() => onDelete(validSelected)}
+            variant="destructive"
+            disabled={validSelected.length === 0}
+          >
+            Desativar selecionados ({validSelected.length})
+          </Button>
+        ) : (
+          <div />
+        )}
 
         <div className="flex items-center gap-4">
           <Select
@@ -112,10 +112,10 @@ export function DevicesTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead></TableHead>
+              {canManage && <TableHead />}
               <TableHead>Nome</TableHead>
               <TableHead>Hardware</TableHead>
-              <TableHead>Código</TableHead>
+              <TableHead>Codigo</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -123,7 +123,7 @@ export function DevicesTable({
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-6 text-center">
+                <TableCell colSpan={canManage ? 5 : 4} className="py-6 text-center">
                   Nenhum device encontrado
                 </TableCell>
               </TableRow>
@@ -131,28 +131,27 @@ export function DevicesTable({
               data.map((device) => (
                 <TableRow
                   key={device.id}
-                  onDoubleClick={() => onEdit(device)}
-                  className="cursor-pointer"
+                  onDoubleClick={() => canManage && onEdit(device)}
+                  className={canManage ? "cursor-pointer" : ""}
                 >
-                  <TableCell>
-                    <Checkbox
-                      checked={selected.includes(device.id)}
-                      onCheckedChange={() => toggleSelect(device.id)}
-                    />
-                  </TableCell>
+                  {canManage && (
+                    <TableCell>
+                      <Checkbox
+                        checked={validSelected.includes(device.id)}
+                        onCheckedChange={() => toggleSelect(device.id)}
+                      />
+                    </TableCell>
+                  )}
 
                   <TableCell className="max-w-[150px] truncate">
                     {device.name}
                   </TableCell>
-
                   <TableCell className="font-mono text-xs">
                     {device.hardwareId}
                   </TableCell>
-
                   <TableCell className="max-w-[120px] truncate font-mono text-xs">
                     {device.code || "Aguardando claim"}
                   </TableCell>
-
                   <TableCell>
                     <span
                       className={`rounded px-2 py-1 text-xs ${
@@ -189,10 +188,13 @@ export function DevicesTable({
             </>
           )}
 
-          {pages.map((p) => (
-            <PaginationItem key={p}>
-              <PaginationLink isActive={p === page} onClick={() => setPage(p)}>
-                {p}
+          {pages.map((currentPage) => (
+            <PaginationItem key={currentPage}>
+              <PaginationLink
+                isActive={currentPage === page}
+                onClick={() => setPage(currentPage)}
+              >
+                {currentPage}
               </PaginationLink>
             </PaginationItem>
           ))}

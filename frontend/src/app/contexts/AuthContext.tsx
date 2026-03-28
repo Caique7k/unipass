@@ -9,13 +9,15 @@ import {
 } from "react";
 import { api } from "@/services/api";
 import { useRouter } from "next/navigation";
+import type { UserRole } from "@/lib/permissions";
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
-  companyId: string;
+  role: UserRole;
+  companyId: string | null;
+  emailDomain?: string | null;
 }
 
 interface AuthContextType {

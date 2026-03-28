@@ -8,14 +8,18 @@ generator client {
 }
 
 enum UserRole {
+  PLATFORM_ADMIN
   ADMIN
-  OPERATOR
+  DRIVER
+  USER
+  COORDINATOR
 }
 
 model Company {
   id        String   @id @default(uuid())
   name      String
   cnpj      String   @unique
+  emailDomain String @unique
   createdAt DateTime @default(now())
 
   users           User[]
@@ -33,8 +37,9 @@ model User {
   email     String   @unique
   password  String
   role      UserRole
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
+  active    Boolean  @default(true)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
   createdAt DateTime @default(now())
 

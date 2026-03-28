@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { AccessDenied } from "@/components/AccessDenied";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useStudents } from "../students/hooks/useStudents";
 import { StudentsTable } from "./components/StudentsTable";
 import { StudentModal } from "./components/StudentsFormModal";
 import { DeleteStudentsDialog } from "./components/DeleteDialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 type Student = {
   id?: string;
@@ -19,15 +21,15 @@ type Student = {
 };
 
 export default function StudentsPage() {
+  const { user } = useAuth();
+  const canView = ["ADMIN", "DRIVER", "COORDINATOR"].includes(user?.role ?? "");
+  const canManage = user?.role === "ADMIN";
   const [search, setSearch] = useState("");
-
-  // 🔥 PAGINAÇÃO
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<"Todos" | "Ativos" | "Inativos">(
     "Ativos",
   );
   const activeFilter = status === "Todos" ? undefined : status === "Ativos";
-  // 🔥 HOOK CORRETO
   const { data, loading, isFetching, lastPage, refetch } = useStudents(
     search,
     page,
@@ -36,9 +38,14 @@ export default function StudentsPage() {
 
   const [open, setOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  if (!canView) {
+    return (
+      <AccessDenied description="Este perfil nao pode acessar a gestao de alunos." />
+    );
+  }
 
   const handleAskDelete = (ids: string[]) => {
     setSelectedIds(ids);
@@ -61,54 +68,54 @@ export default function StudentsPage() {
     refetch();
   };
 
-  const handleEdit = (student: Student) => {
-    setSelectedStudent(student);
-    setOpen(true);
-  };
-
-  const handleCreate = () => {
-    setSelectedStudent(null);
-    setOpen(true);
-  };
-
   return (
     <div className="space-y-6">
-      {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold">Alunos</h1>
         <p className="text-muted-foreground text-sm">
-          Gerencie os alunos cadastrados no sistema
+          {canManage
+            ? "Gerencie os alunos cadastrados no sistema"
+            : "Visualize os alunos, status de embarque e informacoes da operacao"}
         </p>
       </div>
 
-      {/* BARRA DE AÇÕES */}
       <Card className="p-4 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
         <Input
-          placeholder="Buscar por nome ou matrícula..."
+          placeholder="Buscar por nome ou matricula..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
-            setPage(1); // ESSENCIAL
+            setPage(1);
           }}
           className="max-w-sm"
         />
 
-        <Button onClick={handleCreate} className="cursor-pointer">
-          + Novo aluno
-        </Button>
+        {canManage && (
+          <Button
+            onClick={() => {
+              setSelectedStudent(null);
+              setOpen(true);
+            }}
+            className="cursor-pointer"
+          >
+            + Novo aluno
+          </Button>
+        )}
       </Card>
+
       {isFetching && (
         <p className="text-xs text-muted-foreground animate-pulse">
           Atualizando...
         </p>
       )}
-      {/* TABELA */}
+
       <Card className="p-4">
         {loading ? (
           <p className="text-sm text-muted-foreground">Carregando alunos...</p>
         ) : (
           <StudentsTable
             data={data}
+            canManage={canManage}
             page={page}
             setPage={setPage}
             lastPage={lastPage}
@@ -119,27 +126,31 @@ export default function StudentsPage() {
             }}
             onDelete={handleAskDelete}
             onEdit={(student) => {
-              if (student) handleEdit(student);
-              else handleCreate();
+              if (!canManage) return;
+              setSelectedStudent(student ?? null);
+              setOpen(true);
             }}
           />
         )}
       </Card>
 
-      {/* MODAIS */}
-      <DeleteStudentsDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        onConfirm={handleConfirmDelete}
-        count={selectedIds.length}
-      />
+      {canManage && (
+        <>
+          <DeleteStudentsDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            onConfirm={handleConfirmDelete}
+            count={selectedIds.length}
+          />
 
-      <StudentModal
-        open={open}
-        onOpenChange={setOpen}
-        student={selectedStudent}
-        onSuccess={() => refetch()}
-      />
+          <StudentModal
+            open={open}
+            onOpenChange={setOpen}
+            student={selectedStudent}
+            onSuccess={() => refetch()}
+          />
+        </>
+      )}
     </div>
   );
 }

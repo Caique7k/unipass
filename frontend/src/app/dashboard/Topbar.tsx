@@ -4,9 +4,13 @@ import { Menu } from "lucide-react";
 import { useSidebar } from "@/app/contexts/SidebarContext";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 export default function Topbar() {
   const { toggle } = useSidebar();
+  const { user } = useAuth();
+  const homeHref =
+    user?.role === "PLATFORM_ADMIN" ? "/dashboard/companies" : "/dashboard";
 
   return (
     <header className="h-16 flex items-center justify-between px-6 bg-white dark:bg-gray-800 shadow-sm">
@@ -22,7 +26,7 @@ export default function Topbar() {
 
       {/* CENTRO (LOGO CENTRALIZADA REAL) */}
       <div className="absolute left-1/2 -translate-x-1/2">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href={homeHref} className="flex items-center gap-2">
           <Image
             src="/logo_unipass.svg"
             alt="UniPass Logo"

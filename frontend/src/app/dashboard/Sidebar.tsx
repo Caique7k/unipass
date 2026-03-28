@@ -1,11 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   Home,
   Users,
   Truck,
-  FileText,
   LogOut,
   SmartphoneNfcIcon,
   BookUserIcon,
@@ -13,30 +13,36 @@ import {
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/app/contexts/SidebarContext";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { hasRole } from "@/lib/permissions";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { isOpen } = useSidebar();
   const { user, loading, logout } = useAuth();
+  const canManageCompany = hasRole(user?.role, ["ADMIN"]);
+  const canViewOperations = hasRole(user?.role, [
+    "ADMIN",
+    "DRIVER",
+    "COORDINATOR",
+  ]);
+  const isPlatformAdmin = hasRole(user?.role, ["PLATFORM_ADMIN"]);
+  const isStudentUser = hasRole(user?.role, ["USER"]);
 
   return (
     <aside
       className={`
-        bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
-        shadow-sm flex flex-col
-        transition-all duration-300
+        bg-slate-900 text-slate-200 shadow-sm flex flex-col transition-all duration-300 border-r border-slate-800
         ${isOpen ? "w-64" : "w-20"}
       `}
     >
-      {/* TOPO - USUÁRIO */}
       <div
         className={`
-    h-16 flex items-center
-    ${isOpen ? "px-4 justify-start" : "justify-center"}
-  `}
+          h-16 flex items-center
+          ${isOpen ? "px-4 justify-start" : "justify-center"}
+        `}
       >
         {loading ? (
-          <span className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          <span className="h-5 w-24 animate-pulse rounded bg-slate-700" />
         ) : (
           user &&
           (isOpen ? (
@@ -51,96 +57,98 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* NAVEGAÇÃO */}
       <nav className="flex-1 p-2 space-y-6">
-        {/* Principal */}
         <div>
           {isOpen && (
-            <p className="text-xs uppercase text-gray-400 mb-2">Principal</p>
+            <p className="text-xs uppercase text-slate-400 mb-2">Principal</p>
           )}
 
-          <SidebarItem
-            href="/dashboard"
-            icon={<Home size={25} />}
-            label="Dashboard"
-            isOpen={isOpen}
-            active={pathname === "/dashboard"}
-          />
-        </div>
-
-        {/* Gestão */}
-        <div>
-          {isOpen && (
-            <p className="text-xs uppercase text-gray-400 mb-2">Gestão</p>
+          {isPlatformAdmin ? (
+            <SidebarItem
+              href="/dashboard/companies"
+              icon={<Home size={25} />}
+              label="Empresas"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/companies"}
+            />
+          ) : (
+            <SidebarItem
+              href="/dashboard"
+              icon={<Home size={25} />}
+              label="Dashboard"
+              isOpen={isOpen}
+              active={pathname === "/dashboard"}
+            />
           )}
-
-          <SidebarItem
-            href="/dashboard/students"
-            icon={<BookUserIcon size={25} />}
-            label="Alunos"
-            isOpen={isOpen}
-            active={pathname === "/dashboard/students"}
-          />
-
-          <SidebarItem
-            href="/dashboard/buses"
-            icon={<Truck size={25} />}
-            label="Ônibus"
-            isOpen={isOpen}
-            active={pathname === "/dashboard/buses"}
-          />
-          <SidebarItem
-            href="/dashboard/devices"
-            icon={<SmartphoneNfcIcon size={25} />}
-            label="UniHub"
-            isOpen={isOpen}
-            active={pathname === "/dashboard/devices"}
-          />
         </div>
 
-        <div>
-          {isOpen && (
-            <p className="text-xs uppercase text-gray-400 mb-2">
-              Cadastro de Usuários
+        {canViewOperations && (
+          <div>
+            {isOpen && (
+              <p className="text-xs uppercase text-slate-400 mb-2">Gestao</p>
+            )}
+
+            <SidebarItem
+              href="/dashboard/students"
+              icon={<BookUserIcon size={25} />}
+              label="Alunos"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/students"}
+            />
+
+            <SidebarItem
+              href="/dashboard/buses"
+              icon={<Truck size={25} />}
+              label="Onibus"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/buses"}
+            />
+
+            {canManageCompany && (
+              <SidebarItem
+                href="/dashboard/devices"
+                icon={<SmartphoneNfcIcon size={25} />}
+                label="UniHub"
+                isOpen={isOpen}
+                active={pathname === "/dashboard/devices"}
+              />
+            )}
+          </div>
+        )}
+
+        {canManageCompany && (
+          <div>
+            {isOpen && (
+              <p className="text-xs uppercase text-slate-400 mb-2">Usuarios</p>
+            )}
+
+            <SidebarItem
+              href="/dashboard/users"
+              icon={<Users size={25} />}
+              label="Usuarios"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/users"}
+            />
+          </div>
+        )}
+
+        {isStudentUser && isOpen && (
+          <div>
+            <p className="text-xs uppercase text-slate-400 mb-2">App aluno</p>
+            <p className="px-3 text-xs text-slate-400">
+              Rastreamento, boleto e presenca entram nos proximos passos.
             </p>
-          )}
-
-          <SidebarItem
-            href="/reports"
-            icon={<Users size={25} />}
-            label="Usuários"
-            isOpen={isOpen}
-            active={pathname === "/reports"}
-          />
-        </div>
-
-        {/* Sistema */}
-        <div>
-          {isOpen && (
-            <p className="text-xs uppercase text-gray-400 mb-2">Sistema</p>
-          )}
-
-          <SidebarItem
-            href="/reports"
-            icon={<FileText size={25} />}
-            label="Relatórios"
-            isOpen={isOpen}
-            active={pathname === "/reports"}
-          />
-        </div>
+          </div>
+        )}
       </nav>
 
-      {/* RODAPÉ - LOGOUT */}
       <div className="p-2">
         <button
           onClick={logout}
           className={`
-            flex items-center w-full
+            flex items-center w-full py-2 rounded-lg text-red-500 transition-all cursor-pointer
+            hover:bg-slate-800
             ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
-            py-2 rounded-lg
-            text-red-500
-            hover:bg-red-100 dark:hover:bg-red-900/30
-            transition-all cursor-pointer
           `}
         >
           <LogOut size={25} />
@@ -151,19 +159,29 @@ export default function Sidebar() {
   );
 }
 
-function SidebarItem({ href, icon, label, isOpen, active }: any) {
+function SidebarItem({
+  href,
+  icon,
+  label,
+  isOpen,
+  active,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  isOpen: boolean;
+  active: boolean;
+}) {
   return (
     <Link
       href={href}
       className={`
-        flex items-center
+        flex items-center py-2 rounded-lg transition-all
         ${isOpen ? "gap-3 px-3 justify-start" : "justify-center"}
-        py-2 rounded-lg
-        transition-all
         ${
           active
             ? "bg-[#ff5c00] text-white"
-            : "hover:bg-gray-200 dark:hover:bg-gray-700"
+            : "hover:bg-slate-800 text-slate-200"
         }
       `}
     >

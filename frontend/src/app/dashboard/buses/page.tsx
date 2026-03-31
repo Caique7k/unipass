@@ -13,6 +13,7 @@ import { BusFormModal } from "./components/BusFormModal";
 import { DeleteBusesDialog } from "./components/DeleteDialog";
 import { Bus } from "./types/bus";
 import { PageTableSkeleton } from "../components/DashboardSkeletons";
+import { buildApiUrl } from "@/services/api";
 
 export default function BusesPage() {
   const { user } = useAuth();
@@ -42,7 +43,7 @@ export default function BusesPage() {
 
   const handleConfirmDelete = async () => {
     try {
-      const response = await fetch("http://localhost:3000/buses/", {
+      const response = await fetch(buildApiUrl("/buses"), {
         method: "delete",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

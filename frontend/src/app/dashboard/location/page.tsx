@@ -58,7 +58,10 @@ export default function LocationPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
               Ônibus monitorado
             </p>
-            <Select value={selectedBusId} onValueChange={setSelectedBusId}>
+            <Select
+              value={selectedBusId}
+              onValueChange={(value) => setSelectedBusId(value ?? "")}
+            >
               <SelectTrigger className="h-11 w-full rounded-xl bg-background">
                 <SelectValue placeholder="Selecione um ônibus">
                   {selectedBus?.plate}

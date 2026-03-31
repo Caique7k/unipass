@@ -1,40 +1,21 @@
-"use client";
+import { NextRequest, NextResponse } from "next/server";
+import { buildApiUrl } from "@/services/api";
 
-import { useState, useEffect } from "react";
+export async function GET(request: NextRequest) {
+  const response = await fetch(buildApiUrl("/dashboard"), {
+    headers: {
+      cookie: request.headers.get("cookie") ?? "",
+    },
+    cache: "no-store",
+  });
 
-export function useDashboard() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const contentType = response.headers.get("content-type") ?? "application/json";
+  const body = await response.text();
 
-  useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        const res = await fetch("http://localhost:3000/dashboard", {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!res.ok) throw new Error("Erro ao buscar dashboard");
-
-        const json = await res.json();
-        setData(json);
-        setError(null);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchDashboard();
-
-    const interval = setInterval(() => {
-      fetchDashboard();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return { data, loading, error };
+  return new NextResponse(body, {
+    status: response.status,
+    headers: {
+      "content-type": contentType,
+    },
+  });
 }

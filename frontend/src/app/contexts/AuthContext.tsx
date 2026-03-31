@@ -171,12 +171,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       <Dialog open={sessionExpired}>
         <DialogContent
           showCloseButton={false}
-          className="overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[520px]"
+          className="overflow-hidden border-0 p-0 shadow-2xl dark:bg-[#1f2127] sm:max-w-[520px]"
         >
           <div className="space-y-0">
-            <div className="border-b border-border/60 bg-[#fff7f2] px-6 py-5">
+            <div className="border-b border-border/60 bg-[#fff7f2] px-6 py-5 dark:border-white/10 dark:bg-[#2b211b]">
               <div className="flex items-start gap-4">
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffede0] text-[#ff5c00]">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffede0] text-[#ff5c00] dark:bg-[#3a2618]">
                   <ShieldAlert className="size-6" />
                 </div>
                 <DialogHeader className="gap-1">
@@ -191,8 +191,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               </div>
             </div>
 
-            <div className="space-y-4 px-6 py-5">
-              <div className="rounded-2xl border border-[#ffd8bf] bg-[#fffaf6] p-4 text-sm text-muted-foreground">
+            <div className="space-y-4 px-6 py-5 dark:bg-[#1f2127]">
+              <div className="rounded-2xl border border-[#ffd8bf] bg-[#fffaf6] p-4 text-sm text-muted-foreground dark:border-[#5b341c] dark:bg-[#17191f]">
                 Seus dados continuam seguros. Basta entrar novamente para
                 retomar a navegação.
               </div>

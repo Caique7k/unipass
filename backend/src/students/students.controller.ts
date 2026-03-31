@@ -52,6 +52,7 @@ export class StudentsController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
   findOne(@Req() req: any, @Param('id') id: string) {
     return this.studentsService.findOne(req.user.companyId, id);
   }

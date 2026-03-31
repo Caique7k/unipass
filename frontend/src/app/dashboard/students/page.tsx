@@ -12,6 +12,7 @@ import { StudentsTable } from "./components/StudentsTable";
 import { StudentModal } from "./components/StudentsFormModal";
 import { DeleteStudentsDialog } from "./components/DeleteDialog";
 import { PageTableSkeleton } from "../components/DashboardSkeletons";
+import { buildApiUrl } from "@/services/api";
 
 type Student = {
   id?: string;
@@ -60,7 +61,7 @@ export default function StudentsPage() {
 
   const handleConfirmDelete = async () => {
     try {
-      const response = await fetch("http://localhost:3000/students/desactivate", {
+      const response = await fetch(buildApiUrl("/students/desactivate"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

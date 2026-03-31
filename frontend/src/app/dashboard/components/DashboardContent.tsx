@@ -10,7 +10,7 @@ type ChartPoint = {
   count: number;
 };
 
-type DashboardData = {
+export type DashboardData = {
   activeStudents: number;
   changeStudents?: string;
   trendStudents?: "up" | "down";
@@ -30,7 +30,7 @@ type DashboardData = {
 };
 
 type DashboardContentProps = {
-  data: DashboardData;
+  data: DashboardData | null;
   loading: boolean;
   error: string | null;
 };
@@ -43,6 +43,7 @@ export function DashboardContent({
 
   if (loading) return <DashboardContentSkeleton />;
   if (error) return <p>{error}</p>;
+  if (!data) return <p>Sem dados disponiveis no momento.</p>;
 
   return (
     <div className="space-y-8">

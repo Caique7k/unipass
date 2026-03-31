@@ -8,6 +8,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RolesGuard } from './roles.guard';
+import { InternalApiKeyGuard } from './internal-api-key.guard';
 
 @Module({
   imports: [
@@ -24,6 +25,6 @@ import { RolesGuard } from './roles.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard],
+  providers: [AuthService, JwtStrategy, RolesGuard, InternalApiKeyGuard],
 })
 export class AuthModule {}

@@ -233,10 +233,10 @@ export default function CompanyPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <Card className="rounded-[30px] border-white/70 bg-white/85 shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
+        <Card className="rounded-[30px] border-white/70 bg-white/85 shadow-[0_24px_60px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-[#1f2127]">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-3 text-xl">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00]">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00] dark:bg-[#3a2618]">
                 <Building2 className="size-5" />
               </div>
               Perfil da empresa
@@ -289,7 +289,7 @@ export default function CompanyPage() {
               />
             </div>
 
-            <div className="grid gap-4 rounded-[28px] border border-[#ecebe5] bg-[#fafaf7] p-4 md:grid-cols-2">
+            <div className="grid gap-4 rounded-[28px] border border-[#ecebe5] bg-[#fafaf7] p-4 dark:border-white/10 dark:bg-[#17191f] md:grid-cols-2">
               <ReadOnlyField
                 label="Dominio da empresa"
                 value={profile ? `@${profile.emailDomain}` : "-"}
@@ -302,7 +302,7 @@ export default function CompanyPage() {
               />
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-black/6 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-t border-black/6 pt-5 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 Alteracoes salvas refletem imediatamente no painel da empresa.
               </p>
@@ -321,7 +321,7 @@ export default function CompanyPage() {
         </Card>
 
         <aside className="space-y-4">
-          <Card className="rounded-[30px] border-white/75 bg-white/82 shadow-[0_20px_55px_rgba(15,23,42,0.06)]">
+          <Card className="rounded-[30px] border-white/75 bg-white/82 shadow-[0_20px_55px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-[#1f2127]">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Resumo rapido</CardTitle>
             </CardHeader>
@@ -333,9 +333,9 @@ export default function CompanyPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[30px] border-[#ffe1ce] bg-[linear-gradient(180deg,#fff7f2_0%,#ffffff_100%)] shadow-[0_20px_55px_rgba(255,92,0,0.08)]">
+          <Card className="rounded-[30px] border-[#ffe1ce] bg-[linear-gradient(180deg,#fff7f2_0%,#ffffff_100%)] shadow-[0_20px_55px_rgba(255,92,0,0.08)] dark:border-[#5b341c] dark:bg-[linear-gradient(180deg,#2c211b_0%,#1f1916_100%)]">
             <CardContent className="space-y-4 p-5">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00]">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00] dark:bg-[#3a2618]">
                 <CheckCircle2 className="size-5" />
               </div>
               <div>
@@ -350,7 +350,7 @@ export default function CompanyPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[30px] border-white/75 bg-white/82 shadow-[0_20px_55px_rgba(15,23,42,0.06)]">
+          <Card className="rounded-[30px] border-white/75 bg-white/82 shadow-[0_20px_55px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-[#1f2127]">
             <CardContent className="space-y-3 p-5 text-sm text-muted-foreground">
               <InfoRow
                 icon={<FileText className="size-4" />}
@@ -393,7 +393,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className={cn(
-          "h-12 rounded-2xl border-[#e6e1db] bg-white px-4",
+          "h-12 rounded-2xl border-[#e6e1db] bg-white px-4 dark:border-white/12 dark:bg-[#17191f]",
           error && "border-destructive",
         )}
       />
@@ -412,7 +412,7 @@ function ReadOnlyField({
   icon: ReactNode;
 }) {
   return (
-    <div className="rounded-[24px] border border-white/80 bg-white px-4 py-4">
+    <div className="rounded-[24px] border border-white/80 bg-white px-4 py-4 dark:border-white/10 dark:bg-[#20232b]">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8b8b85]">
         {icon}
         {label}
@@ -426,7 +426,7 @@ function ReadOnlyField({
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[#f0efe9] bg-[#fafaf7] px-4 py-3">
+    <div className="rounded-2xl border border-[#f0efe9] bg-[#fafaf7] px-4 py-3 dark:border-white/10 dark:bg-[#17191f]">
       <p className="text-xs uppercase tracking-[0.14em] text-[#8b8b85]">{label}</p>
       <p className="mt-1 text-lg font-semibold tracking-[-0.04em] text-foreground">
         {value}
@@ -437,7 +437,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 function InfoRow({ icon, text }: { icon: ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-[#f0efe9] bg-[#fafaf7] px-4 py-3">
+    <div className="flex items-center gap-3 rounded-2xl border border-[#f0efe9] bg-[#fafaf7] px-4 py-3 dark:border-white/10 dark:bg-[#17191f]">
       <div className="text-[#ff5c00]">{icon}</div>
       <p>{text}</p>
     </div>

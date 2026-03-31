@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { buildApiUrl } from "@/services/api";
 
 type Student = {
   id?: string;
@@ -118,7 +119,7 @@ export function StudentModal({
   });
 
   const createStudent = async () => {
-    const res = await fetch("http://localhost:3000/students", {
+    const res = await fetch(buildApiUrl("/students"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -135,7 +136,7 @@ export function StudentModal({
   };
 
   const updateStudent = async () => {
-    const res = await fetch(`http://localhost:3000/students/${student?.id}`, {
+    const res = await fetch(buildApiUrl(`/students/${student?.id}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -194,7 +195,7 @@ export function StudentModal({
     }
 
     try {
-      const response = await fetch("http://localhost:3000/rfid/link", {
+      const response = await fetch(buildApiUrl("/rfid/link"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

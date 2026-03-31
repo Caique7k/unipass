@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Bus } from "../types/bus";
+import { buildApiUrl } from "@/services/api";
 
 export function BusFormModal({
   open,
@@ -61,8 +62,8 @@ export function BusFormModal({
       };
 
       const url = isEdit
-        ? `http://localhost:3000/buses/${bus?.id}`
-        : "http://localhost:3000/buses";
+        ? buildApiUrl(`/buses/${bus?.id}`)
+        : buildApiUrl("/buses");
 
       const method = isEdit ? "PUT" : "POST";
 

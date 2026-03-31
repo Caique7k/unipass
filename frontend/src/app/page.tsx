@@ -288,7 +288,7 @@ export default function Home() {
           </div>
 
           <div className="rounded-[34px] border border-white/75 bg-white/64 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-            <Accordion defaultValue="item-1" className="gap-2 ">
+            <Accordion defaultValue={["item-1"]} className="gap-2 ">
               {steps.map((step) => (
                 <AccordionItem
                   key={step.value}

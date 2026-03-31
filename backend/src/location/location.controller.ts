@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/comm
 import { Roles } from 'src/auth/roles.decorator';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { InternalApiKeyGuard } from 'src/auth/internal-api-key.guard';
 import { DeviceTelemetryDto } from './dto/device-telemetry.dto';
 import { LocationService } from './location.service';
 
@@ -10,6 +11,7 @@ export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
   @Post('telemetry')
+  @UseGuards(InternalApiKeyGuard)
   postTelemetry(@Body() dto: DeviceTelemetryDto) {
     return this.locationService.updateDeviceTelemetry(dto);
   }

@@ -560,10 +560,13 @@ export default function CompanyOnboardingPage() {
                           value={form.adminLogin}
                           onChange={(e) => setForm((prev) => ({ ...prev, adminLogin: e.target.value }))}
                           placeholder="caique.alves"
-                          className="h-12 flex-1 bg-transparent text-sm outline-none"
+                          className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
                         />
                         {(domainState?.normalizedDomain || form.domain) && (
-                          <span className="pl-3 text-sm text-[#7a7068]">
+                          <span
+                            className="max-w-[48%] shrink-0 truncate pl-3 text-sm text-[#7a7068] sm:max-w-[55%]"
+                            title={`@${domainState?.normalizedDomain ?? form.domain.replace(/^@+/, "")}`}
+                          >
                             @{domainState?.normalizedDomain ?? form.domain.replace(/^@+/, "")}
                           </span>
                         )}

@@ -313,10 +313,13 @@ export function StudentModal({
                       value={emailLocalPart}
                       onChange={(e) => setEmailLocalPart(e.target.value)}
                       placeholder="caique.alves"
-                      className="h-11 flex-1 bg-transparent text-sm outline-none"
+                      className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none"
                     />
                     {emailDomain && (
-                      <span className="pl-3 text-sm text-muted-foreground">
+                      <span
+                        className="max-w-[48%] shrink-0 truncate pl-3 text-sm text-muted-foreground sm:max-w-[55%]"
+                        title={`@${emailDomain}`}
+                      >
                         @{emailDomain}
                       </span>
                     )}

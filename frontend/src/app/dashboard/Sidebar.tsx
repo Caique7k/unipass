@@ -3,13 +3,14 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
+  BookUserIcon,
+  Building2,
+  Compass,
   Home,
-  Users,
-  Truck,
   LogOut,
   SmartphoneNfcIcon,
-  BookUserIcon,
-  Compass,
+  Truck,
+  Users,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/app/contexts/SidebarContext";
@@ -93,14 +94,14 @@ export default function Sidebar() {
           <div>
             {isOpen && (
               <p className="mb-2 text-xs uppercase text-muted-foreground">
-                Localização
+                Localizacao
               </p>
             )}
 
             <SidebarItem
               href="/dashboard/location"
               icon={<Compass size={25} />}
-              label="Localização"
+              label="Localizacao"
               isOpen={isOpen}
               active={pathname === "/dashboard/location"}
             />
@@ -111,7 +112,7 @@ export default function Sidebar() {
           <div>
             {isOpen && (
               <p className="mb-2 text-xs uppercase text-muted-foreground">
-                Gestão
+                Gestao
               </p>
             )}
 
@@ -126,7 +127,7 @@ export default function Sidebar() {
             <SidebarItem
               href="/dashboard/buses"
               icon={<Truck size={25} />}
-              label="Ônibus"
+              label="Onibus"
               isOpen={isOpen}
               active={pathname === "/dashboard/buses"}
             />
@@ -147,14 +148,22 @@ export default function Sidebar() {
           <div>
             {isOpen && (
               <p className="mb-2 text-xs uppercase text-muted-foreground">
-                Usuários
+                Administracao
               </p>
             )}
 
             <SidebarItem
+              href="/dashboard/company"
+              icon={<Building2 size={25} />}
+              label="Empresa"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/company"}
+            />
+
+            <SidebarItem
               href="/dashboard/users"
               icon={<Users size={25} />}
-              label="Usuários"
+              label="Usuarios"
               isOpen={isOpen}
               active={pathname === "/dashboard/users"}
             />
@@ -167,7 +176,7 @@ export default function Sidebar() {
               App aluno
             </p>
             <p className="px-3 text-xs text-muted-foreground">
-              Rastreamento, boleto e presença entram nos próximos passos.
+              Rastreamento, boleto e presenca entram nos proximos passos.
             </p>
           </div>
         )}
@@ -177,7 +186,7 @@ export default function Sidebar() {
         <button
           onClick={logout}
           className={`
-            flex w-full items-center rounded-lg py-2 text-red-500 transition-all cursor-pointer
+            flex w-full cursor-pointer items-center rounded-lg py-2 text-red-500 transition-all
             hover:bg-sidebar-accent/80
             ${isOpen ? "justify-start gap-3 px-3" : "justify-center"}
           `}

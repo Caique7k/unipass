@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -7,6 +15,7 @@ import { CheckDomainDto } from './dto/check-domain.dto';
 import { SendSmsCodeDto } from './dto/send-sms-code.dto';
 import { VerifySmsCodeDto } from './dto/verify-sms-code.dto';
 import { CreateCompanyOnboardingDto } from './dto/create-company-onboarding.dto';
+import { UpdateCompanyProfileDto } from './dto/update-company-profile.dto';
 
 @Controller('companies')
 export class CompaniesController {
@@ -17,6 +26,20 @@ export class CompaniesController {
   @Roles('PLATFORM_ADMIN')
   findAll() {
     return this.companiesService.findAll();
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  findMine(@Req() req: any) {
+    return this.companiesService.findMine(req.user.companyId);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  updateMine(@Req() req: any, @Body() dto: UpdateCompanyProfileDto) {
+    return this.companiesService.updateMine(req.user.companyId, dto);
   }
 
   @Post('domain-check')

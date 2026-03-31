@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompanyPlan, UserRole } from '@prisma/client';
 import { CreateCompanyOnboardingDto } from './dto/create-company-onboarding.dto';
+import { UpdateCompanyProfileDto } from './dto/update-company-profile.dto';
 import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 
@@ -41,6 +42,80 @@ export class CompaniesService {
             devices: true,
           },
         },
+      },
+    });
+  }
+
+  async findMine(companyId?: string | null) {
+    const company = await this.getCompanyOrFail(companyId);
+
+    const counts = await this.prisma.company.findUnique({
+      where: { id: company.id },
+      include: {
+        _count: {
+          select: {
+            users: true,
+            students: true,
+            buses: true,
+            devices: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: company.id,
+      name: company.name,
+      cnpj: company.cnpj,
+      emailDomain: company.emailDomain,
+      plan: company.plan,
+      contactName: company.contactName,
+      contactPhone: company.contactPhone,
+      smsVerifiedAt: company.smsVerifiedAt,
+      createdAt: company.createdAt,
+      _count: counts?._count ?? {
+        users: 0,
+        students: 0,
+        buses: 0,
+        devices: 0,
+      },
+    };
+  }
+
+  async updateMine(companyId: string | null | undefined, dto: UpdateCompanyProfileDto) {
+    const company = await this.getCompanyOrFail(companyId);
+    const normalizedCnpj = this.normalizeCnpj(dto.cnpj);
+    const normalizedPhone = dto.contactPhone
+      ? this.normalizePhone(dto.contactPhone)
+      : null;
+
+    const existingCompanyByCnpj = await this.prisma.company.findUnique({
+      where: { cnpj: normalizedCnpj },
+      select: { id: true },
+    });
+
+    if (existingCompanyByCnpj && existingCompanyByCnpj.id !== company.id) {
+      throw new BadRequestException('Ja existe uma empresa cadastrada com este CNPJ.');
+    }
+
+    return this.prisma.company.update({
+      where: { id: company.id },
+      data: {
+        name: dto.name.trim(),
+        cnpj: normalizedCnpj,
+        contactName: dto.contactName?.trim() || null,
+        contactPhone: normalizedPhone,
+      },
+      select: {
+        id: true,
+        name: true,
+        cnpj: true,
+        emailDomain: true,
+        plan: true,
+        contactName: true,
+        contactPhone: true,
+        smsVerifiedAt: true,
+        createdAt: true,
       },
     });
   }
@@ -203,6 +278,22 @@ export class CompaniesService {
     if (existingUser) {
       throw new BadRequestException('Ja existe um usuario com este email.');
     }
+  }
+
+  private async getCompanyOrFail(companyId?: string | null) {
+    if (!companyId) {
+      throw new BadRequestException('Usuario sem empresa vinculada.');
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
+
+    if (!company) {
+      throw new BadRequestException('Empresa nao encontrada.');
+    }
+
+    return company;
   }
 
   private normalizeDomain(domain: string) {

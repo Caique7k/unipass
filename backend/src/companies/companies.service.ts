@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompanyPlan, UserRole } from '@prisma/client';
 import { CreateCompanyOnboardingDto } from './dto/create-company-onboarding.dto';
@@ -13,9 +19,13 @@ type SmsChallenge = {
 
 @Injectable()
 export class CompaniesService {
+  private readonly logger = new Logger(CompaniesService.name);
   private readonly smsChallenges = new Map<string, SmsChallenge>();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async findAll() {
     return this.prisma.company.findMany({
@@ -62,18 +72,23 @@ export class CompaniesService {
     const normalizedPhone = this.normalizePhone(phone);
     const code = `${randomInt(100000, 999999)}`;
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const provider = this.getSmsProvider();
 
     this.smsChallenges.set(normalizedPhone, {
       code,
       expiresAt,
     });
 
+    if (provider === 'twilio') {
+      await this.sendViaTwilio(normalizedPhone, code);
+    }
+
     return {
       success: true,
       phone: normalizedPhone,
       expiresAt,
-      delivery: process.env.NODE_ENV === 'production' ? 'provider' : 'simulated',
-      ...(process.env.NODE_ENV === 'production' ? {} : { developmentCode: code }),
+      delivery: provider === 'twilio' ? 'provider' : 'simulated',
+      ...(provider === 'twilio' ? {} : { developmentCode: code }),
     };
   }
 
@@ -273,5 +288,81 @@ export class CompaniesService {
     const used = new Set(companies.map((company) => company.emailDomain));
 
     return uniqueVariants.filter((candidate) => !used.has(candidate)).slice(0, 4);
+  }
+
+  private getSmsProvider() {
+    const provider = this.configService
+      .get<string>('SMS_PROVIDER')
+      ?.trim()
+      .toLowerCase();
+
+    if (!provider || provider === 'dev' || provider === 'mock') {
+      return 'mock';
+    }
+
+    if (provider === 'twilio') {
+      return 'twilio';
+    }
+
+    throw new ServiceUnavailableException(
+      'O provedor de SMS configurado nao e suportado.',
+    );
+  }
+
+  private async sendViaTwilio(phone: string, code: string) {
+    const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
+    const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
+    const messagingServiceSid = this.configService.get<string>(
+      'TWILIO_MESSAGING_SERVICE_SID',
+    );
+    const from = this.configService.get<string>('TWILIO_FROM_NUMBER');
+
+    if (!accountSid || !authToken || (!messagingServiceSid && !from)) {
+      this.logger.error(
+        'Configuracao Twilio incompleta. Defina TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN e TWILIO_MESSAGING_SERVICE_SID ou TWILIO_FROM_NUMBER.',
+      );
+      throw new ServiceUnavailableException(
+        'O envio de SMS nao esta configurado no servidor.',
+      );
+    }
+
+    const payload = new URLSearchParams({
+      To: phone,
+      Body: `Seu codigo de verificacao UniPass e ${code}. Ele expira em 10 minutos.`,
+    });
+
+    if (messagingServiceSid) {
+      payload.set('MessagingServiceSid', messagingServiceSid);
+    } else if (from) {
+      payload.set('From', from);
+    }
+
+    const credentials = Buffer.from(`${accountSid}:${authToken}`).toString(
+      'base64',
+    );
+
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: payload.toString(),
+      },
+    );
+
+    if (!response.ok) {
+      const responseText = await response.text();
+
+      this.logger.error(
+        `Falha ao enviar SMS pela Twilio para ${phone}: ${response.status} ${responseText}`,
+      );
+
+      throw new ServiceUnavailableException(
+        'Nao foi possivel enviar o SMS de verificacao agora.',
+      );
+    }
   }
 }

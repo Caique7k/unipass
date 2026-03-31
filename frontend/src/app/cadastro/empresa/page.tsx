@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   Building2,
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import api from "@/services/api";
 
 const steps = [
@@ -56,6 +58,22 @@ type DomainState = {
   message?: string;
 } | null;
 
+type FormErrors = Partial<
+  Record<
+    | "companyName"
+    | "contactName"
+    | "phone"
+    | "cnpj"
+    | "domain"
+    | "adminName"
+    | "adminLogin"
+    | "password"
+    | "confirmPassword"
+    | "smsCode",
+    string
+  >
+>;
+
 function getErrorMessage(error: unknown, fallback: string) {
   if (
     typeof error === "object" &&
@@ -85,6 +103,7 @@ export default function CompanyOnboardingPage() {
   const [sendingSms, setSendingSms] = useState(false);
   const [verifyingSms, setVerifyingSms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
   const [success, setSuccess] = useState<{ loginEmail: string; plan: string } | null>(
     null,
   );
@@ -115,10 +134,53 @@ export default function CompanyOnboardingPage() {
       : form.adminLogin.trim().toLowerCase();
   }, [domainState?.normalizedDomain, form.adminLogin, form.domain]);
 
+  function setFieldError(key: keyof FormErrors, value?: string) {
+    setErrors((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function validateStepOne() {
+    const nextErrors: FormErrors = {};
+
+    if (form.companyName.trim().length < 3) nextErrors.companyName = "Informe o nome da empresa.";
+    if (form.contactName.trim().length < 3) nextErrors.contactName = "Informe o responsável.";
+    if (form.phone.replace(/\D/g, "").length < 10) nextErrors.phone = "Digite um celular válido com DDD.";
+    if (form.cnpj.replace(/\D/g, "").length !== 14) nextErrors.cnpj = "Digite um CNPJ com 14 números.";
+    if (!form.domain.trim()) nextErrors.domain = "Defina um domínio para a empresa.";
+
+    setErrors((prev) => ({ ...prev, ...nextErrors }));
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  function validateStepTwo() {
+    if (!smsSent) {
+      setFieldError("smsCode", "Envie o SMS antes de confirmar.");
+      return false;
+    }
+    if (smsCode.trim().length !== 6) {
+      setFieldError("smsCode", "Digite o código de 6 dígitos.");
+      return false;
+    }
+    setFieldError("smsCode");
+    return true;
+  }
+
+  function validateStepFour() {
+    const nextErrors: FormErrors = {};
+
+    if (form.adminName.trim().length < 3) nextErrors.adminName = "Informe o nome do administrador.";
+    if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/i.test(form.adminLogin.trim())) nextErrors.adminLogin = "Use letras, números, ponto, hífen ou underline.";
+    if (form.password.length < 6) nextErrors.password = "A senha precisa ter pelo menos 6 caracteres.";
+    if (form.confirmPassword !== form.password) nextErrors.confirmPassword = "As senhas não conferem.";
+
+    setErrors((prev) => ({ ...prev, ...nextErrors }));
+    return Object.keys(nextErrors).length === 0;
+  }
+
   async function handleCheckDomain(nextDomain?: string) {
     const domain = (nextDomain ?? form.domain).trim();
 
     if (!domain) {
+      setFieldError("domain", "Defina um domínio para a empresa.");
       toast.error("Informe um domínio para validar.");
       return false;
     }
@@ -128,8 +190,10 @@ export default function CompanyOnboardingPage() {
       const response = await api.post("/companies/domain-check", { domain });
       setDomainState(response.data);
       setForm((prev) => ({ ...prev, domain: response.data.normalizedDomain }));
+      setFieldError("domain");
 
       if (!response.data.available) {
+        setFieldError("domain", response.data.message ?? "Este domínio já está em uso.");
         toast.error(response.data.message ?? "Este domínio já está em uso.");
         return false;
       }
@@ -138,6 +202,7 @@ export default function CompanyOnboardingPage() {
       return true;
     } catch (error: unknown) {
       setDomainState(null);
+      setFieldError("domain", getErrorMessage(error, "Não foi possível validar o domínio."));
       toast.error(getErrorMessage(error, "Não foi possível validar o domínio."));
       return false;
     } finally {
@@ -146,7 +211,13 @@ export default function CompanyOnboardingPage() {
   }
 
   async function handleSendSms() {
+    if (!validateStepOne()) {
+      toast.error("Revise os dados da empresa antes de enviar o SMS.");
+      return;
+    }
+
     if (!form.phone.trim()) {
+      setFieldError("phone", "Informe o celular da empresa.");
       toast.error("Informe o celular da empresa.");
       return;
     }
@@ -159,8 +230,10 @@ export default function CompanyOnboardingPage() {
 
       setSmsSent(true);
       setDevelopmentSmsCode(response.data.developmentCode ?? "");
+      setFieldError("smsCode");
       toast.success("Código enviado por SMS.");
     } catch (error: unknown) {
+      setFieldError("smsCode", getErrorMessage(error, "Erro ao enviar SMS."));
       toast.error(getErrorMessage(error, "Erro ao enviar SMS."));
     } finally {
       setSendingSms(false);
@@ -168,7 +241,7 @@ export default function CompanyOnboardingPage() {
   }
 
   async function handleVerifySms() {
-    if (smsCode.trim().length !== 6) {
+    if (!validateStepTwo()) {
       toast.error("Digite o código de 6 dígitos.");
       return;
     }
@@ -181,9 +254,11 @@ export default function CompanyOnboardingPage() {
       });
 
       setSmsVerified(true);
+      setFieldError("smsCode");
       toast.success("Celular verificado com sucesso.");
       setCurrentStep(3);
     } catch (error: unknown) {
+      setFieldError("smsCode", getErrorMessage(error, "Código inválido."));
       toast.error(getErrorMessage(error, "Código inválido."));
     } finally {
       setVerifyingSms(false);
@@ -191,13 +266,8 @@ export default function CompanyOnboardingPage() {
   }
 
   async function handleSubmit() {
-    if (form.password.length < 6) {
-      toast.error("A senha precisa ter pelo menos 6 caracteres.");
-      return;
-    }
-
-    if (form.password !== form.confirmPassword) {
-      toast.error("As senhas não conferem.");
+    if (!validateStepFour()) {
+      toast.error("Revise os dados do administrador antes de concluir.");
       return;
     }
 
@@ -229,12 +299,7 @@ export default function CompanyOnboardingPage() {
 
   async function handleNextStep() {
     if (currentStep === 1) {
-      if (
-        !form.companyName.trim() ||
-        !form.contactName.trim() ||
-        !form.phone.trim() ||
-        !form.cnpj.trim()
-      ) {
+      if (!validateStepOne()) {
         toast.error("Preencha os dados principais da empresa antes de continuar.");
         return;
       }
@@ -247,6 +312,7 @@ export default function CompanyOnboardingPage() {
 
     if (currentStep === 2) {
       if (!smsVerified) {
+        validateStepTwo();
         toast.error("Confirme o código SMS antes de seguir.");
         return;
       }
@@ -330,7 +396,7 @@ export default function CompanyOnboardingPage() {
           </p>
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]">
           <section className="rounded-[40px] border border-white/80 bg-white/72 p-5 shadow-[0_30px_100px_rgba(15,23,42,0.08)] backdrop-blur-2xl sm:p-8">
             <div className="flex flex-wrap items-center gap-3">
               {steps.map((step, index) => {
@@ -384,10 +450,10 @@ export default function CompanyOnboardingPage() {
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Nome da empresa" value={form.companyName} onChange={(value) => setForm((prev) => ({ ...prev, companyName: value }))} placeholder="Tavares Transporte" />
-                    <Field label="Responsável" value={form.contactName} onChange={(value) => setForm((prev) => ({ ...prev, contactName: value }))} placeholder="Caique Alves" />
-                    <Field label="Celular" value={form.phone} onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))} placeholder="(17) 98810-3154" />
-                    <Field label="CNPJ" value={form.cnpj} onChange={(value) => setForm((prev) => ({ ...prev, cnpj: value }))} placeholder="00.000.000/0001-00" />
+                    <Field label="Nome da empresa" value={form.companyName} onChange={(value) => { setForm((prev) => ({ ...prev, companyName: value })); setFieldError("companyName"); }} placeholder="Tavares Transporte" error={errors.companyName} />
+                    <Field label="Responsável" value={form.contactName} onChange={(value) => { setForm((prev) => ({ ...prev, contactName: value })); setFieldError("contactName"); }} placeholder="Caique Alves" error={errors.contactName} />
+                    <Field label="Celular" value={form.phone} onChange={(value) => { setForm((prev) => ({ ...prev, phone: value })); setFieldError("phone"); }} placeholder="(17) 98810-3154" error={errors.phone} />
+                    <Field label="CNPJ" value={form.cnpj} onChange={(value) => { setForm((prev) => ({ ...prev, cnpj: value })); setFieldError("cnpj"); }} placeholder="00.000.000/0001-00" error={errors.cnpj} />
                   </div>
 
                   <div className="rounded-[28px] border border-[#ecebe5] bg-[#fafaf7] p-4 sm:p-5">
@@ -397,10 +463,14 @@ export default function CompanyOnboardingPage() {
                         value={form.domain}
                         onChange={(e) => {
                           setDomainState(null);
+                          setFieldError("domain");
                           setForm((prev) => ({ ...prev, domain: e.target.value }));
                         }}
                         placeholder="tavarestransporte.com.br"
-                        className="h-12 rounded-2xl border-[#e6e1db] bg-white px-4"
+                        className={cn(
+                          "h-12 rounded-2xl border-[#e6e1db] bg-white px-4",
+                          errors.domain && "border-destructive",
+                        )}
                       />
                       <Button type="button" onClick={() => void handleCheckDomain()} disabled={checkingDomain} className="h-12 rounded-2xl bg-[#111111] px-5 text-white hover:bg-[#222222]">
                         {checkingDomain ? "Validando..." : "Validar domínio"}
@@ -434,6 +504,8 @@ export default function CompanyOnboardingPage() {
                         )}
                       </div>
                     )}
+
+                    {errors.domain && <FieldError message={errors.domain} />}
                   </div>
                 </div>
               )}
@@ -462,9 +534,15 @@ export default function CompanyOnboardingPage() {
                       </Button>
                       <Input
                         value={smsCode}
-                        onChange={(e) => setSmsCode(e.target.value)}
+                        onChange={(e) => {
+                          setSmsCode(e.target.value);
+                          setFieldError("smsCode");
+                        }}
                         placeholder="Digite os 6 dígitos"
-                        className="h-12 rounded-2xl border-[#e6e1db] bg-white px-4 sm:max-w-xs"
+                        className={cn(
+                          "h-12 rounded-2xl border-[#e6e1db] bg-white px-4 sm:max-w-xs",
+                          errors.smsCode && "border-destructive",
+                        )}
                       />
                       <Button type="button" onClick={() => void handleVerifySms()} disabled={verifyingSms || !smsSent} className="h-12 rounded-2xl border border-[#deded7] bg-white px-5 text-[#1f1f1c] hover:bg-[#fafaf7]">
                         {verifyingSms ? "Validando..." : "Confirmar"}
@@ -482,6 +560,8 @@ export default function CompanyOnboardingPage() {
                         Celular confirmado. Você já pode seguir para o plano.
                       </p>
                     )}
+
+                    {errors.smsCode && <FieldError message={errors.smsCode} />}
                   </div>
                 </div>
               )}
@@ -550,15 +630,15 @@ export default function CompanyOnboardingPage() {
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Nome do administrador" value={form.adminName} onChange={(value) => setForm((prev) => ({ ...prev, adminName: value }))} placeholder="Caique Alves" />
+                    <Field label="Nome do administrador" value={form.adminName} onChange={(value) => { setForm((prev) => ({ ...prev, adminName: value })); setFieldError("adminName"); }} placeholder="Caique Alves" error={errors.adminName} />
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-[#30302d]">
                         Login do administrador
                       </label>
-                      <div className="flex min-h-12 items-center rounded-2xl border border-[#e6e1db] bg-white px-4">
+                      <div className={cn("flex min-h-12 items-center rounded-2xl border border-[#e6e1db] bg-white px-4", errors.adminLogin && "border-destructive")}>
                         <input
                           value={form.adminLogin}
-                          onChange={(e) => setForm((prev) => ({ ...prev, adminLogin: e.target.value }))}
+                          onChange={(e) => { setForm((prev) => ({ ...prev, adminLogin: e.target.value })); setFieldError("adminLogin"); }}
                           placeholder="caique.alves"
                           className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
                         />
@@ -571,9 +651,10 @@ export default function CompanyOnboardingPage() {
                           </span>
                         )}
                       </div>
+                      {errors.adminLogin && <FieldError message={errors.adminLogin} />}
                     </div>
-                    <Field label="Senha" type="password" value={form.password} onChange={(value) => setForm((prev) => ({ ...prev, password: value }))} placeholder="Mínimo de 6 caracteres" />
-                    <Field label="Confirmar senha" type="password" value={form.confirmPassword} onChange={(value) => setForm((prev) => ({ ...prev, confirmPassword: value }))} placeholder="Repita a senha" />
+                    <Field label="Senha" type="password" value={form.password} onChange={(value) => { setForm((prev) => ({ ...prev, password: value })); setFieldError("password"); }} placeholder="Mínimo de 6 caracteres" error={errors.password} />
+                    <Field label="Confirmar senha" type="password" value={form.confirmPassword} onChange={(value) => { setForm((prev) => ({ ...prev, confirmPassword: value })); setFieldError("confirmPassword"); }} placeholder="Repita a senha" error={errors.confirmPassword} />
                   </div>
 
                   <div className="rounded-[28px] border border-[#ecebe5] bg-[#fafaf7] p-5">
@@ -616,35 +697,44 @@ export default function CompanyOnboardingPage() {
             </div>
           </section>
 
-          <aside className="space-y-5">
-            <Card className="rounded-[36px] border-white/80 bg-white/80 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+          <aside className="space-y-3">
+            <Card className="rounded-[32px] border-white/80 bg-white/80 shadow-[0_20px_55px_rgba(15,23,42,0.07)] backdrop-blur-2xl">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold tracking-[-0.04em] text-[#111111]">
-                  Resumo da implantação
+                <CardTitle className="text-xl font-semibold tracking-[-0.04em] text-[#111111]">
+                  Resumo rápido
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-sm text-[#5f5f5a]">
-                <SummaryRow label="Empresa" value={form.companyName || "A definir"} />
-                <SummaryRow label="Domínio" value={domainState?.normalizedDomain || form.domain || "A definir"} />
-                <SummaryRow label="Plano" value={selectedPlan.name} />
-                <SummaryRow label="Admin inicial" value={adminEmailPreview || "A definir"} />
+              <CardContent className="space-y-3 pt-0 text-sm text-[#5f5f5a]">
+                <CompactRow label="Empresa" value={form.companyName || "A definir"} />
+                <CompactRow label="Domínio" value={domainState?.normalizedDomain || form.domain || "A definir"} />
+                <CompactRow label="Plano" value={selectedPlan.name} />
+                <CompactRow label="Admin" value={adminEmailPreview || "A definir"} />
               </CardContent>
             </Card>
 
-            <Card className="rounded-[36px] border-white/80 bg-[linear-gradient(180deg,rgba(255,245,238,0.96),rgba(255,255,255,0.88))] shadow-[0_24px_70px_rgba(255,92,0,0.10)]">
-              <CardContent className="space-y-4 p-6">
+            <Card className="rounded-[32px] border-white/80 bg-[linear-gradient(180deg,rgba(255,245,238,0.96),rgba(255,255,255,0.88))] shadow-[0_20px_55px_rgba(255,92,0,0.08)]">
+              <CardContent className="space-y-3 p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a05722]">
-                  Como vai funcionar depois
+                  Depois do cadastro
                 </p>
-                <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[#111111]">
-                  Alunos e usuários ficam no mesmo trilho.
-                </h2>
-                <p className="text-sm leading-7 text-[#6a574b]">
-                  O domínio escolhido aqui passa a ser a identidade da empresa. No painel,
-                  você cadastra o aluno primeiro com esse domínio e depois libera o usuário do aluno a partir desse cadastro.
+                <p className="text-sm leading-6 text-[#6a574b]">
+                  O aluno nasce com este domínio e o usuário dele é liberado a partir desse cadastro.
+                </p>
+                <p className="text-sm leading-6 text-[#6a574b]">
+                  Isso evita conflito entre empresas mesmo quando o login se repete.
                 </p>
               </CardContent>
             </Card>
+            {Object.values(errors).some(Boolean) && (
+              <Card className="rounded-[32px] border-[#ffd9c6] bg-[#fff8f4] shadow-none">
+                <CardContent className="flex items-start gap-3 p-5">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-[#c2410c]" />
+                  <p className="text-sm leading-6 text-[#8a4b23]">
+                    Existem campos que ainda precisam de ajuste nesta etapa.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </aside>
         </div>
       </div>
@@ -658,12 +748,14 @@ function Field({
   onChange,
   placeholder,
   type = "text",
+  error,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   type?: string;
+  error?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -673,17 +765,25 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-12 rounded-2xl border-[#e6e1db] bg-white px-4"
+        className={cn(
+          "h-12 rounded-2xl border-[#e6e1db] bg-white px-4",
+          error && "border-destructive",
+        )}
       />
+      {error && <FieldError message={error} />}
     </div>
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function FieldError({ message }: { message: string }) {
+  return <p className="text-sm text-destructive">{message}</p>;
+}
+
+function CompactRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#f0efe9] bg-[#fafaf7] px-4 py-3">
-      <span className="text-[#7a7a74]">{label}</span>
-      <span className="break-all text-right font-medium text-[#111111]">{value}</span>
+    <div className="rounded-2xl border border-[#f0efe9] bg-[#fafaf7] px-4 py-3">
+      <p className="text-xs uppercase tracking-[0.14em] text-[#8b8b85]">{label}</p>
+      <p className="mt-1 break-all text-sm font-medium text-[#111111]">{value}</p>
     </div>
   );
 }

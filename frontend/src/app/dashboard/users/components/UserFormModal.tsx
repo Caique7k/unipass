@@ -142,7 +142,7 @@ export function UserFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[620px]">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[620px]">
         <div className="border-b border-[#ff5c00]/10 bg-[#ff5c00]/[0.04] px-6 py-5">
           <DialogHeader className="gap-1">
             <DialogTitle className="text-2xl font-bold text-foreground">
@@ -156,7 +156,7 @@ export function UserFormModal({
           </DialogHeader>
         </div>
 
-        <div className="space-y-6 bg-background px-6 py-6">
+        <div className="unipass-scrollbar min-h-0 space-y-6 overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-6">
           <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
@@ -265,11 +265,11 @@ export function UserFormModal({
             </p>
           </div>
 
-          <div className="flex justify-end border-t border-border/60 pt-2">
+          <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-2 sm:flex-row sm:justify-end">
             <Button
               onClick={handleSubmit}
               disabled={saving}
-              className="h-11 rounded-xl px-6 cursor-pointer"
+              className="h-11 w-full cursor-pointer rounded-xl px-6 sm:w-auto"
             >
               {saving
                 ? "Salvando..."

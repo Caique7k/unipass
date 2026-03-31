@@ -13,16 +13,19 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(currentUser: {
-    role: UserRole;
-    companyId?: string | null;
-  }, options?: {
-    search?: string;
-    active?: boolean;
-    role?: string;
-    page?: number;
-    limit?: number;
-  }) {
+  async findAll(
+    currentUser: {
+      role: UserRole;
+      companyId?: string | null;
+    },
+    options?: {
+      search?: string;
+      active?: boolean;
+      role?: string;
+      page?: number;
+      limit?: number;
+    },
+  ) {
     if (!currentUser.companyId) {
       return { data: [], total: 0, page: 1, lastPage: 1 };
     }
@@ -32,9 +35,7 @@ export class UsersService {
     const search = options?.search?.trim();
     const active = options?.active;
     const skip = (page - 1) * limit;
-    const normalizedRole = search
-      ? this.normalizeRoleSearch(search)
-      : undefined;
+    const normalizedRole = search ? this.normalizeRoleSearch(search) : undefined;
     const selectedRole = options?.role
       ? this.normalizeRoleSearch(options.role)
       : undefined;
@@ -88,6 +89,7 @@ export class UsersService {
           email: true,
           role: true,
           active: true,
+          studentId: true,
           createdAt: true,
         },
       }),
@@ -109,8 +111,14 @@ export class UsersService {
     const company = await this.getCompanyOrFail(currentUser.companyId);
 
     this.validateCompanyRole(dto.role);
-    this.ensureCompanyDomain(dto.email, company.emailDomain);
-    await this.ensureCompanyEmailAvailability(dto.email, company.id);
+
+    const identity = await this.resolveUserIdentity(
+      company.id,
+      company.emailDomain,
+      dto,
+    );
+
+    await this.ensureCompanyEmailAvailability(identity.email, company.id);
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
@@ -118,8 +126,9 @@ export class UsersService {
       return await this.prisma.user.create({
         data: {
           companyId: company.id,
-          name: dto.name,
-          email: dto.email.toLowerCase(),
+          studentId: identity.studentId,
+          name: identity.name,
+          email: identity.email,
           password: hashedPassword,
           role: dto.role,
           active: true,
@@ -130,6 +139,7 @@ export class UsersService {
           email: true,
           role: true,
           active: true,
+          studentId: true,
           createdAt: true,
         },
       });
@@ -159,20 +169,39 @@ export class UsersService {
       throw new NotFoundException('Usuario nao encontrado');
     }
 
-    if (dto.role) {
-      this.validateCompanyRole(dto.role);
-    }
+    const nextRole = dto.role ?? user.role;
+    this.validateCompanyRole(nextRole);
 
-    if (dto.email) {
-      this.ensureCompanyDomain(dto.email, company.emailDomain);
-      await this.ensureCompanyEmailAvailability(dto.email, company.id, user.id);
-    }
+    const identity = await this.resolveUserIdentity(
+      company.id,
+      company.emailDomain,
+      {
+        name: dto.name ?? user.name,
+        email: dto.email ?? user.email,
+        studentId: dto.studentId ?? user.studentId ?? undefined,
+        role: nextRole,
+      },
+      user.id,
+    );
+
+    await this.ensureCompanyEmailAvailability(identity.email, company.id, user.id);
 
     const data: Prisma.UserUpdateInput = {
-      name: dto.name ?? user.name,
-      email: dto.email?.toLowerCase() ?? user.email,
-      role: dto.role ?? user.role,
+      name: identity.name,
+      email: identity.email,
+      role: nextRole,
       active: dto.active ?? user.active,
+      student: identity.studentId
+        ? {
+            connect: {
+              id: identity.studentId,
+            },
+          }
+        : user.studentId
+          ? {
+              disconnect: true,
+            }
+          : undefined,
     };
 
     if (dto.password) {
@@ -189,6 +218,7 @@ export class UsersService {
           email: true,
           role: true,
           active: true,
+          studentId: true,
           createdAt: true,
         },
       });
@@ -197,7 +227,10 @@ export class UsersService {
     }
   }
 
-  async deactivateMany(currentUser: { companyId?: string | null }, ids: string[]) {
+  async deactivateMany(
+    currentUser: { companyId?: string | null },
+    ids: string[],
+  ) {
     const company = await this.getCompanyOrFail(currentUser.companyId);
 
     return this.prisma.user.updateMany({
@@ -238,11 +271,79 @@ export class UsersService {
     }
   }
 
-  private ensureCompanyDomain(email: string, domain: string) {
-    const normalizedEmail = email.toLowerCase();
+  private async resolveUserIdentity(
+    companyId: string,
+    companyDomain: string,
+    dto: {
+      name?: string;
+      email?: string;
+      studentId?: string;
+      role: UserRole;
+    },
+    currentUserId?: string,
+  ) {
+    if (dto.studentId) {
+      const student = await this.prisma.student.findFirst({
+        where: {
+          id: dto.studentId,
+          companyId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!student) {
+        throw new BadRequestException('Aluno nao encontrado para esta empresa.');
+      }
+
+      if (!student.email) {
+        throw new BadRequestException(
+          'O aluno selecionado precisa ter um email antes de criar o usuario.',
+        );
+      }
+
+      if (student.user && student.user.id !== currentUserId) {
+        throw new BadRequestException('Este aluno ja possui um usuario vinculado.');
+      }
+
+      return {
+        name: student.name,
+        email: this.normalizeCompanyEmail(student.email, companyDomain),
+        studentId: student.id,
+      };
+    }
+
+    if (dto.role === UserRole.USER) {
+      throw new BadRequestException(
+        'Para criar um usuario de aluno, selecione um aluno ja cadastrado.',
+      );
+    }
+
+    if (!dto.name?.trim()) {
+      throw new BadRequestException('Informe o nome do usuario.');
+    }
+
+    if (!dto.email?.trim()) {
+      throw new BadRequestException('Informe o email do usuario.');
+    }
+
+    return {
+      name: dto.name.trim(),
+      email: this.normalizeCompanyEmail(dto.email, companyDomain),
+      studentId: undefined,
+    };
+  }
+
+  private normalizeCompanyEmail(email: string, domain: string) {
+    const normalizedEmail = email.trim().toLowerCase();
     const expectedSuffix = `@${domain.toLowerCase()}`;
     const emailPattern =
-      /^[a-z0-9]+(?:\.[a-z0-9]+)+@[a-z0-9.-]+\.[a-z]{2,}$/;
+      /^[a-z0-9]+(?:[._-][a-z0-9]+)*@[a-z0-9.-]+\.[a-z]{2,}$/;
 
     if (!normalizedEmail.endsWith(expectedSuffix)) {
       throw new BadRequestException(
@@ -255,6 +356,8 @@ export class UsersService {
         'Use o formato nome.sobrenome@dominio-da-empresa',
       );
     }
+
+    return normalizedEmail;
   }
 
   private async ensureCompanyEmailAvailability(

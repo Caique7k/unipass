@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
   Dialog,
@@ -26,12 +26,25 @@ import type { ManagedUser } from "../hooks/useUsers";
 
 const companyRoles: UserRole[] = ["ADMIN", "DRIVER", "COORDINATOR", "USER"];
 
+type UserCandidate = {
+  id: string;
+  name: string;
+  email: string;
+  registration: string;
+};
+
 const emptyForm = {
   name: "",
-  email: "",
+  emailLogin: "",
   password: "",
   role: "USER" as UserRole,
+  studentId: "",
 };
+
+function extractLoginFromEmail(email?: string | null) {
+  if (!email) return "";
+  return email.split("@")[0] ?? "";
+}
 
 export function UserFormModal({
   open,
@@ -48,7 +61,15 @@ export function UserFormModal({
 }) {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [candidates, setCandidates] = useState<UserCandidate[]>([]);
   const isEdit = !!user?.id;
+  const isStudentRole = form.role === "USER";
+
+  const selectedStudent = useMemo(
+    () => candidates.find((candidate) => candidate.id === form.studentId),
+    [candidates, form.studentId],
+  );
 
   useEffect(() => {
     if (!open) {
@@ -57,34 +78,82 @@ export function UserFormModal({
 
     setForm({
       name: user?.name ?? "",
-      email: user?.email ?? "",
+      emailLogin: extractLoginFromEmail(user?.email),
       password: "",
       role: user?.role ?? "USER",
+      studentId: user?.studentId ?? "",
     });
   }, [open, user]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchCandidates() {
+      try {
+        setLoadingCandidates(true);
+        const response = await api.get("/students/user-candidates/list", {
+          params: user?.id ? { includeUserId: user.id } : {},
+        });
+
+        if (!cancelled) {
+          setCandidates(response.data ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setCandidates([]);
+          toast.error("Não foi possível carregar os alunos disponíveis.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingCandidates(false);
+        }
+      }
+    }
+
+    void fetchCandidates();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, user?.id]);
+
+  const resolvedEmail = useMemo(() => {
+    if (isStudentRole && selectedStudent?.email) {
+      return selectedStudent.email;
+    }
+
+    if (!form.emailLogin.trim()) {
+      return emailDomain ? `@${emailDomain}` : "";
+    }
+
+    return emailDomain
+      ? `${form.emailLogin.trim().toLowerCase()}@${emailDomain}`
+      : form.emailLogin.trim().toLowerCase();
+  }, [emailDomain, form.emailLogin, isStudentRole, selectedStudent?.email]);
+
   function validateForm() {
-    if (!form.name.trim() || form.name.trim().length < 3) {
-      toast.error("Informe um nome válido com pelo menos 3 caracteres.");
-      return false;
-    }
+    if (isStudentRole) {
+      if (!form.studentId) {
+        toast.error("Selecione um aluno para criar o acesso.");
+        return false;
+      }
+    } else {
+      if (!form.name.trim() || form.name.trim().length < 3) {
+        toast.error("Informe um nome válido com pelo menos 3 caracteres.");
+        return false;
+      }
 
-    if (!form.email.trim()) {
-      toast.error("Informe um e-mail para o usuário.");
-      return false;
-    }
+      if (!form.emailLogin.trim()) {
+        toast.error("Informe o login do e-mail.");
+        return false;
+      }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      toast.error("Informe um e-mail válido.");
-      return false;
-    }
-
-    if (emailDomain) {
-      const normalizedEmail = form.email.trim().toLowerCase();
-      const expectedDomain = `@${emailDomain.toLowerCase()}`;
-
-      if (!normalizedEmail.endsWith(expectedDomain)) {
-        toast.error(`O e-mail deve usar o domínio ${expectedDomain}.`);
+      if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/i.test(form.emailLogin.trim())) {
+        toast.error("Use apenas letras, números, ponto, hífen ou underline.");
         return false;
       }
     }
@@ -107,23 +176,27 @@ export function UserFormModal({
       return;
     }
 
+    const payload = isStudentRole
+      ? {
+          role: form.role,
+          studentId: form.studentId,
+          ...(form.password ? { password: form.password } : {}),
+        }
+      : {
+          name: form.name.trim(),
+          email: resolvedEmail,
+          role: form.role,
+          ...(form.password ? { password: form.password } : {}),
+        };
+
     try {
       setSaving(true);
 
       if (isEdit) {
-        await api.patch(`/users/${user?.id}`, {
-          name: form.name.trim(),
-          email: form.email.trim(),
-          role: form.role,
-          ...(form.password ? { password: form.password } : {}),
-        });
+        await api.patch(`/users/${user?.id}`, payload);
         toast.success("Usuário atualizado com sucesso.");
       } else {
-        await api.post("/users", {
-          ...form,
-          name: form.name.trim(),
-          email: form.email.trim(),
-        });
+        await api.post("/users", payload);
         toast.success("Usuário criado com sucesso.");
       }
 
@@ -150,8 +223,8 @@ export function UserFormModal({
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               {isEdit
-                ? "Atualize os dados, acesso e perfil deste colaborador."
-                : "Preencha os dados para liberar o acesso de um novo usuário."}
+                ? "Atualize os dados de acesso e mantenha o vínculo com a empresa."
+                : "Crie acessos com domínio fixo da empresa e, para alunos, use um cadastro já existente."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -167,46 +240,40 @@ export function UserFormModal({
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {emailDomain
-                  ? `Os usuários devem usar o domínio @${emailDomain}.`
-                  : "Use um e-mail corporativo válido para este usuário."}
+                  ? `Todos os acessos usam o domínio @${emailDomain}.`
+                  : "Use um domínio corporativo válido para este usuário."}
               </p>
             </div>
 
             <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Perfil selecionado
+                E-mail final
               </p>
-              <p className="mt-2 text-base font-semibold text-foreground">
-                {roleLabels[form.role]}
+              <p className="mt-2 text-base font-semibold text-foreground break-all">
+                {resolvedEmail || "Defina o acesso"}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Defina o tipo de acesso ideal antes de salvar.
+                {isStudentRole
+                  ? "O acesso do aluno herda nome e e-mail do cadastro do aluno."
+                  : "Perfis internos podem usar login manual dentro do domínio da empresa."}
               </p>
             </div>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Nome</Label>
-              <Input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="Digite o nome completo"
-                className="h-11 rounded-xl border-border/70 bg-background px-3"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label className="text-sm font-medium">Perfil</Label>
               <Select
                 value={form.role}
                 onValueChange={(value) =>
-                  setForm((prev) => ({ ...prev, role: value as UserRole }))
+                  setForm((prev) => ({
+                    ...prev,
+                    role: value as UserRole,
+                    studentId: value === "USER" ? prev.studentId : "",
+                  }))
                 }
               >
-                <SelectTrigger className="h-11 w-full rounded-xl border-border/70 bg-background px-3 cursor-pointer">
+                <SelectTrigger className="h-11 w-full cursor-pointer rounded-xl border-border/70 bg-background px-3">
                   <SelectValue>{roleLabels[form.role]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -218,26 +285,76 @@ export function UserFormModal({
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">E-mail</Label>
-            <Input
-              value={form.email}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, email: e.target.value }))
-              }
-              placeholder={
-                emailDomain
-                  ? `nome.sobrenome@${emailDomain}`
-                  : "nome.sobrenome@empresa.com.br"
-              }
-              className="h-11 rounded-xl border-border/70 bg-background px-3"
-            />
-            {emailDomain && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Este usuário precisa usar o domínio da empresa: @{emailDomain}
-              </p>
+            {isStudentRole ? (
+              <div className="space-y-2 sm:col-span-2">
+                <Label className="text-sm font-medium">Aluno vinculado</Label>
+                <Select
+                  value={form.studentId}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({ ...prev, studentId: value ?? "" }))
+                  }
+                  disabled={loadingCandidates}
+                >
+                  <SelectTrigger className="h-11 w-full cursor-pointer rounded-xl border-border/70 bg-background px-3">
+                    <SelectValue
+                      placeholder={
+                        loadingCandidates
+                          ? "Carregando alunos..."
+                          : "Selecione o aluno pelo e-mail"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {candidates.map((candidate) => (
+                      <SelectItem key={candidate.id} value={candidate.id}>
+                        {candidate.name} - {candidate.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedStudent && (
+                  <p className="text-xs text-muted-foreground">
+                    Matrícula {selectedStudent.registration} • {selectedStudent.email}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Nome</Label>
+                  <Input
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    placeholder="Digite o nome completo"
+                    className="h-11 rounded-xl border-border/70 bg-background px-3"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Login do e-mail</Label>
+                  <div className="flex min-h-11 items-center rounded-xl border border-border/70 bg-background px-3">
+                    <input
+                      value={form.emailLogin}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          emailLogin: e.target.value,
+                        }))
+                      }
+                      placeholder="nome.sobrenome"
+                      className="h-11 flex-1 bg-transparent text-sm outline-none"
+                    />
+                    {emailDomain && (
+                      <span className="pl-3 text-sm text-muted-foreground">
+                        @{emailDomain}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
 

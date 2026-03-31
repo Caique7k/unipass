@@ -15,12 +15,22 @@ enum UserRole {
   COORDINATOR
 }
 
+enum CompanyPlan {
+  ESSENTIAL
+  GROWTH
+  SCALE
+}
+
 model Company {
-  id        String   @id @default(uuid())
-  name      String
-  cnpj      String   @unique
-  emailDomain String @unique
-  createdAt DateTime @default(now())
+  id             String      @id @default(uuid())
+  name           String
+  cnpj           String      @unique
+  emailDomain    String      @unique
+  plan           CompanyPlan @default(ESSENTIAL)
+  contactName    String?
+  contactPhone   String?
+  smsVerifiedAt  DateTime?
+  createdAt      DateTime    @default(now())
 
   users           User[]
   students        Student[]
@@ -38,7 +48,9 @@ model User {
   password  String
   role      UserRole
   active    Boolean  @default(true)
+  studentId String?  @unique
   companyId String?
+  student   Student? @relation(fields: [studentId], references: [id])
   company   Company? @relation(fields: [companyId], references: [id])
 
   createdAt DateTime @default(now())
@@ -72,6 +84,7 @@ model Student {
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
+  user      User?
 
   rfidCards       RfidCard[]
   transportEvents TransportEvent[]
@@ -79,6 +92,7 @@ model Student {
   createdAt DateTime @default(now())
 
   @@unique([registration, companyId])
+  @@unique([companyId, email])
   @@index([companyId])
   @@index([companyId, createdAt])
 }

@@ -83,6 +83,9 @@ export class StudentsService {
   }
 
   async create(companyId: string, dto: CreateStudentDto) {
+    const company = await this.getCompanyOrFail(companyId);
+    const normalizedEmail = this.normalizeStudentEmail(dto.email, company.emailDomain);
+
     return this.prisma.$transaction(async (tx) => {
       const exists = await tx.student.findFirst({
         where: {
@@ -105,16 +108,33 @@ export class StudentsService {
         }
       }
 
-      const student = await tx.student.create({
-        data: {
-          companyId,
-          name: dto.name,
-          registration: dto.registration,
-          active: dto.active ?? true,
-          email: dto.email ?? null,
-          phone: dto.phone ?? null,
-        },
-      });
+      let student;
+
+      try {
+        student = await tx.student.create({
+          data: {
+            companyId,
+            name: dto.name,
+            registration: dto.registration,
+            active: dto.active ?? true,
+            email: normalizedEmail,
+            phone: dto.phone ?? null,
+          },
+        });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new BadRequestException(
+            normalizedEmail
+              ? 'Ja existe um aluno com esse email neste dominio.'
+              : 'Matricula ja cadastrada',
+          );
+        }
+
+        throw error;
+      }
 
       if (dto.rfidTag) {
         await tx.rfidCard.create({
@@ -132,6 +152,11 @@ export class StudentsService {
 
   async update(companyId: string, id: string, dto: UpdateStudentDto) {
     const student = await this.findOne(companyId, id);
+    const company = await this.getCompanyOrFail(companyId);
+    const nextEmail =
+      dto.email !== undefined
+        ? this.normalizeStudentEmail(dto.email, company.emailDomain)
+        : student.email;
 
     try {
       return await this.prisma.student.update({
@@ -140,7 +165,7 @@ export class StudentsService {
           name: dto.name ?? student.name,
           registration: dto.registration ?? student.registration,
           active: dto.active ?? student.active,
-          email: dto.email ?? student.email,
+          email: nextEmail,
           phone: dto.phone ?? student.phone,
         },
       });
@@ -178,5 +203,87 @@ export class StudentsService {
         active: false,
       },
     });
+  }
+
+  async findUserCandidates(companyId: string, includeUserId?: string) {
+    return this.prisma.student.findMany({
+      where: {
+        companyId,
+        active: true,
+        email: {
+          not: null,
+        },
+        OR: [
+          {
+            user: null,
+          },
+          ...(includeUserId
+            ? [
+                {
+                  user: {
+                    is: {
+                      id: includeUserId,
+                    },
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
+      orderBy: {
+        name: 'asc',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        registration: true,
+      },
+    });
+  }
+
+  private async getCompanyOrFail(companyId: string) {
+    const company = await this.prisma.company.findUnique({
+      where: {
+        id: companyId,
+      },
+      select: {
+        id: true,
+        emailDomain: true,
+      },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Empresa nao encontrada');
+    }
+
+    return company;
+  }
+
+  private normalizeStudentEmail(email: string | undefined, domain: string) {
+    if (!email?.trim()) {
+      return null;
+    }
+
+    const normalized = email.trim().toLowerCase();
+    const expectedSuffix = `@${domain.toLowerCase()}`;
+
+    if (normalized.includes('@')) {
+      if (!normalized.endsWith(expectedSuffix)) {
+        throw new BadRequestException(
+          `O email do aluno deve usar o dominio da empresa (${expectedSuffix}).`,
+        );
+      }
+
+      return normalized;
+    }
+
+    if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(normalized)) {
+      throw new BadRequestException(
+        'Use apenas letras, numeros, ponto, underline ou hifen antes do dominio.',
+      );
+    }
+
+    return `${normalized}${expectedSuffix}`;
   }
 }

@@ -12,6 +12,7 @@ export type ManagedUser = {
   email: string;
   role: UserRole;
   active: boolean;
+  studentId?: string | null;
   createdAt: string;
 };
 

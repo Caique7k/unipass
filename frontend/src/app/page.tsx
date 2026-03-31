@@ -135,7 +135,7 @@ export default function Home() {
               Entrar
             </Link>
             <Link
-              href="#cadastro"
+              href="/cadastro/empresa"
               className="inline-flex h-10 items-center justify-center rounded-full bg-[#ff5c00] px-5 text-sm font-medium text-white shadow-[0_16px_34px_rgba(255,92,0,0.24)] transition hover:bg-[#eb5600]"
             >
               Cadastre-se
@@ -173,10 +173,10 @@ export default function Home() {
                 <ArrowRight className="size-4" />
               </Link>
               <Link
-                href="#cadastro"
+                href="/cadastro/empresa"
                 className="inline-flex h-13 items-center justify-center rounded-full border border-white/80 bg-white/70 px-6 text-sm font-semibold text-[#1f1f1c] shadow-[0_14px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white"
               >
-                Cadastre-se para novidades
+                Cadastrar minha empresa
               </Link>
             </div>
 

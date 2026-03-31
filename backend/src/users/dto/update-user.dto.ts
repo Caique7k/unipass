@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   MinLength,
 } from 'class-validator';
 
@@ -17,6 +18,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @IsOptional()
+  @IsUUID()
+  studentId?: string;
 
   @IsOptional()
   @IsString()

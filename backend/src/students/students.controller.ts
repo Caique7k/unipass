@@ -39,6 +39,18 @@ export class StudentsController {
     });
   }
 
+  @Get('user-candidates/list')
+  @Roles('ADMIN')
+  findUserCandidates(
+    @Req() req: any,
+    @Query('includeUserId') includeUserId?: string,
+  ) {
+    return this.studentsService.findUserCandidates(
+      req.user.companyId,
+      includeUserId,
+    );
+  }
+
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
     return this.studentsService.findOne(req.user.companyId, id);

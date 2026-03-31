@@ -165,6 +165,7 @@ export default function StudentsPage() {
             open={open}
             onOpenChange={setOpen}
             student={selectedStudent}
+            emailDomain={user?.emailDomain ?? null}
             onSuccess={() => refetch()}
           />
         </>

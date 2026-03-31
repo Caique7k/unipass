@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ type Student = {
   active?: boolean;
 };
 
-type Errors = Partial<Record<keyof Student, string>>;
+type Errors = Partial<Record<"name" | "registration" | "emailLocalPart" | "phone", string>>;
 
 const emptyForm: Student = {
   name: "",
@@ -33,18 +33,26 @@ const emptyForm: Student = {
   active: true,
 };
 
+function extractEmailLocalPart(email?: string | null) {
+  if (!email) return "";
+  return email.split("@")[0] ?? "";
+}
+
 export function StudentModal({
   open,
   onOpenChange,
   student,
+  emailDomain,
   onSuccess,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   student?: Student | null;
+  emailDomain?: string | null;
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState<Student>(emptyForm);
+  const [emailLocalPart, setEmailLocalPart] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
@@ -53,9 +61,19 @@ export function StudentModal({
   const [serverError, setServerError] = useState("");
 
   const isEdit = !!student?.id;
+  const resolvedEmailPreview = useMemo(() => {
+    if (!emailLocalPart.trim()) {
+      return emailDomain ? `@${emailDomain}` : "";
+    }
+
+    return emailDomain
+      ? `${emailLocalPart.trim().toLowerCase()}@${emailDomain}`
+      : emailLocalPart.trim().toLowerCase();
+  }, [emailDomain, emailLocalPart]);
 
   useEffect(() => {
     setForm(student ?? emptyForm);
+    setEmailLocalPart(extractEmailLocalPart(student?.email));
     setErrors({});
     setServerError("");
     setIsLinking(false);
@@ -75,11 +93,13 @@ export function StudentModal({
     }
 
     if (!form.registration || form.registration.length < 3) {
-      newErrors.registration = "Matricula invalida";
+      newErrors.registration = "Matrícula inválida";
     }
 
-    if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = "E-mail inválido";
+    if (!emailLocalPart.trim()) {
+      newErrors.emailLocalPart = "Informe o login do e-mail";
+    } else if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/i.test(emailLocalPart.trim())) {
+      newErrors.emailLocalPart = "Use apenas letras, números, ponto, hífen ou underline";
     }
 
     if (!form.phone || form.phone.replace(/\D/g, "").length < 10) {
@@ -90,12 +110,19 @@ export function StudentModal({
     return Object.keys(newErrors).length === 0;
   };
 
+  const buildPayload = () => ({
+    ...form,
+    name: form.name?.trim(),
+    registration: form.registration?.trim(),
+    email: emailLocalPart.trim().toLowerCase(),
+  });
+
   const createStudent = async () => {
     const res = await fetch("http://localhost:3000/students", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(form),
+      body: JSON.stringify(buildPayload()),
     });
 
     const data = await res.json();
@@ -112,13 +139,13 @@ export function StudentModal({
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(form),
+      body: JSON.stringify(buildPayload()),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || "Erro na requisicao");
+      throw new Error(data.message || "Erro na requisição");
     }
   };
 
@@ -139,13 +166,15 @@ export function StudentModal({
         return;
       }
 
-      const student = await createStudent();
+      const created = await createStudent();
       toast.success("Aluno criado com sucesso");
 
-      setCreatedStudent(student);
+      setCreatedStudent(created);
       setIsLinking(true);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erro ao salvar aluno");
+      const message = err instanceof Error ? err.message : "Erro ao salvar aluno";
+      setServerError(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -191,7 +220,7 @@ export function StudentModal({
     }
   };
 
-  const renderError = (field: keyof Student) => {
+  const renderError = (field: keyof Errors) => {
     if (!errors[field]) return null;
     return <p className="text-sm text-red-500">{errors[field]}</p>;
   };
@@ -224,21 +253,21 @@ export function StudentModal({
                     {isEdit ? "Edição de aluno" : "Novo aluno"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Confira nome, matrícula e contato antes de salvar.
+                    O e-mail do aluno fica sempre amarrado ao domínio da empresa.
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    Proxima etapa
+                    E-mail institucional
                   </p>
-                  <p className="mt-2 text-base font-semibold text-foreground">
-                    {isEdit ? "Atualizacao imediata" : "Vinculo com RFID"}
+                  <p className="mt-2 text-base font-semibold text-foreground break-all">
+                    {resolvedEmailPreview || "Defina o login do aluno"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {isEdit
-                      ? "As alteracoes sao salvas direto no cadastro."
-                      : "Depois do cadastro você confirma o cartão do aluno."}
+                    {emailDomain
+                      ? `Domínio fixo da empresa: @${emailDomain}`
+                      : "Use o login que o aluno vai usar para acessar."}
                   </p>
                 </div>
               </div>
@@ -273,14 +302,26 @@ export function StudentModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Email</Label>
-                  <Input
-                    value={form.email || ""}
-                    onChange={(e) => handleChange("email", e.target.value)}
-                    className="h-11 rounded-xl border-border/70 bg-background px-3"
-                    placeholder="aluno@empresa.com.br"
-                  />
-                  {renderError("email")}
+                  <Label className="text-sm font-medium">Login do e-mail</Label>
+                  <div
+                    className={cn(
+                      "flex min-h-11 items-center rounded-xl border border-border/70 bg-background px-3",
+                      errors.emailLocalPart && "border-red-500",
+                    )}
+                  >
+                    <input
+                      value={emailLocalPart}
+                      onChange={(e) => setEmailLocalPart(e.target.value)}
+                      placeholder="caique.alves"
+                      className="h-11 flex-1 bg-transparent text-sm outline-none"
+                    />
+                    {emailDomain && (
+                      <span className="pl-3 text-sm text-muted-foreground">
+                        @{emailDomain}
+                      </span>
+                    )}
+                  </div>
+                  {renderError("emailLocalPart")}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -288,7 +329,10 @@ export function StudentModal({
                   <Input
                     value={form.phone || ""}
                     onChange={(e) => handleChange("phone", e.target.value)}
-                    className="h-11 rounded-xl border-border/70 bg-background px-3"
+                    className={cn(
+                      "h-11 rounded-xl border-border/70 bg-background px-3",
+                      errors.phone && "border-red-500",
+                    )}
                     placeholder="(00) 00000-0000"
                   />
                   {renderError("phone")}
@@ -306,7 +350,7 @@ export function StudentModal({
                   {isSaving
                     ? "Salvando..."
                     : isEdit
-                      ? "Salvar alteracoes"
+                      ? "Salvar alterações"
                       : "Criar e vincular RFID"}
                 </Button>
               </div>
@@ -316,10 +360,10 @@ export function StudentModal({
               <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
-                    Vinculo
+                    Vínculo
                   </p>
                   <p className="mt-2 text-sm font-medium text-foreground">
-                    Cartao do aluno
+                    Cartão do aluno
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Aproxime o cartão ou informe o código RFID manualmente.
@@ -331,7 +375,7 @@ export function StudentModal({
                     Aluno criado
                   </p>
                   <p className="mt-2 text-base font-semibold text-foreground">
-                    {createdStudent?.name || "Cadastro concluido"}
+                    {createdStudent?.name || "Cadastro concluído"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Finalize o processo confirmando o identificador RFID.

@@ -367,67 +367,6 @@ export default function Home() {
           </div>
         </RevealSection>
 
-        <RevealSection delay={90} className="py-10">
-          <div
-            id="cadastro"
-            className="rounded-[38px] border border-[#ffd7bf] bg-[linear-gradient(180deg,rgba(255,247,240,0.96),rgba(255,255,255,0.88))] px-6 py-8 shadow-[0_28px_70px_rgba(255,92,0,0.10)] backdrop-blur-2xl"
-          >
-            <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr] lg:items-center">
-              <div className="max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#ffd8c1] bg-white/80 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-[#7a675b]">
-                  <Bus className="size-3.5 text-[#ff5c00]" />
-                  Cadastro antecipado
-                </div>
-                <h2 className="mt-6 text-4xl font-semibold tracking-[-0.05em] text-[#111111]">
-                  Cadastre-se para acompanhar o próximo lançamento do UniPass.
-                </h2>
-                <p className="mt-4 text-base leading-8 text-[#65584e]">
-                  Nosso próximo passo será abrir o fluxo de cadastro e entrada
-                  institucional. Deixe seu contato para acompanhar as novidades,
-                  testes e primeiras liberações.
-                </p>
-              </div>
-
-              <Card className="rounded-[32px] border-0 bg-white/82 py-0 shadow-[0_22px_60px_rgba(15,23,42,0.08)] ring-1 ring-white/80">
-                <CardHeader className="px-6 pt-6">
-                  <CardTitle className="text-2xl font-semibold tracking-[-0.04em] text-[#111111]">
-                    Lista de interesse
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 px-6 pb-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#30302d]">
-                      Seu melhor e-mail
-                    </label>
-                    <Input
-                      type="email"
-                      placeholder="voce@instituicao.com.br"
-                      className="h-12 rounded-2xl border-[#e8ddd6] bg-[#fffdfb] px-4 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#30302d]">
-                      Instituição ou operação
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder="Nome da operação, frota ou empresa"
-                      className="h-12 rounded-2xl border-[#e8ddd6] bg-[#fffdfb] px-4 text-sm"
-                    />
-                  </div>
-                  <Button className="h-12 w-full rounded-2xl bg-[#ff5c00] text-white shadow-[0_14px_30px_rgba(255,92,0,0.22)] hover:bg-[#eb5600]">
-                    Quero acompanhar o lançamento
-                  </Button>
-                  <p className="text-xs leading-6 text-[#7a7068]">
-                    Esta seção já prepara a próxima etapa do projeto. No próximo
-                    passo, podemos conectar esse cadastro a um fluxo real.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </RevealSection>
-
         <RevealSection delay={100} className="mt-8">
           <footer className="rounded-[38px] border border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(244,244,241,0.74))] px-6 py-8 shadow-[0_28px_70px_rgba(15,23,42,0.07)] backdrop-blur-2xl">
             <div className="grid gap-8 lg:grid-cols-[1fr_auto_auto] lg:items-end">

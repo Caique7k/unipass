@@ -9,6 +9,14 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Prisma, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+const userStudentSelect = {
+  id: true,
+  name: true,
+  email: true,
+  registration: true,
+  active: true,
+} satisfies Prisma.StudentSelect;
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -90,6 +98,9 @@ export class UsersService {
           role: true,
           active: true,
           studentId: true,
+          student: {
+            select: userStudentSelect,
+          },
           createdAt: true,
         },
       }),
@@ -140,6 +151,9 @@ export class UsersService {
           role: true,
           active: true,
           studentId: true,
+          student: {
+            select: userStudentSelect,
+          },
           createdAt: true,
         },
       });
@@ -219,6 +233,9 @@ export class UsersService {
           role: true,
           active: true,
           studentId: true,
+          student: {
+            select: userStudentSelect,
+          },
           createdAt: true,
         },
       });

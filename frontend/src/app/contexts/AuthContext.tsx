@@ -30,6 +30,7 @@ export interface User {
   role: UserRole;
   companyId: string | null;
   emailDomain?: string | null;
+  companyName?: string | null;
 }
 
 interface AuthContextType {

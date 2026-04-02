@@ -17,6 +17,7 @@ export class AuthService {
         company: {
           select: {
             emailDomain: true,
+            name: true,
           },
         },
       },
@@ -39,10 +40,45 @@ export class AuthService {
       role: user.role,
       companyId: user.companyId,
       emailDomain: user.company?.emailDomain ?? null,
+      companyName: user.company?.name ?? null,
     };
 
     return {
       access_token: this.jwtService.sign(payload),
+    };
+  }
+
+  async getMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        active: true,
+        companyId: true,
+        company: {
+          select: {
+            emailDomain: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!user || !user.active) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      companyId: user.companyId,
+      emailDomain: user.company?.emailDomain ?? null,
+      companyName: user.company?.name ?? null,
     };
   }
 }

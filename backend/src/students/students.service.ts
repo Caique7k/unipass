@@ -209,12 +209,12 @@ export class StudentsService {
     return this.prisma.student.findMany({
       where: {
         companyId,
-        active: true,
-        email: {
-          not: null,
-        },
         OR: [
           {
+            active: true,
+            email: {
+              not: null,
+            },
             user: null,
           },
           ...(includeUserId

@@ -13,6 +13,13 @@ export type ManagedUser = {
   role: UserRole;
   active: boolean;
   studentId?: string | null;
+  student?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    registration: string;
+    active: boolean;
+  } | null;
   createdAt: string;
 };
 

@@ -29,7 +29,7 @@ const companyRoles: UserRole[] = ["ADMIN", "DRIVER", "COORDINATOR", "USER"];
 type UserCandidate = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   registration: string;
 };
 
@@ -44,6 +44,23 @@ const emptyForm = {
 function extractLoginFromEmail(email?: string | null) {
   if (!email) return "";
   return email.split("@")[0] ?? "";
+}
+
+function buildStudentLabel(student: Pick<UserCandidate, "name" | "email">) {
+  return student.email ? `${student.name} - ${student.email}` : student.name;
+}
+
+function getCurrentStudentCandidate(user?: ManagedUser | null): UserCandidate | null {
+  if (!user?.student) {
+    return null;
+  }
+
+  return {
+    id: user.student.id,
+    name: user.student.name,
+    email: user.student.email ?? user.email,
+    registration: user.student.registration,
+  };
 }
 
 export function UserFormModal({
@@ -65,10 +82,47 @@ export function UserFormModal({
   const [candidates, setCandidates] = useState<UserCandidate[]>([]);
   const isEdit = !!user?.id;
   const isStudentRole = form.role === "USER";
+  const currentStudentCandidate = useMemo(
+    () => getCurrentStudentCandidate(user),
+    [user],
+  );
+  const candidateOptions = useMemo(() => {
+    if (!currentStudentCandidate) {
+      return candidates;
+    }
+
+    const existingCandidate = candidates.find(
+      (candidate) => candidate.id === currentStudentCandidate.id,
+    );
+
+    if (!existingCandidate) {
+      return [currentStudentCandidate, ...candidates];
+    }
+
+    return candidates.map((candidate) =>
+      candidate.id === currentStudentCandidate.id
+        ? {
+            ...candidate,
+            email: candidate.email ?? currentStudentCandidate.email,
+          }
+        : candidate,
+    );
+  }, [candidates, currentStudentCandidate]);
 
   const selectedStudent = useMemo(
-    () => candidates.find((candidate) => candidate.id === form.studentId),
-    [candidates, form.studentId],
+    () => candidateOptions.find((candidate) => candidate.id === form.studentId),
+    [candidateOptions, form.studentId],
+  );
+  const studentSelectPlaceholder = loadingCandidates
+    ? "Carregando alunos..."
+    : "Selecione o aluno pelo e-mail";
+  const candidateItems = useMemo(
+    () =>
+      candidateOptions.map((candidate) => ({
+        value: candidate.id,
+        label: buildStudentLabel(candidate),
+      })),
+    [candidateOptions],
   );
 
   useEffect(() => {
@@ -291,31 +345,41 @@ export function UserFormModal({
                 <Label className="text-sm font-medium">Aluno vinculado</Label>
                 <Select
                   value={form.studentId}
+                  items={candidateItems}
                   onValueChange={(value) =>
                     setForm((prev) => ({ ...prev, studentId: value ?? "" }))
                   }
                   disabled={loadingCandidates}
                 >
                   <SelectTrigger className="h-11 w-full cursor-pointer rounded-xl border-border/70 bg-background px-3">
-                    <SelectValue
-                      placeholder={
-                        loadingCandidates
-                          ? "Carregando alunos..."
-                          : "Selecione o aluno pelo e-mail"
-                      }
-                    />
+                    <SelectValue placeholder={studentSelectPlaceholder}>
+                      {(value) => {
+                        if (!value) {
+                          return studentSelectPlaceholder;
+                        }
+
+                        const candidate = candidateOptions.find(
+                          (item) => item.id === value,
+                        );
+
+                        return candidate
+                          ? buildStudentLabel(candidate)
+                          : studentSelectPlaceholder;
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {candidates.map((candidate) => (
+                    {candidateOptions.map((candidate) => (
                       <SelectItem key={candidate.id} value={candidate.id}>
-                        {candidate.name} - {candidate.email}
+                        {buildStudentLabel(candidate)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {selectedStudent && (
                   <p className="text-xs text-muted-foreground">
-                    Matrícula {selectedStudent.registration} • {selectedStudent.email}
+                    Matrícula {selectedStudent.registration}
+                    {selectedStudent.email ? ` • ${selectedStudent.email}` : ""}
                   </p>
                 )}
               </div>

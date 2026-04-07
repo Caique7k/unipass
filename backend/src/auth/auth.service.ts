@@ -1,16 +1,33 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import type { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
-  async login(email: string, password: string) {
+  private getTokenExpiration(rememberMe: boolean) {
+    if (rememberMe) {
+      return (
+        (this.configService.get<string>(
+          'JWT_REMEMBER_EXPIRES',
+        ) as StringValue) ?? '30d'
+      );
+    }
+
+    return (
+      (this.configService.get<string>('JWT_EXPIRES') as StringValue) ?? '1h'
+    );
+  }
+
+  async login(email: string, password: string, rememberMe = false) {
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
@@ -44,7 +61,9 @@ export class AuthService {
     };
 
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.jwtService.sign(payload, {
+        expiresIn: this.getTokenExpiration(rememberMe),
+      }),
     };
   }
 

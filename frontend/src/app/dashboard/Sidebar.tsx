@@ -8,6 +8,7 @@ import {
   Compass,
   Home,
   LogOut,
+  Smartphone,
   SmartphoneNfcIcon,
   Truck,
   Users,
@@ -28,7 +29,6 @@ export default function Sidebar() {
     "COORDINATOR",
   ]);
   const isPlatformAdmin = hasRole(user?.role, ["PLATFORM_ADMIN"]);
-  const isStudentUser = hasRole(user?.role, ["USER"]);
 
   return (
     <aside
@@ -90,18 +90,34 @@ export default function Sidebar() {
           )}
         </div>
 
+        <div>
+          {isOpen && (
+            <p className="mb-2 text-xs uppercase text-muted-foreground">
+              Aplicativo
+            </p>
+          )}
+
+          <SidebarItem
+            href="/dashboard/app"
+            icon={<Smartphone size={25} />}
+            label="Aplicativo"
+            isOpen={isOpen}
+            active={pathname === "/dashboard/app"}
+          />
+        </div>
+
         {canViewOperations && (
           <div>
             {isOpen && (
               <p className="mb-2 text-xs uppercase text-muted-foreground">
-                Localizacao
+                Localização
               </p>
             )}
 
             <SidebarItem
               href="/dashboard/location"
               icon={<Compass size={25} />}
-              label="Localizacao"
+              label="Localização"
               isOpen={isOpen}
               active={pathname === "/dashboard/location"}
             />
@@ -167,17 +183,6 @@ export default function Sidebar() {
               isOpen={isOpen}
               active={pathname === "/dashboard/users"}
             />
-          </div>
-        )}
-
-        {isStudentUser && isOpen && (
-          <div>
-            <p className="mb-2 text-xs uppercase text-muted-foreground">
-              App aluno
-            </p>
-            <p className="px-3 text-xs text-muted-foreground">
-              Rastreamento, boleto e presenca entram nos proximos passos.
-            </p>
           </div>
         )}
       </nav>

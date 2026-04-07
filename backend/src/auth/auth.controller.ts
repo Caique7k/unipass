@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { CookieOptions, Response } from 'express';
+import type { CookieOptions, Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -20,7 +20,7 @@ export class AuthController {
     private configService: ConfigService,
   ) {}
 
-  private getCookieOptions(): CookieOptions {
+  private getBaseCookieOptions(): CookieOptions {
     const sameSite =
       (this.configService.get<string>('COOKIE_SAME_SITE')?.toLowerCase() as
         | 'lax'
@@ -29,12 +29,9 @@ export class AuthController {
         | undefined) ?? 'lax';
 
     const secure =
-      (this.configService.get<string>('COOKIE_SECURE') ?? 'false').toLowerCase() ===
-      'true';
-
-    const maxAge = Number(
-      this.configService.get<string>('COOKIE_MAX_AGE_MS') ?? `${1000 * 60 * 60}`,
-    );
+      (
+        this.configService.get<string>('COOKIE_SECURE') ?? 'false'
+      ).toLowerCase() === 'true';
 
     const domain = this.configService.get<string>('COOKIE_DOMAIN')?.trim();
 
@@ -42,9 +39,24 @@ export class AuthController {
       httpOnly: true,
       secure,
       sameSite,
-      maxAge,
       path: '/',
       ...(domain ? { domain } : {}),
+    };
+  }
+
+  private getCookieOptions(rememberMe: boolean): CookieOptions {
+    if (!rememberMe) {
+      return this.getBaseCookieOptions();
+    }
+
+    const maxAge = Number(
+      this.configService.get<string>('COOKIE_REMEMBER_MAX_AGE_MS') ??
+        `${1000 * 60 * 60 * 24 * 30}`,
+    );
+
+    return {
+      ...this.getBaseCookieOptions(),
+      maxAge,
     };
   }
 
@@ -56,22 +68,27 @@ export class AuthController {
     const { access_token } = await this.authService.login(
       dto.email,
       dto.password,
+      dto.rememberMe ?? false,
     );
 
-    res.cookie('token', access_token, this.getCookieOptions());
+    res.cookie(
+      'token',
+      access_token,
+      this.getCookieOptions(dto.rememberMe ?? false),
+    );
 
     return { success: true };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  getMe(@Req() req) {
+  getMe(@Req() req: Request & { user: { id: string } }) {
     return this.authService.getMe(req.user.id);
   }
 
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('token', this.getCookieOptions());
+    res.clearCookie('token', this.getBaseCookieOptions());
     return { success: true };
   }
 }

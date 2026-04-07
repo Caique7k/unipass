@@ -27,6 +27,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Device } from "../types/device";
+import { RowEditButton } from "../../components/RowEditButton";
 
 export function DevicesTable({
   data,
@@ -117,13 +118,16 @@ export function DevicesTable({
               <TableHead>Hardware</TableHead>
               <TableHead>Código</TableHead>
               <TableHead>Status</TableHead>
+              {canManage && (
+                <TableHead className="w-[68px] text-right">Editar</TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canManage ? 5 : 4} className="py-6 text-center">
+                <TableCell colSpan={canManage ? 6 : 4} className="py-6 text-center">
                   Nenhum dispositivo encontrado
                 </TableCell>
               </TableRow>
@@ -163,6 +167,14 @@ export function DevicesTable({
                       {device.active ? "Ativo" : "Inativo"}
                     </span>
                   </TableCell>
+                  {canManage && (
+                    <TableCell className="text-right">
+                      <RowEditButton
+                        label={`Editar ${device.name}`}
+                        onClick={() => onEdit(device)}
+                      />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

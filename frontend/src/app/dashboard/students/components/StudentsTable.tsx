@@ -26,6 +26,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { RowEditButton } from "../../components/RowEditButton";
 
 type Student = {
   id: string;
@@ -136,13 +137,16 @@ export function StudentsTable({
               <TableHead>Telefone</TableHead>
               <TableHead>RFID</TableHead>
               <TableHead>Status</TableHead>
+              {canManage && (
+                <TableHead className="w-[68px] text-right">Editar</TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canManage ? 7 : 6} className="text-center py-6">
+                <TableCell colSpan={canManage ? 8 : 6} className="py-6 text-center">
                   Nenhum aluno encontrado
                 </TableCell>
               </TableRow>
@@ -184,6 +188,14 @@ export function StudentsTable({
                       {student.active ? "Ativo" : "Inativo"}
                     </span>
                   </TableCell>
+                  {canManage && (
+                    <TableCell className="text-right">
+                      <RowEditButton
+                        label={`Editar ${student.name}`}
+                        onClick={() => onEdit(student)}
+                      />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

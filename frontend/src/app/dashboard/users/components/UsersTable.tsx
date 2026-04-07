@@ -31,6 +31,7 @@ import { roleLabels } from "@/lib/permissions";
 import type { ManagedUser } from "../hooks/useUsers";
 import type { UserRole } from "@/lib/permissions";
 import type { UserStatusFilter } from "../hooks/useUsers";
+import { RowEditButton } from "../../components/RowEditButton";
 
 export function UsersTable({
   data,
@@ -145,13 +146,14 @@ export function UsersTable({
               <TableHead>Email</TableHead>
               <TableHead>Perfil</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-[68px] text-right">Editar</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-6 text-center">
+                <TableCell colSpan={6} className="py-6 text-center">
                   Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
@@ -182,6 +184,12 @@ export function UsersTable({
                     >
                       {user.active ? "Ativo" : "Inativo"}
                     </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <RowEditButton
+                      label={`Editar ${user.name}`}
+                      onClick={() => onEdit(user)}
+                    />
                   </TableCell>
                 </TableRow>
               ))

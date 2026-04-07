@@ -20,6 +20,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Bus } from "../types/bus";
+import { RowEditButton } from "../../components/RowEditButton";
 
 export function BusesTable({
   data,
@@ -81,13 +82,16 @@ export function BusesTable({
               {canManage && <TableHead />}
               <TableHead>Placa</TableHead>
               <TableHead>Capacidade</TableHead>
+              {canManage && (
+                <TableHead className="w-[68px] text-right">Editar</TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canManage ? 3 : 2} className="text-center py-6">
+                <TableCell colSpan={canManage ? 4 : 2} className="py-6 text-center">
                   Nenhum ônibus encontrado
                 </TableCell>
               </TableRow>
@@ -109,6 +113,14 @@ export function BusesTable({
 
                   <TableCell>{bus.plate}</TableCell>
                   <TableCell>{bus.capacity}</TableCell>
+                  {canManage && (
+                    <TableCell className="text-right">
+                      <RowEditButton
+                        label={`Editar onibus ${bus.plate}`}
+                        onClick={() => onEdit(bus)}
+                      />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

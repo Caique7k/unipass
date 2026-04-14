@@ -2,16 +2,18 @@
 
 import axios from "axios";
 import Image from "next/image";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type FormEvent,
-  type MouseEvent,
-} from "react";
+import Link from "next/link";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Lock, Mail, X } from "lucide-react";
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -25,40 +27,36 @@ const REMEMBER_STORAGE_KEY = "unipass-remember-me";
 const showcaseSlides = [
   {
     src: "/unipass/unipass-dashboard.png",
-    alt: "Visao geral do dashboard UniPass",
+    alt: "Dashboard principal do UniPass",
+    eyebrow: "Painel central",
+    title: "Visao clara da operacao.",
+    badge: "Ao vivo",
   },
   {
     src: "/unipass/unipass-student.png",
-    alt: "Jornada do aluno na plataforma UniPass",
+    alt: "Tela de acompanhamento de alunos no UniPass",
+    eyebrow: "Gestao de alunos",
+    title: "Cadastros mais organizados.",
+    badge: "Fluxo rapido",
   },
   {
     src: "/unipass/unipass-bus.png",
-    alt: "Monitoramento de frota na plataforma UniPass",
+    alt: "Tela de acompanhamento da frota no UniPass",
+    eyebrow: "Monitoramento de frota",
+    title: "Frota e telemetria no mesmo lugar.",
+    badge: "Visao completa",
   },
 ];
+
+const quickHighlights = ["Tempo real", "RFID + GPS", "Acesso seguro"];
 
 function delayStyle(delay: number): CSSProperties {
   return { "--login-delay": `${delay}ms` } as CSSProperties;
 }
 
-function getSlideState(index: number, activeIndex: number, total: number) {
-  const offset = (index - activeIndex + total) % total;
-
-  if (offset === 0) {
-    return "active";
-  }
-
-  if (offset === 1) {
-    return "next";
-  }
-
-  return "previous";
-}
-
 export default function LoginPage() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const sceneRef = useRef<HTMLDivElement>(null);
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [email, setEmail] = useState("");
@@ -76,24 +74,10 @@ export default function LoginPage() {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setActiveSlide((current) => (current + 1) % showcaseSlides.length);
-    }, 4200);
+    }, 5200);
 
     return () => window.clearInterval(intervalId);
   }, []);
-
-  function updatePointer(event: MouseEvent<HTMLDivElement>) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
-    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
-
-    sceneRef.current?.style.setProperty("--login-pointer-x", x.toFixed(3));
-    sceneRef.current?.style.setProperty("--login-pointer-y", y.toFixed(3));
-  }
-
-  function resetPointer() {
-    sceneRef.current?.style.setProperty("--login-pointer-x", "0");
-    sceneRef.current?.style.setProperty("--login-pointer-y", "0");
-  }
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -174,331 +158,282 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      ref={sceneRef}
-      onMouseMove={updatePointer}
-      onMouseLeave={resetPointer}
-      className="login-canvas relative min-h-screen overflow-hidden bg-[#f5f5f2] text-[#111827] dark:bg-[#f5f5f2] dark:text-[#111827] lg:h-screen"
-    >
+    <main className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fcfaf7_0%,#f7f4ef_30%,#eef3f8_100%)] text-[#111827]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-[-36rem] top-1/2 -translate-y-1/2">
-          <div
-            className="login-intro h-[76rem] w-[76rem] rounded-full bg-[radial-gradient(circle_at_63%_42%,rgba(255,255,255,0.98)_0%,rgba(255,244,236,0.98)_28%,rgba(255,190,145,0.35)_52%,rgba(255,140,69,0.14)_66%,rgba(255,140,69,0)_78%)]"
-            style={delayStyle(40)}
-          />
-        </div>
-
-        <div className="absolute left-[-12rem] top-1/2 -translate-y-1/2">
-          <div
-            className="login-intro h-[54rem] w-[54rem] rounded-full border border-white/50 bg-white/18 backdrop-blur-[3px]"
-            style={delayStyle(90)}
-          />
-        </div>
-
-        <div className="absolute left-[4%] top-[10%]">
-          <div className="login-intro" style={delayStyle(180)}>
-            <div className="login-breath-slow">
-              <div className="login-parallax-soft h-24 w-24 rounded-full border border-white/55 bg-white/38 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute left-[12%] bottom-[15%]">
-          <div className="login-intro" style={delayStyle(220)}>
-            <div className="login-breath">
-              <div className="login-parallax-reverse h-16 w-32 rounded-full border border-white/55 bg-[#fff4ec]/58 shadow-[0_18px_48px_rgba(15,23,42,0.06)] backdrop-blur-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute right-[14%] top-[14%]">
-          <div className="login-intro" style={delayStyle(260)}>
-            <div className="login-breath-fast">
-              <div className="login-parallax-soft h-20 w-20 rounded-full border border-white/55 bg-[#eef4ff]/70 shadow-[0_18px_48px_rgba(15,23,42,0.06)] backdrop-blur-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute right-[8%] bottom-[16%]">
-          <div className="login-intro" style={delayStyle(300)}>
-            <div className="login-breath-slow">
-              <div className="login-parallax-reverse h-20 w-36 rounded-full border border-white/55 bg-white/32 shadow-[0_18px_48px_rgba(15,23,42,0.06)] backdrop-blur-xl" />
-            </div>
-          </div>
-        </div>
+        <div className="login-breath-slow absolute left-[-8rem] top-[10%] h-[22rem] w-[22rem] rounded-full bg-[#ff7a1a]/18 blur-3xl" />
+        <div className="login-breath absolute right-[-6rem] top-[-2rem] h-[18rem] w-[18rem] rounded-full bg-[#0f6aad]/16 blur-3xl" />
+        <div className="login-breath-fast absolute bottom-[-10rem] left-[18%] h-[24rem] w-[24rem] rounded-full bg-[#ff5c00]/14 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),transparent_42%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.6),transparent_32%,rgba(255,255,255,0.38)_100%)]" />
       </div>
 
-      <div className="relative mx-auto grid min-h-screen w-full max-w-[1460px] items-center gap-6 px-4 py-4 sm:px-6 lg:h-screen lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-8 lg:px-10 lg:py-6 xl:grid-cols-[1.08fr_0.92fr]">
-        <section className="relative hidden h-full items-center justify-center lg:flex">
-          <div className="relative h-[min(78vh,42rem)] w-full max-w-[44rem]">
-            <div className="absolute left-[2%] top-[9%] z-10">
-              <div className="login-intro" style={delayStyle(160)}>
-                <div className="login-breath-fast">
-                  <div className="login-parallax-soft h-16 w-16 rounded-full border border-white/60 bg-white/46 shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-transform duration-500 hover:scale-110" />
-                </div>
+      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+        <div className="grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-center xl:gap-6">
+          <section className="order-2 hidden xl:block xl:order-1">
+            <div className="mx-auto max-w-3xl xl:mx-0 xl:max-w-none">
+              <div className="login-intro inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/76 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5d5b56] shadow-[0_12px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+                <Sparkles className="size-3.5 text-[#ff5c00]" />
+                Plataforma UniPass
               </div>
-            </div>
 
-            <div className="absolute left-[7%] bottom-[26%] z-10">
-              <div className="login-intro" style={delayStyle(220)}>
-                <div className="login-breath">
-                  <div className="login-parallax-reverse h-14 w-28 rounded-full border border-white/60 bg-[#fff3e8]/72 shadow-[0_18px_40px_rgba(15,23,42,0.05)] backdrop-blur-xl transition-transform duration-500 hover:scale-105" />
-                </div>
+              <div className="login-intro mt-5 max-w-2xl" style={delayStyle(80)}>
+                <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.06em] text-[#0f172a]">
+                  Entrar no UniPass
+                </h1>
+                <p className="mt-3 max-w-xl text-base leading-7 text-[#475569]">
+                  Acesso simples, claro e consistente com o restante da plataforma.
+                </p>
               </div>
-            </div>
 
-            <div className="absolute right-[8%] top-[14%] z-10">
-              <div className="login-intro" style={delayStyle(260)}>
-                <div className="login-breath-slow">
-                  <div className="login-parallax-soft h-20 w-20 rounded-full border border-white/60 bg-[#eef4ff]/74 shadow-[0_18px_40px_rgba(15,23,42,0.05)] backdrop-blur-xl transition-transform duration-500 hover:scale-110" />
-                </div>
+              <div
+                className="login-intro mt-4 flex flex-wrap gap-2"
+                style={delayStyle(130)}
+              >
+                {quickHighlights.map((highlight) => (
+                  <div
+                    key={highlight}
+                    className="rounded-full border border-white/80 bg-white/74 px-4 py-2 text-sm font-semibold text-[#334155] shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur-xl"
+                  >
+                    {highlight}
+                  </div>
+                ))}
               </div>
-            </div>
 
-            <div className="absolute right-[4%] bottom-[12%] z-10">
-              <div className="login-intro" style={delayStyle(300)}>
-                <div className="login-breath">
-                  <div className="login-parallax-reverse h-16 w-32 rounded-full border border-white/60 bg-white/38 shadow-[0_18px_40px_rgba(15,23,42,0.05)] backdrop-blur-xl transition-transform duration-500 hover:scale-105" />
-                </div>
-              </div>
-            </div>
+              <div
+                className="login-intro mt-5 overflow-hidden rounded-[34px] border border-white/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,248,251,0.82))] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.1)] backdrop-blur-2xl"
+                style={delayStyle(170)}
+              >
+                <div className="rounded-[28px] border border-black/5 bg-[#f8f7f3] p-3 shadow-inner shadow-white/80">
+                  <div className="flex items-center justify-between gap-3 px-1 pb-3">
+                    <div className="flex items-center gap-2 px-1 pb-3">
+                      <span className="size-2.5 rounded-full bg-[#ff7a1a]" />
+                      <span className="size-2.5 rounded-full bg-[#ffb36d]" />
+                      <span className="size-2.5 rounded-full bg-[#c7d6e8]" />
+                    </div>
+                    <Link
+                      href="/cadastro/empresa"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-[#ff5c00] transition hover:text-[#da4d00]"
+                    >
+                      Cadastrar empresa
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </div>
 
-            <div className="absolute left-1/2 top-[44%] z-20 h-[29rem] w-[29rem] -translate-x-1/2 -translate-y-1/2">
-              <div className="login-intro h-full w-full" style={delayStyle(140)}>
-                <div className="login-parallax-soft relative h-full w-full">
-                  <div className="absolute inset-0 rounded-full border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.18))] shadow-[0_30px_90px_rgba(15,23,42,0.08)] backdrop-blur-2xl" />
-                  <div className="absolute inset-3 rounded-full border border-white/40" />
-                  <div className="login-breath-slow absolute inset-[7%] rounded-full border border-white/50 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(255,255,255,0.22)_35%,rgba(255,255,255,0.04)_60%,rgba(255,255,255,0.58)_100%)]" />
-
-                  <div className="absolute inset-[8%] overflow-hidden rounded-full border border-white/60 shadow-inner shadow-white/50">
-                    {showcaseSlides.map((slide, index) => {
-                      const slideState = getSlideState(
-                        index,
-                        activeSlide,
-                        showcaseSlides.length,
-                      );
-
-                      return (
+                  <div className="relative overflow-hidden rounded-[22px] border border-white/80 bg-[#eef2f7]">
+                    <div className="relative aspect-[16/10] min-h-[220px]">
+                      {showcaseSlides.map((slide, index) => (
                         <figure
                           key={slide.src}
                           className={cn(
-                            "absolute inset-0 transition-all duration-[1400ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-                            slideState === "active" &&
-                              "z-20 translate-x-0 scale-100 opacity-100",
-                            slideState === "next" &&
-                              "z-10 translate-x-10 scale-[0.95] opacity-0",
-                            slideState === "previous" &&
-                              "z-0 -translate-x-10 scale-[0.95] opacity-0",
+                            "absolute inset-0 transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                            index === activeSlide
+                              ? "z-20 scale-100 opacity-100"
+                              : "z-10 scale-[1.03] opacity-0",
                           )}
                         >
                           <Image
                             src={slide.src}
                             alt={slide.alt}
                             fill
-                            sizes="34vw"
                             priority={index === 0}
-                            className="object-cover transition-transform duration-700 hover:scale-[1.04]"
+                            sizes="(min-width: 1280px) 42vw, (min-width: 768px) 70vw, 92vw"
+                            className="object-cover"
                           />
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_44%,rgba(17,24,39,0.1)_100%)]" />
+                          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,18,0.02),rgba(7,10,18,0.42))]" />
                         </figure>
-                      );
-                    })}
+                      ))}
+
+                      <div className="absolute inset-x-4 bottom-4 rounded-[22px] border border-white/20 bg-[#09111d]/72 p-4 text-white shadow-[0_18px_40px_rgba(9,17,29,0.28)] backdrop-blur-xl">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/74">
+                            {showcaseSlides[activeSlide].eyebrow}
+                          </p>
+                          <span className="rounded-full bg-[#ff5c00] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                            {showcaseSlides[activeSlide].badge}
+                          </span>
+                        </div>
+                        <h2 className="mt-3 max-w-lg text-xl font-semibold tracking-[-0.05em] text-white">
+                          {showcaseSlides[activeSlide].title}
+                        </h2>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="absolute inset-[-4%] rounded-full border border-dashed border-white/26 animate-[spin_26s_linear_infinite]" />
+                  <div className="mt-4 flex items-center gap-2">
+                    {showcaseSlides.map((slide, index) => (
+                      <button
+                        key={slide.src}
+                        type="button"
+                        aria-label={`Exibir imagem ${index + 1}`}
+                        onClick={() => setActiveSlide(index)}
+                        className={cn(
+                          "h-2.5 rounded-full bg-[#cfd6de] transition-all duration-300 hover:bg-[#ff7a1a]",
+                          index === activeSlide ? "w-9 bg-[#ff5c00]" : "w-2.5",
+                        )}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
+          </section>
 
+          <section className="order-1 xl:order-2 xl:flex xl:justify-end">
             <div
-              className="absolute left-1/2 top-[76%] z-30 flex -translate-x-1/2 items-center gap-2"
-              style={delayStyle(200)}
+              className="login-intro mx-auto w-full max-w-[26rem] xl:mx-0"
+              style={delayStyle(160)}
             >
-              {showcaseSlides.map((slide, index) => (
-                <button
-                  key={slide.src}
-                  type="button"
-                  aria-label={`Exibir imagem ${index + 1}`}
-                  onClick={() => setActiveSlide(index)}
-                  className={cn(
-                    "login-intro h-2.5 rounded-full bg-[#d7d1ca] transition-all duration-500 hover:bg-[#ff8a4a]",
-                    index === activeSlide ? "w-9 bg-[#ff5c00]" : "w-2.5",
-                  )}
-                  style={delayStyle(220 + index * 50)}
-                />
-              ))}
-            </div>
-
-            <div className="absolute bottom-0 left-1/2 z-30 h-[19rem] w-[24rem] -translate-x-1/2">
-              <div className="login-intro h-full w-full" style={delayStyle(260)}>
-                <div className="login-parallax-reverse relative h-full w-full">
-                  <div className="absolute bottom-[1.8rem] left-1/2 h-[13rem] w-[18rem] -translate-x-1/2 rounded-full bg-[#ff8b38]/14 blur-3xl" />
-                  <div className="login-road-perspective absolute bottom-0 left-1/2 h-[13rem] w-[18rem] -translate-x-1/2" />
-
-                  <div className="login-bus-front-shell absolute bottom-[2.2rem] left-1/2 h-[14.5rem] w-[18rem] -translate-x-1/2">
-                    <div className="login-bus-front-shadow" />
-                    <div className="absolute inset-x-6 top-[0.2rem] h-4 rounded-full bg-white/18 blur-sm" />
-
-                    <div className="absolute inset-x-2 top-4 bottom-5 overflow-hidden rounded-[3rem_3rem_2.4rem_2.4rem] border border-white/28 bg-[linear-gradient(180deg,#ff9e58_0%,#ff7418_64%,#d84f00_100%)] shadow-[0_24px_50px_rgba(255,92,0,0.28)]">
-                      <div className="absolute left-1/2 top-3 h-3 w-24 -translate-x-1/2 rounded-full bg-white/16" />
-                      <div className="absolute -left-1 top-9 h-9 w-1 rounded-full bg-[#ffbb88]" />
-                      <div className="absolute -right-1 top-9 h-9 w-1 rounded-full bg-[#ffbb88]" />
-
-                      <div className="absolute inset-x-8 top-5 h-[6.3rem] rounded-[2rem_2rem_1.4rem_1.4rem] border border-white/22 bg-[linear-gradient(180deg,#2c4763_0%,#1c3147_100%)] shadow-inner shadow-white/10">
-                        <div className="absolute inset-x-4 top-3 h-[2px] bg-white/16" />
-                        <div className="absolute left-1/2 top-3 h-14 w-[2px] -translate-x-1/2 bg-white/20" />
-                        <div className="absolute inset-x-4 bottom-3 h-10 rounded-[1.2rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.48),rgba(155,212,255,0.18)_58%,rgba(255,255,255,0.08)_100%)]" />
-                      </div>
-
-                      <div className="absolute inset-x-6 bottom-10 h-9 rounded-[1.5rem] bg-[#973600]/22" />
-                      <div className="absolute left-1/2 bottom-5 h-11 w-16 -translate-x-1/2 rounded-[1.2rem] border border-white/18 bg-[linear-gradient(180deg,#ff9b52_0%,#ff7117_100%)] shadow-inner shadow-white/10">
-                        <div className="absolute inset-x-3 top-3 h-2 rounded-full bg-white/16" />
-                        <div className="absolute inset-x-4 bottom-3 h-1.5 rounded-full bg-[#823200]/26" />
-                      </div>
-
-                      <div className="absolute left-6 bottom-7 h-6 w-7 rounded-[1rem] bg-[#ffdcae] shadow-[0_0_18px_rgba(255,220,169,0.85)]" />
-                      <div className="absolute right-6 bottom-7 h-6 w-7 rounded-[1rem] bg-[#ffdcae] shadow-[0_0_18px_rgba(255,220,169,0.85)]" />
-                      <div className="absolute left-10 bottom-8 h-2 w-10 rounded-full bg-white/18" />
-                      <div className="absolute right-10 bottom-8 h-2 w-10 rounded-full bg-white/18" />
+              <div className="rounded-[32px] border border-white/85 bg-white/90 px-5 py-5 shadow-[0_28px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl sm:px-6 sm:py-6">
+                <div className="flex items-start justify-between gap-4">
+                  <Link href="/" className="inline-flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-[#f0dfd2] bg-[linear-gradient(180deg,#fff8f2_0%,#fff1e6_100%)] shadow-[0_14px_30px_rgba(255,92,0,0.12)]">
+                      <Image
+                        src="/logo_unipass.svg"
+                        alt="UniPass"
+                        width={34}
+                        height={34}
+                        priority
+                        className="h-auto w-9"
+                      />
                     </div>
 
-                    <div className="login-front-wheel absolute bottom-0 left-[0.5rem]" />
-                    <div className="login-front-wheel absolute bottom-0 right-[0.5rem]" />
-                  </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7c7368]">
+                        Acesso UniPass
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-[#334155]">
+                        Painel corporativo
+                      </p>
+                    </div>
+                  </Link>
+
+                  <Link
+                    href="/"
+                    className="inline-flex items-center rounded-full border border-[#eedfd0] bg-[#fff8f1] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#b45309] transition hover:bg-white"
+                  >
+                    Voltar
+                  </Link>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section className="relative flex items-center justify-center lg:justify-end">
-          <div
-            className="login-intro mx-auto w-full max-w-[28rem] lg:mx-0"
-            style={delayStyle(180)}
-          >
-            <div className="rounded-[34px] border border-[#e8e3db] bg-white/92 px-6 py-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-[18px] transition-transform duration-700 hover:-translate-y-1 sm:px-8 sm:py-8">
-              <div className="flex size-14 items-center justify-center rounded-[20px] border border-[#efe7df] bg-[#faf8f5] shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                <Image
-                  src="/logo_unipass.png"
-                  alt="UniPass"
-                  width={28}
-                  height={28}
-                  priority
-                  className="h-auto w-7"
-                />
-              </div>
+                <div className="mt-5 rounded-[24px] border border-[#f2e6da] bg-[linear-gradient(180deg,#fffaf5_0%,#fff3ea_100%)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a5b1f]">
+                    Entrar no painel
+                  </p>
+                  <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.05em] text-[#111827]">
+                    Acesse sua conta
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-[#5b6472]">
+                    Entre com seu e-mail corporativo.
+                  </p>
+                </div>
 
-              <div className="mt-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b8b85]">
-                  Acesse sua operacao
-                </p>
-                <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[#111827]">
-                  Entrar no UniPass
-                </h1>
-                <p className="mt-3 text-sm leading-6 text-[#6b7280]">
-                  Entre com seu e-mail corporativo.
-                </p>
-              </div>
+                <form onSubmit={handleLogin} className="mt-5 space-y-3.5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-[#111827]">
+                      E-mail
+                    </label>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#7c8899]" />
+                      <Input
+                        type="email"
+                        placeholder="voce@empresa.com"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-13 rounded-2xl border-[#d9cdbf] bg-[#fffdfa] pl-11 pr-4 text-[#0f172a] shadow-none placeholder:text-[#94a3b8] focus-visible:border-[#ff5c00] focus-visible:ring-[#ff5c00]/15 dark:border-[#d9cdbf] dark:bg-[#fffdfa] dark:text-[#0f172a] dark:placeholder:text-[#94a3b8]"
+                      />
+                    </div>
+                  </div>
 
-              <form onSubmit={handleLogin} className="mt-7 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#111827]">
-                    E-mail
-                  </label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#9ca3af]" />
-                    <Input
-                      type="email"
-                      placeholder="voce@empresa.com"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-12 rounded-2xl border-[#ddd7cf] bg-[#fcfcfb] pl-11 pr-4 text-[#111827] shadow-none placeholder:text-[#9ca3af] focus-visible:border-[#ff5c00] focus-visible:ring-[#ff5c00]/12 dark:border-[#ddd7cf] dark:bg-[#fcfcfb] dark:text-[#111827] dark:placeholder:text-[#9ca3af]"
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-[#111827]">
+                      Senha
+                    </label>
+                    <div className="relative">
+                      <Lock className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#7c8899]" />
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Digite sua senha"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="h-13 rounded-2xl border-[#d9cdbf] bg-[#fffdfa] pl-11 pr-12 text-[#0f172a] shadow-none placeholder:text-[#94a3b8] focus-visible:border-[#ff5c00] focus-visible:ring-[#ff5c00]/15 dark:border-[#d9cdbf] dark:bg-[#fffdfa] dark:text-[#0f172a] dark:placeholder:text-[#94a3b8]"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-[#7c8899] transition hover:text-[#334155]"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="size-4" />
+                        ) : (
+                          <Eye className="size-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ecdfd2] bg-[#fff8f2] px-4 py-3 transition-colors hover:bg-white">
+                    <Checkbox
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
+                      className="size-[18px] border-[#d9c2ad] bg-white text-white data-checked:border-[#ff5c00] data-checked:bg-[#ff5c00] dark:border-[#d9c2ad] dark:bg-white dark:data-checked:border-[#ff5c00] dark:data-checked:bg-[#ff5c00]"
                     />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#111827]">
-                    Senha
-                  </label>
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#9ca3af]" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Digite sua senha"
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 rounded-2xl border-[#ddd7cf] bg-[#fcfcfb] pl-11 pr-12 text-[#111827] shadow-none placeholder:text-[#9ca3af] focus-visible:border-[#ff5c00] focus-visible:ring-[#ff5c00]/12 dark:border-[#ddd7cf] dark:bg-[#fcfcfb] dark:text-[#111827] dark:placeholder:text-[#9ca3af]"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      aria-label={
-                        showPassword ? "Ocultar senha" : "Mostrar senha"
-                      }
-                      className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-[#9ca3af] transition hover:text-[#4b5563]"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ebe6df] bg-[#faf8f5] px-4 py-3 transition-colors hover:bg-white">
-                  <Checkbox
-                    checked={rememberMe}
-                    onCheckedChange={(checked) =>
-                      setRememberMe(Boolean(checked))
-                    }
-                    className="border-[#d8d2ca] bg-white text-white data-checked:border-[#ff5c00] data-checked:bg-[#ff5c00] dark:border-[#d8d2ca] dark:bg-white dark:data-checked:border-[#ff5c00] dark:data-checked:bg-[#ff5c00]"
-                  />
-                  <span className="text-sm font-medium text-[#374151]">
-                    Manter conectado
-                  </span>
-                </label>
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="h-12 w-full rounded-2xl bg-[#ff5c00] text-sm font-semibold text-white shadow-[0_16px_32px_rgba(255,92,0,0.22)] transition-transform hover:-translate-y-0.5 hover:bg-[#eb5600] dark:bg-[#ff5c00] dark:text-white dark:hover:bg-[#eb5600]"
-                >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Entrando...
+                    <span className="text-sm font-medium text-[#374151]">
+                      Manter conectado neste dispositivo
                     </span>
-                  ) : (
-                    "Entrar"
-                  )}
-                </Button>
-              </form>
+                  </label>
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="h-13 w-full rounded-2xl bg-[linear-gradient(135deg,#ff5c00_0%,#ff7a1a_100%)] text-sm font-semibold text-white shadow-[0_20px_40px_rgba(255,92,0,0.28)] transition-transform hover:-translate-y-0.5 hover:opacity-95 dark:text-white"
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Entrando...
+                      </span>
+                    ) : (
+                      "Entrar"
+                    )}
+                  </Button>
+                </form>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <p className="text-[#526071]">Primeiro acesso?</p>
+                  <Link
+                    href="/cadastro/empresa"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#0f6aad] transition hover:text-[#0a4f82]"
+                  >
+                    Criar cadastro
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
 
       {errorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
-            className="absolute inset-0 animate-[fadeIn_0.2s_ease] bg-black/28 backdrop-blur-sm"
+            className="absolute inset-0 animate-[fadeIn_0.2s_ease] bg-[#09111d]/42 backdrop-blur-sm"
             onClick={() => setErrorModal(false)}
           />
 
-          <div className="relative w-full max-w-sm animate-[scaleIn_0.28s_cubic-bezier(0.22,1,0.36,1)] rounded-[28px] border border-[#e8e3db] bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
+          <div className="relative w-full max-w-sm animate-[scaleIn_0.28s_cubic-bezier(0.22,1,0.36,1)] rounded-[30px] border border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f2_100%)] p-6 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
             <button
               onClick={() => setErrorModal(false)}
-              className="absolute right-4 top-4 cursor-pointer text-[#9ca3af] transition hover:text-[#4b5563]"
+              className="absolute right-4 top-4 cursor-pointer text-[#7c8899] transition hover:text-[#334155]"
             >
               <X className="size-4" />
             </button>
 
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00]">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00] shadow-inner shadow-white">
               <Lock className="size-5" />
             </div>
 
@@ -506,19 +441,19 @@ export default function LoginPage() {
               Login invalido
             </h3>
 
-            <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+            <p className="mt-2 text-sm leading-6 text-[#5b6472]">
               O e-mail ou a senha informados estao incorretos.
             </p>
 
             <Button
               onClick={() => setErrorModal(false)}
-              className="mt-6 h-11 w-full rounded-2xl bg-[#ff5c00] text-white hover:bg-[#eb5600] dark:bg-[#ff5c00] dark:text-white dark:hover:bg-[#eb5600]"
+              className="mt-6 h-11 w-full rounded-2xl bg-[linear-gradient(135deg,#ff5c00_0%,#ff7a1a_100%)] text-white hover:opacity-95 dark:text-white"
             >
               Tentar novamente
             </Button>
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

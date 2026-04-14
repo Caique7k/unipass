@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsEmail } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateStudentDto {
   @IsOptional()
@@ -6,7 +6,16 @@ export class UpdateStudentDto {
   name?: string;
 
   @IsOptional()
-  @IsEmail()
+  @IsString()
+  groupId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  routeIds?: string[];
+
+  @IsOptional()
+  @IsString()
   email?: string;
 
   @IsOptional()

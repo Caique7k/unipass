@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,22 +16,52 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { buildApiUrl } from "@/services/api";
 
+type GroupOption = {
+  id: string;
+  name: string;
+  active: boolean;
+};
+
+type RouteOption = {
+  id: string;
+  name: string;
+  active: boolean;
+};
+
 type Student = {
   id?: string;
   name?: string;
   registration?: string;
-  email?: string;
-  phone?: string;
+  email?: string | null;
+  phone?: string | null;
   active?: boolean;
+  groupId?: string | null;
+  group?: GroupOption | null;
+  routeIds?: string[];
+  routes?: {
+    route: RouteOption;
+  }[];
 };
 
-type Errors = Partial<Record<"name" | "registration" | "emailLocalPart" | "phone", string>>;
+type Errors = Partial<
+  Record<
+    | "name"
+    | "registration"
+    | "groupId"
+    | "routeIds"
+    | "emailLocalPart"
+    | "phone",
+    string
+  >
+>;
 
 const emptyForm: Student = {
   name: "",
   registration: "",
   email: "",
   phone: "",
+  groupId: "",
+  routeIds: [],
   active: true,
 };
 
@@ -44,12 +75,24 @@ export function StudentModal({
   onOpenChange,
   student,
   emailDomain,
+  groups,
+  groupsLoading,
+  groupsLoaded,
+  routes,
+  routesLoading,
+  routesLoaded,
   onSuccess,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   student?: Student | null;
   emailDomain?: string | null;
+  groups: GroupOption[];
+  groupsLoading: boolean;
+  groupsLoaded: boolean;
+  routes: RouteOption[];
+  routesLoading: boolean;
+  routesLoaded: boolean;
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState<Student>(emptyForm);
@@ -60,8 +103,70 @@ export function StudentModal({
   const [rfidTag, setRfidTag] = useState("");
   const [createdStudent, setCreatedStudent] = useState<Student | null>(null);
   const [serverError, setServerError] = useState("");
+  const [groupSearch, setGroupSearch] = useState("");
+  const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
+  const [routeSearch, setRouteSearch] = useState("");
+  const [routeDropdownOpen, setRouteDropdownOpen] = useState(false);
 
   const isEdit = !!student?.id;
+  const availableGroups = useMemo(() => {
+    const options = new Map<string, GroupOption>();
+
+    groups.forEach((group) => {
+      options.set(group.id, group);
+    });
+
+    if (student?.group?.id && !options.has(student.group.id)) {
+      options.set(student.group.id, student.group);
+    }
+
+    return Array.from(options.values());
+  }, [groups, student?.group]);
+
+  const selectedGroup = useMemo(
+    () => availableGroups.find((group) => group.id === form.groupId),
+    [availableGroups, form.groupId],
+  );
+  const filteredGroups = useMemo(() => {
+    const search = groupSearch.trim().toLowerCase();
+
+    if (!search) {
+      return availableGroups;
+    }
+
+    return availableGroups.filter((group) =>
+      group.name.toLowerCase().includes(search),
+    );
+  }, [availableGroups, groupSearch]);
+  const availableRoutes = useMemo(() => {
+    const options = new Map<string, RouteOption>();
+
+    routes.forEach((route) => {
+      options.set(route.id, route);
+    });
+
+    student?.routes?.forEach((studentRoute) => {
+      options.set(studentRoute.route.id, studentRoute.route);
+    });
+
+    return Array.from(options.values());
+  }, [routes, student?.routes]);
+  const selectedRoutes = useMemo(
+    () => availableRoutes.filter((route) => form.routeIds?.includes(route.id)),
+    [availableRoutes, form.routeIds],
+  );
+  const filteredRoutes = useMemo(() => {
+    const search = routeSearch.trim().toLowerCase();
+
+    if (!search) {
+      return availableRoutes;
+    }
+
+    return availableRoutes.filter((route) =>
+      route.name.toLowerCase().includes(search),
+    );
+  }, [availableRoutes, routeSearch]);
+
   const resolvedEmailPreview = useMemo(() => {
     if (!emailLocalPart.trim()) {
       return emailDomain ? `@${emailDomain}` : "";
@@ -73,16 +178,32 @@ export function StudentModal({
   }, [emailDomain, emailLocalPart]);
 
   useEffect(() => {
-    setForm(student ?? emptyForm);
+    setForm(
+      student
+        ? {
+            ...student,
+            routeIds:
+              student.routes?.map((studentRoute) => studentRoute.route.id) ??
+              [],
+          }
+        : emptyForm,
+    );
     setEmailLocalPart(extractEmailLocalPart(student?.email));
     setErrors({});
     setServerError("");
     setIsLinking(false);
     setCreatedStudent(null);
     setRfidTag("");
+    setGroupSearch("");
+    setGroupDropdownOpen(false);
+    setRouteSearch("");
+    setRouteDropdownOpen(false);
   }, [student, open]);
 
-  const handleChange = (field: keyof Student, value: string) => {
+  const handleChange = (
+    field: keyof Student,
+    value: Student[keyof Student],
+  ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -90,21 +211,30 @@ export function StudentModal({
     const newErrors: Errors = {};
 
     if (!form.name || form.name.length < 3) {
-      newErrors.name = "Nome inválido";
+      newErrors.name = "Nome invalido";
     }
 
     if (!form.registration || form.registration.length < 3) {
-      newErrors.registration = "Matrícula inválida";
+      newErrors.registration = "Matricula invalida";
+    }
+
+    if (!form.groupId) {
+      newErrors.groupId = "Selecione um grupo";
+    }
+
+    if (!form.routeIds?.length) {
+      newErrors.routeIds = "Selecione pelo menos uma rota";
     }
 
     if (!emailLocalPart.trim()) {
       newErrors.emailLocalPart = "Informe o login do e-mail";
     } else if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/i.test(emailLocalPart.trim())) {
-      newErrors.emailLocalPart = "Use apenas letras, números, ponto, hífen ou underline";
+      newErrors.emailLocalPart =
+        "Use apenas letras, numeros, ponto, hifen ou underline";
     }
 
     if (!form.phone || form.phone.replace(/\D/g, "").length < 10) {
-      newErrors.phone = "Telefone inválido";
+      newErrors.phone = "Telefone invalido";
     }
 
     setErrors(newErrors);
@@ -112,10 +242,13 @@ export function StudentModal({
   };
 
   const buildPayload = () => ({
-    ...form,
     name: form.name?.trim(),
     registration: form.registration?.trim(),
+    groupId: form.groupId,
+    routeIds: form.routeIds ?? [],
     email: emailLocalPart.trim().toLowerCase(),
+    phone: form.phone?.trim(),
+    active: form.active ?? true,
   });
 
   const createStudent = async () => {
@@ -146,13 +279,13 @@ export function StudentModal({
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || "Erro na requisição");
+      throw new Error(data.message || "Erro na requisicao");
     }
   };
 
   const handleSubmit = async () => {
     if (!validate()) {
-      toast.error("Revise os campos obrigatórios antes de salvar.");
+      toast.error("Revise os campos obrigatorios antes de salvar.");
       return;
     }
 
@@ -173,7 +306,8 @@ export function StudentModal({
       setCreatedStudent(created);
       setIsLinking(true);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro ao salvar aluno";
+      const message =
+        err instanceof Error ? err.message : "Erro ao salvar aluno";
       setServerError(message);
       toast.error(message);
     } finally {
@@ -183,14 +317,14 @@ export function StudentModal({
 
   const handleConfirmLink = async () => {
     if (!rfidTag.trim()) {
-      toast.error("Informe o código RFID para concluir o vínculo.");
+      toast.error("Informe o codigo RFID para concluir o vinculo.");
       return;
     }
 
     const studentId = createdStudent?.id ?? student?.id;
 
     if (!studentId) {
-      toast.error("Não foi possível identificar o aluno para vincular o RFID.");
+      toast.error("Nao foi possivel identificar o aluno para vincular o RFID.");
       return;
     }
 
@@ -215,15 +349,31 @@ export function StudentModal({
       onSuccess();
       onOpenChange(false);
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Erro ao vincular RFID",
-      );
+      toast.error(err instanceof Error ? err.message : "Erro ao vincular RFID");
     }
   };
 
   const renderError = (field: keyof Errors) => {
     if (!errors[field]) return null;
     return <p className="text-sm text-red-500">{errors[field]}</p>;
+  };
+
+  const isMissingGroups =
+    groupsLoaded && !groupsLoading && availableGroups.length === 0;
+  const isMissingRoutes =
+    routesLoaded && !routesLoading && availableRoutes.length === 0;
+
+  const toggleRoute = (routeId: string) => {
+    setForm((prev) => {
+      const currentRouteIds = prev.routeIds ?? [];
+
+      return {
+        ...prev,
+        routeIds: currentRouteIds.includes(routeId)
+          ? currentRouteIds.filter((currentId) => currentId !== routeId)
+          : [...currentRouteIds, routeId],
+      };
+    });
   };
 
   return (
@@ -237,7 +387,7 @@ export function StudentModal({
             <DialogDescription className="text-sm text-muted-foreground">
               {isEdit
                 ? "Atualize os dados cadastrais deste aluno."
-                : "Preencha os dados para criar um aluno e vincular o RFID."}
+                : "Preencha os dados para criar um aluno, definir o grupo e vincular o RFID."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -251,10 +401,11 @@ export function StudentModal({
                     Cadastro
                   </p>
                   <p className="mt-2 text-sm font-medium text-foreground">
-                    {isEdit ? "Edição de aluno" : "Novo aluno"}
+                    {isEdit ? "Edicao de aluno" : "Novo aluno"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    O e-mail do aluno fica sempre amarrado ao domínio da empresa.
+                    O e-mail do aluno fica sempre amarrado ao dominio da
+                    empresa.
                   </p>
                 </div>
 
@@ -262,12 +413,12 @@ export function StudentModal({
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                     E-mail institucional
                   </p>
-                  <p className="mt-2 text-base font-semibold text-foreground break-all">
+                  <p className="mt-2 break-all text-base font-semibold text-foreground">
                     {resolvedEmailPreview || "Defina o login do aluno"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {emailDomain
-                      ? `Domínio fixo da empresa: @${emailDomain}`
+                      ? `Dominio fixo da empresa: @${emailDomain}`
                       : "Use o login que o aluno vai usar para acessar."}
                   </p>
                 </div>
@@ -289,17 +440,197 @@ export function StudentModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Matrícula</Label>
+                  <Label className="text-sm font-medium">Matricula</Label>
                   <Input
                     value={form.registration || ""}
-                    onChange={(e) => handleChange("registration", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("registration", e.target.value)
+                    }
                     className={cn(
                       "h-11 rounded-xl border-border/70 bg-background px-3",
                       errors.registration && "border-red-500",
                     )}
-                    placeholder="Informe a matrícula"
+                    placeholder="Informe a matricula"
                   />
                   {renderError("registration")}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Grupo</Label>
+                  <div className="relative">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-11 w-full justify-between rounded-xl border-border/70 bg-background px-3",
+                        errors.groupId && "border-red-500",
+                      )}
+                      disabled={groupsLoading || isMissingGroups}
+                      onClick={() => setGroupDropdownOpen((prev) => !prev)}
+                    >
+                      <span className="truncate">
+                        {groupsLoading
+                          ? "Carregando grupos..."
+                          : selectedGroup
+                            ? `${selectedGroup.name}${!selectedGroup.active ? " (inativo)" : ""}`
+                            : isMissingGroups
+                              ? "Cadastre um grupo primeiro"
+                              : "Selecione um grupo"}
+                      </span>
+                      <ChevronsUpDown className="size-4 opacity-60" />
+                    </Button>
+
+                    {groupDropdownOpen &&
+                      !groupsLoading &&
+                      !isMissingGroups && (
+                        <div className="absolute z-50 mt-2 w-full rounded-xl border border-border/60 bg-background p-2 shadow-md">
+                          <Input
+                            placeholder="Buscar grupo..."
+                            value={groupSearch}
+                            onChange={(e) => setGroupSearch(e.target.value)}
+                            className="h-10 rounded-lg"
+                          />
+
+                          <div className="mt-2 max-h-56 overflow-y-auto">
+                            {filteredGroups.length === 0 ? (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">
+                                Nenhum grupo encontrado.
+                              </div>
+                            ) : (
+                              filteredGroups.map((group) => (
+                                <button
+                                  key={group.id}
+                                  type="button"
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                                  onClick={() => {
+                                    handleChange("groupId", group.id);
+                                    setGroupDropdownOpen(false);
+                                    setGroupSearch("");
+                                  }}
+                                >
+                                  <span>
+                                    {group.name}
+                                    {!group.active ? " (inativo)" : ""}
+                                  </span>
+                                  <Check
+                                    className={cn(
+                                      "size-4",
+                                      group.id === form.groupId
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                  />
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                  {isMissingGroups ? (
+                    <p className="text-sm text-amber-600">
+                      Antes de cadastrar um colaborador, e preciso cadastrar um
+                      grupo.
+                    </p>
+                  ) : null}
+                  {selectedGroup && !selectedGroup.active ? (
+                    <p className="text-sm text-amber-600">
+                      Este colaborador esta vinculado a um grupo inativo. Para
+                      trocar o grupo, selecione um grupo ativo.
+                    </p>
+                  ) : null}
+                  {renderError("groupId")}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-sm font-medium">Rotas</Label>
+                  <div className="relative">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-11 w-full justify-between rounded-xl border-border/70 bg-background px-3",
+                        errors.routeIds && "border-red-500",
+                      )}
+                      disabled={routesLoading || isMissingRoutes}
+                      onClick={() => setRouteDropdownOpen((prev) => !prev)}
+                    >
+                      <span className="truncate">
+                        {routesLoading
+                          ? "Carregando rotas..."
+                          : selectedRoutes.length === 0
+                            ? isMissingRoutes
+                              ? "Cadastre uma rota primeiro"
+                              : "Selecione as rotas"
+                            : selectedRoutes.length === 1
+                              ? selectedRoutes[0].name
+                              : `${selectedRoutes.length} rotas selecionadas`}
+                      </span>
+                      <ChevronsUpDown className="size-4 opacity-60" />
+                    </Button>
+
+                    {routeDropdownOpen &&
+                      !routesLoading &&
+                      !isMissingRoutes && (
+                        <div className="absolute z-50 mt-2 w-full rounded-xl border border-border/60 bg-background p-2 shadow-md">
+                          <Input
+                            placeholder="Buscar rota..."
+                            value={routeSearch}
+                            onChange={(e) => setRouteSearch(e.target.value)}
+                            className="h-10 rounded-lg"
+                          />
+
+                          <div className="mt-2 max-h-56 overflow-y-auto">
+                            {filteredRoutes.length === 0 ? (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">
+                                Nenhuma rota encontrada.
+                              </div>
+                            ) : (
+                              filteredRoutes.map((route) => (
+                                <button
+                                  key={route.id}
+                                  type="button"
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                                  onClick={() => toggleRoute(route.id)}
+                                >
+                                  <span>
+                                    {route.name}
+                                    {!route.active ? " (inativa)" : ""}
+                                  </span>
+                                  <Check
+                                    className={cn(
+                                      "size-4",
+                                      form.routeIds?.includes(route.id)
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                  />
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                  {selectedRoutes.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRoutes.map((route) => (
+                        <span
+                          key={route.id}
+                          className="rounded-full bg-muted px-3 py-1 text-xs text-foreground"
+                        >
+                          {route.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {isMissingRoutes ? (
+                    <p className="text-sm text-amber-600">
+                      Antes de definir notificacoes, e preciso cadastrar pelo
+                      menos uma rota.
+                    </p>
+                  ) : null}
+                  {renderError("routeIds")}
                 </div>
 
                 <div className="space-y-2">
@@ -328,7 +659,7 @@ export function StudentModal({
                   {renderError("emailLocalPart")}
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2">
                   <Label className="text-sm font-medium">Telefone</Label>
                   <Input
                     value={form.phone || ""}
@@ -343,19 +674,35 @@ export function StudentModal({
                 </div>
               </div>
 
-              {serverError && <p className="text-sm text-red-500">{serverError}</p>}
+              {serverError && (
+                <p className="text-sm text-red-500">{serverError}</p>
+              )}
 
               <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-2 sm:flex-row sm:justify-end">
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSaving}
+                  disabled={
+                    isSaving ||
+                    groupsLoading ||
+                    isMissingGroups ||
+                    routesLoading ||
+                    isMissingRoutes
+                  }
                   className="h-11 w-full cursor-pointer rounded-xl px-6 sm:w-auto"
                 >
-                  {isSaving
-                    ? "Salvando..."
-                    : isEdit
-                      ? "Salvar alterações"
-                      : "Criar e vincular RFID"}
+                  {groupsLoading
+                    ? "Carregando grupos..."
+                    : routesLoading
+                      ? "Carregando rotas..."
+                      : isMissingGroups
+                        ? "Cadastre um grupo primeiro"
+                        : isMissingRoutes
+                          ? "Cadastre uma rota primeiro"
+                          : isSaving
+                            ? "Salvando..."
+                            : isEdit
+                              ? "Salvar alteracoes"
+                              : "Criar e vincular RFID"}
                 </Button>
               </div>
             </>
@@ -364,13 +711,13 @@ export function StudentModal({
               <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
-                    Vínculo
+                    Vinculo
                   </p>
                   <p className="mt-2 text-sm font-medium text-foreground">
-                    Cartão do aluno
+                    Cartao do aluno
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Aproxime o cartão ou informe o código RFID manualmente.
+                    Aproxime o cartao ou informe o codigo RFID manualmente.
                   </p>
                 </div>
 
@@ -379,7 +726,7 @@ export function StudentModal({
                     Aluno criado
                   </p>
                   <p className="mt-2 text-base font-semibold text-foreground">
-                    {createdStudent?.name || "Cadastro concluído"}
+                    {createdStudent?.name || "Cadastro concluido"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Finalize o processo confirmando o identificador RFID.
@@ -389,7 +736,7 @@ export function StudentModal({
 
               <div className="space-y-2 text-center">
                 <p className="text-sm font-medium text-foreground">
-                  Aproxime o cartão ou insira o código abaixo
+                  Aproxime o cartao ou insira o codigo abaixo
                 </p>
 
                 <Input

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { AccessDenied } from "@/components/AccessDenied";
@@ -18,9 +18,34 @@ type Student = {
   id?: string;
   name?: string;
   registration?: string;
-  email?: string;
-  phone?: string;
+  email?: string | null;
+  phone?: string | null;
   active?: boolean;
+  groupId?: string | null;
+  group?: {
+    id: string;
+    name: string;
+    active: boolean;
+  } | null;
+  routes?: {
+    route: {
+      id: string;
+      name: string;
+      active: boolean;
+    };
+  }[];
+};
+
+type GroupOption = {
+  id: string;
+  name: string;
+  active: boolean;
+};
+
+type RouteOption = {
+  id: string;
+  name: string;
+  active: boolean;
 };
 
 export default function StudentsPage() {
@@ -43,6 +68,111 @@ export default function StudentsPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [groupOptions, setGroupOptions] = useState<GroupOption[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [groupsLoaded, setGroupsLoaded] = useState(false);
+  const [routeOptions, setRouteOptions] = useState<RouteOption[]>([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
+  const [routesLoaded, setRoutesLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!canManage || !open) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadGroups() {
+      try {
+        setGroupsLoading(true);
+        setGroupsLoaded(false);
+
+        const params = new URLSearchParams({
+          page: "1",
+          limit: "1000",
+          active: "true",
+        });
+
+        const response = await fetch(
+          `${buildApiUrl("/groups")}?${params.toString()}`,
+          {
+            credentials: "include",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error();
+        }
+
+        const json = (await response.json()) as { data: GroupOption[] };
+
+        if (!isMounted) {
+          return;
+        }
+
+        setGroupOptions(json.data);
+      } catch {
+        if (isMounted) {
+          toast.error("Erro ao buscar grupos cadastrados.");
+          setGroupOptions([]);
+        }
+      } finally {
+        if (isMounted) {
+          setGroupsLoading(false);
+          setGroupsLoaded(true);
+        }
+      }
+    }
+
+    async function loadRoutes() {
+      try {
+        setRoutesLoading(true);
+        setRoutesLoaded(false);
+
+        const params = new URLSearchParams({
+          page: "1",
+          limit: "1000",
+          active: "true",
+        });
+
+        const response = await fetch(
+          `${buildApiUrl("/routes")}?${params.toString()}`,
+          {
+            credentials: "include",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error();
+        }
+
+        const json = (await response.json()) as { data: RouteOption[] };
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRouteOptions(json.data);
+      } catch {
+        if (isMounted) {
+          toast.error("Erro ao buscar rotas cadastradas.");
+          setRouteOptions([]);
+        }
+      } finally {
+        if (isMounted) {
+          setRoutesLoading(false);
+          setRoutesLoaded(true);
+        }
+      }
+    }
+
+    void loadGroups();
+    void loadRoutes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canManage, open]);
 
   if (!canView) {
     return (
@@ -167,6 +297,12 @@ export default function StudentsPage() {
             onOpenChange={setOpen}
             student={selectedStudent}
             emailDomain={user?.emailDomain ?? null}
+            groups={groupOptions}
+            groupsLoading={groupsLoading}
+            groupsLoaded={groupsLoaded}
+            routes={routeOptions}
+            routesLoading={routesLoading}
+            routesLoaded={routesLoaded}
             onSuccess={() => refetch()}
           />
         </>

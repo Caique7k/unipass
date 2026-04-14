@@ -15,6 +15,8 @@ import { StudentsService } from './students.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { Roles } from 'src/auth/roles.decorator';
 import { RolesGuard } from 'src/auth/roles.guard';
+import { CreateStudentDto } from './dto/create-student.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('students')
@@ -59,13 +61,17 @@ export class StudentsController {
 
   @Post()
   @Roles('ADMIN')
-  create(@Req() req: any, @Body() dto: any) {
+  create(@Req() req: any, @Body() dto: CreateStudentDto) {
     return this.studentsService.create(req.user.companyId, dto);
   }
 
   @Put(':id')
   @Roles('ADMIN')
-  update(@Req() req: any, @Param('id') id: string, @Body() dto: any) {
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateStudentDto,
+  ) {
     return this.studentsService.update(req.user.companyId, id, dto);
   }
 

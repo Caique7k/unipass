@@ -12,6 +12,28 @@ import { Prisma } from '@prisma/client';
 export class StudentsService {
   constructor(private prisma: PrismaService) {}
 
+  private readonly studentDetailsInclude = {
+    rfidCards: true,
+    group: {
+      select: {
+        id: true,
+        name: true,
+        active: true,
+      },
+    },
+    routes: {
+      select: {
+        route: {
+          select: {
+            id: true,
+            name: true,
+            active: true,
+          },
+        },
+      },
+    },
+  } satisfies Prisma.StudentInclude;
+
   async findAll({
     companyId,
     page,
@@ -57,9 +79,7 @@ export class StudentsService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          rfidCards: true,
-        },
+        include: this.studentDetailsInclude,
       }),
       this.prisma.student.count({ where }),
     ]);
@@ -75,6 +95,7 @@ export class StudentsService {
   async findOne(companyId: string, id: string) {
     const student = await this.prisma.student.findFirst({
       where: { id, companyId },
+      include: this.studentDetailsInclude,
     });
 
     if (!student) throw new NotFoundException('Aluno não encontrado');
@@ -84,7 +105,15 @@ export class StudentsService {
 
   async create(companyId: string, dto: CreateStudentDto) {
     const company = await this.getCompanyOrFail(companyId);
-    const normalizedEmail = this.normalizeStudentEmail(dto.email, company.emailDomain);
+    const group = await this.getAssignableGroupOrFail(companyId, dto.groupId);
+    const routeIds = await this.getAssignableRouteIdsOrFail(
+      companyId,
+      dto.routeIds,
+    );
+    const normalizedEmail = this.normalizeStudentEmail(
+      dto.email,
+      company.emailDomain,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       const exists = await tx.student.findFirst({
@@ -114,12 +143,19 @@ export class StudentsService {
         student = await tx.student.create({
           data: {
             companyId,
+            groupId: group.id,
             name: dto.name,
             registration: dto.registration,
             active: dto.active ?? true,
             email: normalizedEmail,
             phone: dto.phone ?? null,
+            routes: {
+              createMany: {
+                data: routeIds.map((routeId) => ({ routeId })),
+              },
+            },
           },
+          include: this.studentDetailsInclude,
         });
       } catch (error) {
         if (
@@ -153,21 +189,50 @@ export class StudentsService {
   async update(companyId: string, id: string, dto: UpdateStudentDto) {
     const student = await this.findOne(companyId, id);
     const company = await this.getCompanyOrFail(companyId);
+    const nextGroupId =
+      dto.groupId === undefined
+        ? student.groupId
+        : await this.resolveNextGroupId(companyId, student, dto.groupId);
+    const nextRouteIds =
+      dto.routeIds === undefined
+        ? student.routes.map((studentRoute) => studentRoute.route.id)
+        : await this.getAssignableRouteIdsOrFail(companyId, dto.routeIds);
     const nextEmail =
       dto.email !== undefined
         ? this.normalizeStudentEmail(dto.email, company.emailDomain)
         : student.email;
 
     try {
-      return await this.prisma.student.update({
-        where: { id },
-        data: {
-          name: dto.name ?? student.name,
-          registration: dto.registration ?? student.registration,
-          active: dto.active ?? student.active,
-          email: nextEmail,
-          phone: dto.phone ?? student.phone,
-        },
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.student.update({
+          where: { id },
+          data: {
+            name: dto.name ?? student.name,
+            registration: dto.registration ?? student.registration,
+            active: dto.active ?? student.active,
+            groupId: nextGroupId,
+            email: nextEmail,
+            phone: dto.phone ?? student.phone,
+          },
+        });
+
+        await tx.studentRoute.deleteMany({
+          where: {
+            studentId: id,
+          },
+        });
+
+        await tx.studentRoute.createMany({
+          data: nextRouteIds.map((routeId) => ({
+            studentId: id,
+            routeId,
+          })),
+        });
+
+        return tx.student.findUniqueOrThrow({
+          where: { id },
+          include: this.studentDetailsInclude,
+        });
       });
     } catch (error) {
       if (
@@ -258,6 +323,77 @@ export class StudentsService {
     }
 
     return company;
+  }
+
+  private async getAssignableGroupOrFail(companyId: string, groupId: string) {
+    const group = await this.prisma.group.findFirst({
+      where: {
+        id: groupId,
+        companyId,
+        active: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!group) {
+      throw new BadRequestException(
+        'Selecione um grupo ativo e valido para o colaborador.',
+      );
+    }
+
+    return group;
+  }
+
+  private async resolveNextGroupId(
+    companyId: string,
+    student: Awaited<ReturnType<StudentsService['findOne']>>,
+    groupId: string,
+  ) {
+    if (groupId === student.groupId) {
+      return student.groupId;
+    }
+
+    const group = await this.getAssignableGroupOrFail(companyId, groupId);
+
+    return group.id;
+  }
+
+  private async getAssignableRouteIdsOrFail(
+    companyId: string,
+    routeIds: string[],
+  ) {
+    const uniqueRouteIds = Array.from(
+      new Set(routeIds.map((routeId) => routeId.trim()).filter(Boolean)),
+    );
+
+    if (uniqueRouteIds.length === 0) {
+      throw new BadRequestException(
+        'Selecione pelo menos uma rota ativa para o colaborador.',
+      );
+    }
+
+    const routes = await this.prisma.route.findMany({
+      where: {
+        id: {
+          in: uniqueRouteIds,
+        },
+        companyId,
+        active: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (routes.length !== uniqueRouteIds.length) {
+      throw new BadRequestException(
+        'Selecione apenas rotas ativas e validas para o colaborador.',
+      );
+    }
+
+    return uniqueRouteIds;
   }
 
   private normalizeStudentEmail(email: string | undefined, domain: string) {

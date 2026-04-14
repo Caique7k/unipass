@@ -46,10 +46,8 @@ const dayOfWeekLabel: Record<number, string> = {
 };
 
 function formatTime(date: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
+  const value = new Date(date);
+  return `${String(value.getUTCHours()).padStart(2, "0")}:${String(value.getUTCMinutes()).padStart(2, "0")}`;
 }
 
 export function SchedulesTable({

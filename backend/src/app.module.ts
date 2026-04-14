@@ -16,6 +16,8 @@ import { LocationModule } from './location/location.module';
 import { RoutesModule } from './routes/routes.module';
 import { RouteSchedulesModule } from './route-schedules/route-schedules.module';
 import { ConfirmationsModule } from './confirmations/confirmations.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationPromptsModule } from './notification-prompts/notification-prompts.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { ConfirmationsModule } from './confirmations/confirmations.module';
     RoutesModule,
     RouteSchedulesModule,
     ConfirmationsModule,
+    NotificationsModule,
+    NotificationPromptsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -54,6 +54,7 @@ model User {
   student       Student?               @relation(fields: [studentId], references: [id])
   company       Company?               @relation(fields: [companyId], references: [id])
   confirmations ScheduleConfirmation[]
+  notificationPrompts NotificationPrompt[]
 
   createdAt DateTime @default(now())
 
@@ -238,18 +239,23 @@ model RouteSchedule {
 
   // horário da saída
   departureTime DateTime
+  departureMinutes Int
   dayOfWeek     Int? // 0=domingo até 6=sábado
 
   // quantos minutos antes notificar
   notifyBeforeMinutes Int @default(30)
+  notificationTimeMinutes Int
+  notificationDayOfWeek Int?
 
   active        Boolean                @default(true)
   confirmations ScheduleConfirmation[]
+  notificationPrompts NotificationPrompt[]
 
   createdAt DateTime @default(now())
 
   @@index([departureTime])
   @@index([routeId])
+  @@index([active, notificationTimeMinutes, notificationDayOfWeek])
 }
 
 model StudentRoute {
@@ -270,6 +276,7 @@ model ScheduleConfirmation {
 
   userId     String
   scheduleId String
+  occurrenceKey String
 
   user     User          @relation(fields: [userId], references: [id])
   schedule RouteSchedule @relation(fields: [scheduleId], references: [id])
@@ -278,12 +285,49 @@ model ScheduleConfirmation {
 
   createdAt DateTime @default(now())
 
-  @@unique([userId, scheduleId])
+  @@unique([userId, scheduleId, occurrenceKey])
   @@index([scheduleId])
+}
+
+model NotificationPrompt {
+  id String @id @default(uuid())
+
+  userId String
+  scheduleId String
+  occurrenceKey String
+  message String
+  deliveryChannel NotificationChannel @default(IN_APP)
+  status NotificationPromptStatus @default(PENDING)
+  response Boolean?
+  dispatchedAt DateTime?
+  answeredAt DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  schedule RouteSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@unique([userId, scheduleId, occurrenceKey])
+  @@index([userId, status, createdAt])
+  @@index([scheduleId, occurrenceKey])
 }
 
 enum ScheduleType {
   GO // ida
   BACK // volta
   SHIFT // turnos (empresa/usina)
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH
+}
+
+enum NotificationPromptStatus {
+  PENDING
+  DISPATCHED
+  ANSWERED
+  EXPIRED
+  FAILED
 }

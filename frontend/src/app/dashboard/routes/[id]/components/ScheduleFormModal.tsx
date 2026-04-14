@@ -50,16 +50,14 @@ function formatTimeInput(date?: string) {
   }
 
   const current = new Date(date);
-  const hours = String(current.getHours()).padStart(2, "0");
-  const minutes = String(current.getMinutes()).padStart(2, "0");
+  const hours = String(current.getUTCHours()).padStart(2, "0");
+  const minutes = String(current.getUTCMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 
 function buildDepartureTimestamp(time: string) {
   const [hours, minutes] = time.split(":");
-  const date = new Date();
-  date.setHours(Number(hours), Number(minutes), 0, 0);
-  return date.getTime();
+  return Date.UTC(1970, 0, 1, Number(hours), Number(minutes), 0, 0);
 }
 
 export function ScheduleFormModal({

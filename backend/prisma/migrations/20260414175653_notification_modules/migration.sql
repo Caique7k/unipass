@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "RouteSchedule_active_notificationTimeMinutes_notificationDayOfW" RENAME TO "RouteSchedule_active_notificationTimeMinutes_notificationDa_idx";

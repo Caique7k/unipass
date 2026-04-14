@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { Prisma, ScheduleType } from '@prisma/client';
+import { getScheduleMetadata } from './schedule-metadata.util';
 
 @Injectable()
 export class RouteSchedulesService {
@@ -15,6 +16,12 @@ export class RouteSchedulesService {
   async create(companyId: string, dto: CreateScheduleDto) {
     await this.ensureRouteBelongsToCompany(companyId, dto.routeId);
     await this.ensureBusBelongsToCompany(companyId, dto.busId);
+    const departureTime = new Date(dto.departureTime);
+    const metadata = getScheduleMetadata({
+      departureTime,
+      dayOfWeek: dto.dayOfWeek ?? null,
+      notifyBeforeMinutes: dto.notifyBeforeMinutes ?? 30,
+    });
 
     return this.prisma.routeSchedule.create({
       data: {
@@ -22,9 +29,12 @@ export class RouteSchedulesService {
         busId: dto.busId,
         type: dto.type,
         title: dto.title?.trim() || null,
-        departureTime: new Date(dto.departureTime),
+        departureTime,
         dayOfWeek: dto.dayOfWeek ?? null,
         notifyBeforeMinutes: dto.notifyBeforeMinutes ?? 30,
+        departureMinutes: metadata.departureMinutes,
+        notificationTimeMinutes: metadata.notificationTimeMinutes,
+        notificationDayOfWeek: metadata.notificationDayOfWeek,
       },
       include: {
         bus: {
@@ -148,8 +158,23 @@ export class RouteSchedulesService {
   }
 
   async update(companyId: string, id: string, dto: UpdateScheduleDto) {
-    await this.findOne(companyId, id);
+    const currentSchedule = await this.findOne(companyId, id);
     await this.ensureBusBelongsToCompany(companyId, dto.busId);
+    const departureTime =
+      dto.departureTime !== undefined
+        ? new Date(dto.departureTime)
+        : currentSchedule.departureTime;
+    const dayOfWeek =
+      dto.dayOfWeek !== undefined ? dto.dayOfWeek : currentSchedule.dayOfWeek;
+    const notifyBeforeMinutes =
+      dto.notifyBeforeMinutes !== undefined
+        ? dto.notifyBeforeMinutes
+        : currentSchedule.notifyBeforeMinutes;
+    const metadata = getScheduleMetadata({
+      departureTime,
+      dayOfWeek,
+      notifyBeforeMinutes,
+    });
 
     return this.prisma.routeSchedule.update({
       where: { id },
@@ -157,13 +182,12 @@ export class RouteSchedulesService {
         ...(dto.busId !== undefined ? { busId: dto.busId } : {}),
         ...(dto.type !== undefined ? { type: dto.type } : {}),
         ...(dto.title !== undefined ? { title: dto.title.trim() || null } : {}),
-        ...(dto.departureTime !== undefined
-          ? { departureTime: new Date(dto.departureTime) }
-          : {}),
+        departureTime,
         ...(dto.dayOfWeek !== undefined ? { dayOfWeek: dto.dayOfWeek } : {}),
-        ...(dto.notifyBeforeMinutes !== undefined
-          ? { notifyBeforeMinutes: dto.notifyBeforeMinutes }
-          : {}),
+        notifyBeforeMinutes,
+        departureMinutes: metadata.departureMinutes,
+        notificationTimeMinutes: metadata.notificationTimeMinutes,
+        notificationDayOfWeek: metadata.notificationDayOfWeek,
         ...(dto.active !== undefined ? { active: dto.active } : {}),
       },
       include: {

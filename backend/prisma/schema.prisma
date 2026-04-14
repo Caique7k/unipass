@@ -22,15 +22,15 @@ enum CompanyPlan {
 }
 
 model Company {
-  id             String      @id @default(uuid())
-  name           String
-  cnpj           String      @unique
-  emailDomain    String      @unique
-  plan           CompanyPlan @default(ESSENTIAL)
-  contactName    String?
-  contactPhone   String?
-  smsVerifiedAt  DateTime?
-  createdAt      DateTime    @default(now())
+  id            String      @id @default(uuid())
+  name          String
+  cnpj          String      @unique
+  emailDomain   String      @unique
+  plan          CompanyPlan @default(ESSENTIAL)
+  contactName   String?
+  contactPhone  String?
+  smsVerifiedAt DateTime?
+  createdAt     DateTime    @default(now())
 
   users           User[]
   students        Student[]
@@ -39,19 +39,21 @@ model Company {
   rfidCards       RfidCard[]
   transportEvents TransportEvent[]
   trips           Trip[]
+  routes          Route[]
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole
-  active    Boolean  @default(true)
-  studentId String?  @unique
-  companyId String?
-  student   Student? @relation(fields: [studentId], references: [id])
-  company   Company? @relation(fields: [companyId], references: [id])
+  id            String                 @id @default(uuid())
+  name          String
+  email         String                 @unique
+  password      String
+  role          UserRole
+  active        Boolean                @default(true)
+  studentId     String?                @unique
+  companyId     String?
+  student       Student?               @relation(fields: [studentId], references: [id])
+  company       Company?               @relation(fields: [companyId], references: [id])
+  confirmations ScheduleConfirmation[]
 
   createdAt DateTime @default(now())
 
@@ -60,16 +62,17 @@ model User {
 
 model Bus {
   id        String  @id @default(uuid())
-  plate     String  
+  plate     String
   capacity  Int
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
 
-  createdAt DateTime @default(now())
+  createdAt DateTime        @default(now())
   devices   Device[]
   trips     Trip[]
+  schedules RouteSchedule[]
 
-@@unique([plate, companyId])
+  @@unique([plate, companyId])
   @@index([companyId])
 }
 
@@ -88,8 +91,8 @@ model Student {
 
   rfidCards       RfidCard[]
   transportEvents TransportEvent[]
-
-  createdAt DateTime @default(now())
+  routes          StudentRoute[]
+  createdAt       DateTime         @default(now())
 
   @@unique([registration, companyId])
   @@unique([companyId, email])
@@ -98,24 +101,24 @@ model Student {
 }
 
 model Device {
-  id        String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  hardwareId            String   @unique
-  pairingCode           String?  @unique
-  pairingCodeExpiresAt  DateTime?
-  pairedAt              DateTime?
+  hardwareId           String    @unique
+  pairingCode          String?   @unique
+  pairingCodeExpiresAt DateTime?
+  pairedAt             DateTime?
 
-  code      String?   @unique 
-  secret    String?          
+  code   String? @unique
+  secret String?
 
-  name      String?
-  active    Boolean  @default(true)
+  name   String?
+  active Boolean @default(true)
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
   busId String?
-  bus   Bus? @relation(fields: [busId], references: [id])
+  bus   Bus?    @relation(fields: [busId], references: [id])
 
   lastLat    Float?
   lastLng    Float?
@@ -174,7 +177,7 @@ model TransportEvent {
 
 enum EventType {
   BOARDING
-  DEBOARDING  
+  DEBOARDING
   LEAVING
   DENIED
 }
@@ -202,4 +205,84 @@ model Trip {
   transportEvents TransportEvent[]
 
   @@index([companyId])
+}
+
+model Route {
+  id   String @id @default(uuid())
+  name String
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  schedules   RouteSchedule[]
+  students    StudentRoute[]
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+}
+
+model RouteSchedule {
+  id String @id @default(uuid())
+
+  routeId String
+  route   Route  @relation(fields: [routeId], references: [id])
+
+  busId String?
+  bus   Bus?    @relation(fields: [busId], references: [id])
+
+  type  ScheduleType
+  title String?
+
+  // horário da saída
+  departureTime DateTime
+  dayOfWeek     Int? // 0=domingo até 6=sábado
+
+  // quantos minutos antes notificar
+  notifyBeforeMinutes Int @default(30)
+
+  active        Boolean                @default(true)
+  confirmations ScheduleConfirmation[]
+
+  createdAt DateTime @default(now())
+
+  @@index([departureTime])
+  @@index([routeId])
+}
+
+model StudentRoute {
+  id String @id @default(uuid())
+
+  studentId String
+  routeId   String
+
+  student Student @relation(fields: [studentId], references: [id])
+  route   Route   @relation(fields: [routeId], references: [id])
+
+  @@unique([studentId, routeId])
+  @@index([routeId])
+}
+
+model ScheduleConfirmation {
+  id String @id @default(uuid())
+
+  userId     String
+  scheduleId String
+
+  user     User          @relation(fields: [userId], references: [id])
+  schedule RouteSchedule @relation(fields: [scheduleId], references: [id])
+
+  willGo Boolean
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, scheduleId])
+  @@index([scheduleId])
+}
+
+enum ScheduleType {
+  GO // ida
+  BACK // volta
+  SHIFT // turnos (empresa/usina)
 }

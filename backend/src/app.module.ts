@@ -12,6 +12,9 @@ import { DevicesModule } from './devices/devices.module';
 import { UsersModule } from './users/users.module';
 import { CompaniesModule } from './companies/companies.module';
 import { LocationModule } from './location/location.module';
+import { RoutesModule } from './routes/routes.module';
+import { RouteSchedulesModule } from './route-schedules/route-schedules.module';
+import { ConfirmationsModule } from './confirmations/confirmations.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { LocationModule } from './location/location.module';
     UsersModule,
     CompaniesModule,
     LocationModule,
+    RoutesModule,
+    RouteSchedulesModule,
+    ConfirmationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -40,6 +40,7 @@ model Company {
   transportEvents TransportEvent[]
   trips           Trip[]
   routes          Route[]
+  groups          Group[]
 }
 
 model User {
@@ -99,6 +100,23 @@ model Student {
   @@unique([companyId, email])
   @@index([companyId])
   @@index([companyId, createdAt])
+}
+
+model Group {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  name String
+  nameNormalized String
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, nameNormalized])
+  @@index([companyId, active, createdAt])
 }
 
 model Device {

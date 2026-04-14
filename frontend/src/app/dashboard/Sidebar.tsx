@@ -7,6 +7,7 @@ import {
   Building2,
   Compass,
   Home,
+  Layers3,
   LogOut,
   Route,
   Smartphone,
@@ -139,6 +140,14 @@ export default function Sidebar() {
               label="Alunos"
               isOpen={isOpen}
               active={pathname === "/dashboard/students"}
+            />
+
+            <SidebarItem
+              href="/dashboard/groups"
+              icon={<Layers3 size={25} />}
+              label="Grupos"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/groups"}
             />
 
             <SidebarItem

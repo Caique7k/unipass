@@ -1,4 +1,5 @@
 import {
+  UseGuards,
   Controller,
   Post,
   Body,
@@ -6,32 +7,64 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
+  Req,
 } from '@nestjs/common';
 import { RouteSchedulesService } from './route-schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { Roles } from 'src/auth/roles.decorator';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { FindSchedulesDto } from './dto/find-schedules.dto';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('route-schedules')
 export class RouteSchedulesController {
-  constructor(private service: RouteSchedulesService) {}
+  constructor(private readonly service: RouteSchedulesService) {}
 
   @Post()
-  create(@Body() dto: CreateScheduleDto) {
-    return this.service.create(dto);
+  @Roles('ADMIN')
+  create(@Req() req: any, @Body() dto: CreateScheduleDto) {
+    return this.service.create(req.user.companyId, dto);
   }
 
   @Get(':routeId')
-  findByRoute(@Param('routeId') routeId: string) {
-    return this.service.findByRoute(routeId);
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
+  findByRoute(
+    @Req() req: any,
+    @Param('routeId') routeId: string,
+    @Query() query: FindSchedulesDto,
+  ) {
+    return this.service.findByRoute({
+      companyId: req.user.companyId,
+      routeId,
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      active: query.active,
+    });
+  }
+
+  @Patch('deactivate')
+  @Roles('ADMIN')
+  deactivateMany(@Req() req: any, @Body() body: { ids: string[] }) {
+    return this.service.deactivateMany(req.user.companyId, body.ids);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateScheduleDto) {
-    return this.service.update(id, dto);
+  @Roles('ADMIN')
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateScheduleDto,
+  ) {
+    return this.service.update(req.user.companyId, id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  @Roles('ADMIN')
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.service.remove(req.user.companyId, id);
   }
 }

@@ -1,14 +1,27 @@
-import { IsOptional, IsEnum, IsInt, IsUUID, IsBoolean } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 import { ScheduleType } from './create-schedule.dto';
 
 export class UpdateScheduleDto {
   @IsOptional()
   @IsUUID()
-  busId?: string;
+  busId?: string | null;
 
   @IsOptional()
   @IsEnum(ScheduleType)
   type?: ScheduleType;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
 
   @IsOptional()
   @IsInt()
@@ -16,7 +29,9 @@ export class UpdateScheduleDto {
 
   @IsOptional()
   @IsInt()
-  dayOfWeek?: number;
+  @Min(0)
+  @Max(6)
+  dayOfWeek?: number | null;
 
   @IsOptional()
   @IsInt()

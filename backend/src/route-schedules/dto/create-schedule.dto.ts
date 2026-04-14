@@ -1,4 +1,12 @@
-import { IsUUID, IsEnum, IsInt, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 export enum ScheduleType {
   GO = 'GO',
@@ -12,17 +20,23 @@ export class CreateScheduleDto {
 
   @IsOptional()
   @IsUUID()
-  busId?: string;
+  busId?: string | null;
 
   @IsEnum(ScheduleType)
   type: ScheduleType;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
 
   @IsInt()
   departureTime: number; // timestamp (ou muda depois)
 
   @IsOptional()
   @IsInt()
-  dayOfWeek?: number;
+  @Min(0)
+  @Max(6)
+  dayOfWeek?: number | null;
 
   @IsOptional()
   @IsInt()

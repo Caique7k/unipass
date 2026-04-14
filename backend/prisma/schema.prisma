@@ -210,6 +210,7 @@ model Trip {
 model Route {
   id   String @id @default(uuid())
   name String
+  active Boolean @default(true)
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id])

@@ -1,43 +1,255 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
+import { Prisma, ScheduleType } from '@prisma/client';
 
 @Injectable()
 export class RouteSchedulesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateScheduleDto) {
+  async create(companyId: string, dto: CreateScheduleDto) {
+    await this.ensureRouteBelongsToCompany(companyId, dto.routeId);
+    await this.ensureBusBelongsToCompany(companyId, dto.busId);
+
     return this.prisma.routeSchedule.create({
       data: {
-        ...dto,
+        routeId: dto.routeId,
+        busId: dto.busId,
+        type: dto.type,
+        title: dto.title?.trim() || null,
         departureTime: new Date(dto.departureTime),
+        dayOfWeek: dto.dayOfWeek ?? null,
+        notifyBeforeMinutes: dto.notifyBeforeMinutes ?? 30,
+      },
+      include: {
+        bus: {
+          select: {
+            id: true,
+            plate: true,
+          },
+        },
       },
     });
   }
 
-  async findByRoute(routeId: string) {
-    return this.prisma.routeSchedule.findMany({
-      where: { routeId },
-      orderBy: { departureTime: 'asc' },
-    });
+  async findByRoute({
+    companyId,
+    routeId,
+    page = 1,
+    limit = 10,
+    search,
+    active,
+  }: {
+    companyId: string;
+    routeId: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+    active?: boolean;
+  }) {
+    await this.ensureRouteBelongsToCompany(companyId, routeId);
+
+    const normalizedPage = page > 0 ? page : 1;
+    const normalizedLimit = limit > 0 ? limit : 10;
+    const skip = (normalizedPage - 1) * normalizedLimit;
+    const normalizedSearch = search?.trim();
+    const typeFilter = this.normalizeScheduleType(normalizedSearch);
+    const where: Prisma.RouteScheduleWhereInput = {
+      routeId,
+      route: {
+        companyId,
+      },
+      ...(active !== undefined ? { active } : {}),
+      ...(normalizedSearch
+        ? {
+            OR: [
+              {
+                title: {
+                  contains: normalizedSearch,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                bus: {
+                  plate: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+              ...(typeFilter
+                ? [
+                    {
+                      type: {
+                        equals: typeFilter,
+                      },
+                    },
+                  ]
+                : []),
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.routeSchedule.findMany({
+        where,
+        skip,
+        take: normalizedLimit,
+        orderBy: [{ dayOfWeek: 'asc' }, { departureTime: 'asc' }],
+        include: {
+          bus: {
+            select: {
+              id: true,
+              plate: true,
+            },
+          },
+        },
+      }),
+      this.prisma.routeSchedule.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page: normalizedPage,
+      lastPage: Math.max(1, Math.ceil(total / normalizedLimit)),
+    };
   }
 
-  async update(id: string, dto: UpdateScheduleDto) {
+  async findOne(companyId: string, id: string) {
+    const schedule = await this.prisma.routeSchedule.findFirst({
+      where: {
+        id,
+        route: {
+          companyId,
+        },
+      },
+      include: {
+        bus: {
+          select: {
+            id: true,
+            plate: true,
+          },
+        },
+      },
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Horario nao encontrado');
+    }
+
+    return schedule;
+  }
+
+  async update(companyId: string, id: string, dto: UpdateScheduleDto) {
+    await this.findOne(companyId, id);
+    await this.ensureBusBelongsToCompany(companyId, dto.busId);
+
     return this.prisma.routeSchedule.update({
       where: { id },
       data: {
-        ...dto,
-        departureTime: dto.departureTime
-          ? new Date(dto.departureTime)
-          : undefined,
+        ...(dto.busId !== undefined ? { busId: dto.busId } : {}),
+        ...(dto.type !== undefined ? { type: dto.type } : {}),
+        ...(dto.title !== undefined ? { title: dto.title.trim() || null } : {}),
+        ...(dto.departureTime !== undefined
+          ? { departureTime: new Date(dto.departureTime) }
+          : {}),
+        ...(dto.dayOfWeek !== undefined ? { dayOfWeek: dto.dayOfWeek } : {}),
+        ...(dto.notifyBeforeMinutes !== undefined
+          ? { notifyBeforeMinutes: dto.notifyBeforeMinutes }
+          : {}),
+        ...(dto.active !== undefined ? { active: dto.active } : {}),
+      },
+      include: {
+        bus: {
+          select: {
+            id: true,
+            plate: true,
+          },
+        },
       },
     });
   }
 
-  async remove(id: string) {
-    return this.prisma.routeSchedule.delete({
-      where: { id },
+  async deactivateMany(companyId: string, ids: string[]) {
+    return this.prisma.routeSchedule.updateMany({
+      where: {
+        id: {
+          in: ids,
+        },
+        route: {
+          companyId,
+        },
+      },
+      data: {
+        active: false,
+      },
     });
+  }
+
+  async remove(companyId: string, id: string) {
+    await this.findOne(companyId, id);
+
+    return this.prisma.routeSchedule.update({
+      where: { id },
+      data: {
+        active: false,
+      },
+    });
+  }
+
+  private async ensureRouteBelongsToCompany(companyId: string, routeId: string) {
+    const route = await this.prisma.route.findFirst({
+      where: {
+        id: routeId,
+        companyId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!route) {
+      throw new NotFoundException('Rota nao encontrada');
+    }
+  }
+
+  private async ensureBusBelongsToCompany(
+    companyId: string,
+    busId?: string | null,
+  ) {
+    if (!busId) {
+      return;
+    }
+
+    const bus = await this.prisma.bus.findFirst({
+      where: {
+        id: busId,
+        companyId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!bus) {
+      throw new BadRequestException('Onibus nao encontrado para esta empresa');
+    }
+  }
+
+  private normalizeScheduleType(search?: string): ScheduleType | undefined {
+    const value = search?.trim().toUpperCase();
+
+    if (value === 'GO' || value === 'BACK' || value === 'SHIFT') {
+      return value as ScheduleType;
+    }
+
+    return undefined;
   }
 }

@@ -8,6 +8,7 @@ import {
   Compass,
   Home,
   LogOut,
+  Route,
   Smartphone,
   SmartphoneNfcIcon,
   Truck,
@@ -147,6 +148,18 @@ export default function Sidebar() {
               isOpen={isOpen}
               active={pathname === "/dashboard/buses"}
             />
+            {canViewOperations && (
+              <SidebarItem
+                href="/dashboard/routes"
+                icon={<Route size={25} />}
+              label="Rotas"
+              isOpen={isOpen}
+              active={
+                pathname === "/dashboard/routes" ||
+                pathname.startsWith("/dashboard/routes/")
+              }
+            />
+            )}
 
             {canManageCompany && (
               <SidebarItem

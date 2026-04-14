@@ -201,6 +201,150 @@
   animation: unipassGlowDrift 18s ease-in-out infinite alternate;
 }
 
+.login-canvas {
+  --login-pointer-x: 0;
+  --login-pointer-y: 0;
+}
+
+.login-intro {
+  opacity: 0;
+  animation: loginReveal 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--login-delay, 0ms);
+}
+
+.login-breath {
+  animation: loginBreath 8s ease-in-out infinite;
+}
+
+.login-breath-fast {
+  animation: loginBreath 6.2s ease-in-out infinite;
+}
+
+.login-breath-slow {
+  animation: loginBreath 10s ease-in-out infinite;
+}
+
+.login-parallax-soft {
+  transform: translate3d(
+    calc(var(--login-pointer-x, 0) * 12px),
+    calc(var(--login-pointer-y, 0) * 12px),
+    0
+  );
+  transition: transform 260ms ease;
+  will-change: transform;
+}
+
+.login-parallax-reverse {
+  transform: translate3d(
+    calc(var(--login-pointer-x, 0) * -10px),
+    calc(var(--login-pointer-y, 0) * -10px),
+    0
+  );
+  transition: transform 260ms ease;
+  will-change: transform;
+}
+
+.login-road {
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #697180 0%, #414955 100%);
+  box-shadow:
+    inset 0 12px 26px rgba(255, 255, 255, 0.1),
+    0 24px 48px rgba(15, 23, 42, 0.18);
+}
+
+.login-road::before {
+  content: "";
+  position: absolute;
+  inset: 18px 5% 28px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0)
+  );
+}
+
+.login-road::after {
+  content: "";
+  position: absolute;
+  left: -20%;
+  top: 50%;
+  width: 140%;
+  height: 8px;
+  margin-top: -4px;
+  background: repeating-linear-gradient(
+    90deg,
+    #ffdcae 0 62px,
+    transparent 62px 124px
+  );
+  animation: loginRoadFlow 2.4s linear infinite;
+  opacity: 0.95;
+}
+
+.login-bus-shell {
+  transform-origin: center bottom;
+  animation: loginBusRide 3.2s ease-in-out infinite;
+}
+
+.login-bus-shadow {
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  bottom: 6px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.22);
+  filter: blur(10px);
+  animation: loginBusShadow 3.2s ease-in-out infinite;
+}
+
+.login-wheel {
+  height: 68px;
+  width: 68px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #1f242f 0%, #10141c 100%);
+  box-shadow:
+    inset 0 0 0 8px #2d3440,
+    0 10px 16px rgba(15, 23, 42, 0.22);
+}
+
+.login-wheel::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    #d9dfe9 0deg 16deg,
+    #6f7888 16deg 48deg,
+    #d9dfe9 48deg 64deg,
+    #6f7888 64deg 96deg,
+    #d9dfe9 96deg 112deg,
+    #6f7888 112deg 144deg,
+    #d9dfe9 144deg 160deg,
+    #6f7888 160deg 192deg,
+    #d9dfe9 192deg 208deg,
+    #6f7888 208deg 240deg,
+    #d9dfe9 240deg 256deg,
+    #6f7888 256deg 288deg,
+    #d9dfe9 288deg 304deg,
+    #6f7888 304deg 336deg,
+    #d9dfe9 336deg 360deg
+  );
+  animation: loginWheelSpin 1.1s linear infinite;
+}
+
+.login-wheel::after {
+  content: "";
+  position: absolute;
+  inset: 27px;
+  border-radius: inherit;
+  background: #f8fafc;
+  box-shadow: 0 0 0 5px #798293;
+  animation: loginWheelSpin 1.1s linear infinite reverse;
+}
+
 @keyframes unipassFloatSlow {
   0%, 100% {
     transform: translate3d(0, 0, 0);
@@ -228,15 +372,97 @@
   }
 }
 
+@keyframes loginReveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 30px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes loginBreath {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.04);
+  }
+}
+
+@keyframes loginRoadFlow {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -124px 0;
+  }
+}
+
+@keyframes loginBusRide {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(0, -4px, 0) rotate(-0.8deg);
+  }
+  50% {
+    transform: translate3d(0, 1px, 0) rotate(0.7deg);
+  }
+  75% {
+    transform: translate3d(0, -3px, 0) rotate(-0.4deg);
+  }
+}
+
+@keyframes loginBusShadow {
+  0%, 100% {
+    transform: scaleX(1);
+    opacity: 0.22;
+  }
+  50% {
+    transform: scaleX(0.94);
+    opacity: 0.16;
+  }
+}
+
+@keyframes loginWheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .unipass-reveal,
   .unipass-reveal.is-visible,
   .unipass-float-slow,
   .unipass-float-medium,
-  .unipass-glow-drift {
+  .unipass-glow-drift,
+  .login-intro,
+  .login-breath,
+  .login-breath-fast,
+  .login-breath-slow,
+  .login-bus-shell,
+  .login-bus-shadow,
+  .login-wheel::before,
+  .login-wheel::after {
     opacity: 1;
     transform: none;
     transition: none;
+    animation: none;
+  }
+
+  .login-parallax-soft,
+  .login-parallax-reverse {
+    transform: none;
+    transition: none;
+  }
+
+  .login-road::after {
     animation: none;
   }
 }

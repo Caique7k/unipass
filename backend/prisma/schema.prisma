@@ -22,15 +22,15 @@ enum CompanyPlan {
 }
 
 model Company {
-  id             String      @id @default(uuid())
-  name           String
-  cnpj           String      @unique
-  emailDomain    String      @unique
-  plan           CompanyPlan @default(ESSENTIAL)
-  contactName    String?
-  contactPhone   String?
-  smsVerifiedAt  DateTime?
-  createdAt      DateTime    @default(now())
+  id            String      @id @default(uuid())
+  name          String
+  cnpj          String      @unique
+  emailDomain   String      @unique
+  plan          CompanyPlan @default(ESSENTIAL)
+  contactName   String?
+  contactPhone  String?
+  smsVerifiedAt DateTime?
+  createdAt     DateTime    @default(now())
 
   users           User[]
   students        Student[]
@@ -39,19 +39,23 @@ model Company {
   rfidCards       RfidCard[]
   transportEvents TransportEvent[]
   trips           Trip[]
+  routes          Route[]
+  groups          Group[]
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole
-  active    Boolean  @default(true)
-  studentId String?  @unique
-  companyId String?
-  student   Student? @relation(fields: [studentId], references: [id])
-  company   Company? @relation(fields: [companyId], references: [id])
+  id            String                 @id @default(uuid())
+  name          String
+  email         String                 @unique
+  password      String
+  role          UserRole
+  active        Boolean                @default(true)
+  studentId     String?                @unique
+  companyId     String?
+  student       Student?               @relation(fields: [studentId], references: [id])
+  company       Company?               @relation(fields: [companyId], references: [id])
+  confirmations ScheduleConfirmation[]
+  notificationPrompts NotificationPrompt[]
 
   createdAt DateTime @default(now())
 
@@ -60,16 +64,17 @@ model User {
 
 model Bus {
   id        String  @id @default(uuid())
-  plate     String  
+  plate     String
   capacity  Int
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
 
-  createdAt DateTime @default(now())
+  createdAt DateTime        @default(now())
   devices   Device[]
   trips     Trip[]
+  schedules RouteSchedule[]
 
-@@unique([plate, companyId])
+  @@unique([plate, companyId])
   @@index([companyId])
 }
 
@@ -84,38 +89,59 @@ model Student {
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
+  groupId   String?
+  group     Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
   user      User?
 
   rfidCards       RfidCard[]
   transportEvents TransportEvent[]
-
-  createdAt DateTime @default(now())
+  routes          StudentRoute[]
+  createdAt       DateTime         @default(now())
 
   @@unique([registration, companyId])
   @@unique([companyId, email])
   @@index([companyId])
+  @@index([groupId])
   @@index([companyId, createdAt])
 }
 
+model Group {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  name String
+  nameNormalized String
+  active Boolean @default(true)
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, nameNormalized])
+  @@index([companyId, active, createdAt])
+}
+
 model Device {
-  id        String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  hardwareId            String   @unique
-  pairingCode           String?  @unique
-  pairingCodeExpiresAt  DateTime?
-  pairedAt              DateTime?
+  hardwareId           String    @unique
+  pairingCode          String?   @unique
+  pairingCodeExpiresAt DateTime?
+  pairedAt             DateTime?
 
-  code      String?   @unique 
-  secret    String?          
+  code   String? @unique
+  secret String?
 
-  name      String?
-  active    Boolean  @default(true)
+  name   String?
+  active Boolean @default(true)
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
   busId String?
-  bus   Bus? @relation(fields: [busId], references: [id])
+  bus   Bus?    @relation(fields: [busId], references: [id])
 
   lastLat    Float?
   lastLng    Float?
@@ -174,7 +200,7 @@ model TransportEvent {
 
 enum EventType {
   BOARDING
-  DEBOARDING  
+  DEBOARDING
   LEAVING
   DENIED
 }
@@ -202,4 +228,128 @@ model Trip {
   transportEvents TransportEvent[]
 
   @@index([companyId])
+}
+
+model Route {
+  id   String @id @default(uuid())
+  name String
+  active Boolean @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  schedules   RouteSchedule[]
+  students    StudentRoute[]
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+}
+
+model RouteSchedule {
+  id String @id @default(uuid())
+
+  routeId String
+  route   Route  @relation(fields: [routeId], references: [id])
+
+  busId String?
+  bus   Bus?    @relation(fields: [busId], references: [id])
+
+  type  ScheduleType
+  title String?
+
+  // horário da saída
+  departureTime DateTime
+  departureMinutes Int
+  dayOfWeek     Int? // 0=domingo até 6=sábado
+
+  // quantos minutos antes notificar
+  notifyBeforeMinutes Int @default(30)
+  notificationTimeMinutes Int
+  notificationDayOfWeek Int?
+
+  active        Boolean                @default(true)
+  confirmations ScheduleConfirmation[]
+  notificationPrompts NotificationPrompt[]
+
+  createdAt DateTime @default(now())
+
+  @@index([departureTime])
+  @@index([routeId])
+  @@index([active, notificationTimeMinutes, notificationDayOfWeek])
+}
+
+model StudentRoute {
+  id String @id @default(uuid())
+
+  studentId String
+  routeId   String
+
+  student Student @relation(fields: [studentId], references: [id])
+  route   Route   @relation(fields: [routeId], references: [id])
+
+  @@unique([studentId, routeId])
+  @@index([routeId])
+}
+
+model ScheduleConfirmation {
+  id String @id @default(uuid())
+
+  userId     String
+  scheduleId String
+  occurrenceKey String
+
+  user     User          @relation(fields: [userId], references: [id])
+  schedule RouteSchedule @relation(fields: [scheduleId], references: [id])
+
+  willGo Boolean
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, scheduleId, occurrenceKey])
+  @@index([scheduleId])
+}
+
+model NotificationPrompt {
+  id String @id @default(uuid())
+
+  userId String
+  scheduleId String
+  occurrenceKey String
+  message String
+  deliveryChannel NotificationChannel @default(IN_APP)
+  status NotificationPromptStatus @default(PENDING)
+  response Boolean?
+  dispatchedAt DateTime?
+  answeredAt DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  schedule RouteSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@unique([userId, scheduleId, occurrenceKey])
+  @@index([userId, status, createdAt])
+  @@index([scheduleId, occurrenceKey])
+}
+
+enum ScheduleType {
+  GO // ida
+  BACK // volta
+  SHIFT // turnos (empresa/usina)
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH
+}
+
+enum NotificationPromptStatus {
+  PENDING
+  DISPATCHED
+  ANSWERED
+  EXPIRED
+  FAILED
 }

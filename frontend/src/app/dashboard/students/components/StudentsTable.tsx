@@ -32,9 +32,21 @@ type Student = {
   id: string;
   name: string;
   registration: string;
-  email?: string;
-  phone?: string;
+  email?: string | null;
+  phone?: string | null;
   active: boolean;
+  group?: {
+    id: string;
+    name: string;
+    active: boolean;
+  } | null;
+  routes?: {
+    route: {
+      id: string;
+      name: string;
+      active: boolean;
+    };
+  }[];
   rfidCards?: {
     tag: string;
   }[];
@@ -133,6 +145,8 @@ export function StudentsTable({
               {canManage && <TableHead />}
               <TableHead>Nome</TableHead>
               <TableHead>Matricula</TableHead>
+              <TableHead>Grupo</TableHead>
+              <TableHead>Rotas</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>RFID</TableHead>
@@ -146,7 +160,10 @@ export function StudentsTable({
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canManage ? 8 : 6} className="py-6 text-center">
+                <TableCell
+                  colSpan={canManage ? 10 : 8}
+                  className="py-6 text-center"
+                >
                   Nenhum aluno encontrado
                 </TableCell>
               </TableRow>
@@ -170,6 +187,12 @@ export function StudentsTable({
                     {student.name}
                   </TableCell>
                   <TableCell>{student.registration}</TableCell>
+                  <TableCell>{student.group?.name || "-"}</TableCell>
+                  <TableCell className="max-w-[220px] truncate">
+                    {student.routes?.length
+                      ? student.routes.map(({ route }) => route.name).join(", ")
+                      : "-"}
+                  </TableCell>
                   <TableCell>{student.email || "-"}</TableCell>
                   <TableCell>{student.phone || "-"}</TableCell>
                   <TableCell className="max-w-[120px] truncate">

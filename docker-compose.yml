@@ -15,6 +15,14 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: unipass_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "60", "1000", "--appendonly", "yes"]
+
   backend:
     build:
       context: ./backend
@@ -27,11 +35,36 @@ services:
       DATABASE_URL: postgresql://unipass:unipass123@postgres:5432/unipass_db
       HOST: 0.0.0.0
       PORT: 4000
+      APP_TIMEZONE: America/Sao_Paulo
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     ports:
       - "4000:4000"
+
+  backend-worker:
+    build:
+      context: ./backend
+    container_name: unipass_backend_worker
+    restart: always
+    env_file:
+      - path: ./backend/.env
+        format: raw
+    environment:
+      DATABASE_URL: postgresql://unipass:unipass123@postgres:5432/unipass_db
+      APP_TIMEZONE: America/Sao_Paulo
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["sh", "-c", "npx prisma migrate deploy && npm run start:worker:prod"]
 
   frontend:
     build:

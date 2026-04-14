@@ -7,9 +7,27 @@ type Student = {
   id: string;
   name: string;
   registration: string;
+  email?: string | null;
+  phone?: string | null;
   active: boolean;
   companyId: string;
   createdAt: string;
+  groupId?: string | null;
+  group?: {
+    id: string;
+    name: string;
+    active: boolean;
+  } | null;
+  routes?: {
+    route: {
+      id: string;
+      name: string;
+      active: boolean;
+    };
+  }[];
+  rfidCards?: {
+    tag: string;
+  }[];
 };
 
 type StudentsResponse = {

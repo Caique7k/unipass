@@ -7,7 +7,9 @@ import {
   Building2,
   Compass,
   Home,
+  Layers3,
   LogOut,
+  Route,
   Smartphone,
   SmartphoneNfcIcon,
   Truck,
@@ -141,12 +143,32 @@ export default function Sidebar() {
             />
 
             <SidebarItem
+              href="/dashboard/groups"
+              icon={<Layers3 size={25} />}
+              label="Grupos"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/groups"}
+            />
+
+            <SidebarItem
               href="/dashboard/buses"
               icon={<Truck size={25} />}
               label="Onibus"
               isOpen={isOpen}
               active={pathname === "/dashboard/buses"}
             />
+            {canViewOperations && (
+              <SidebarItem
+                href="/dashboard/routes"
+                icon={<Route size={25} />}
+              label="Rotas"
+              isOpen={isOpen}
+              active={
+                pathname === "/dashboard/routes" ||
+                pathname.startsWith("/dashboard/routes/")
+              }
+            />
+            )}
 
             {canManageCompany && (
               <SidebarItem

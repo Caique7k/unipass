@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TransportModule } from './transport/transport.module';
@@ -12,9 +13,16 @@ import { DevicesModule } from './devices/devices.module';
 import { UsersModule } from './users/users.module';
 import { CompaniesModule } from './companies/companies.module';
 import { LocationModule } from './location/location.module';
+import { RoutesModule } from './routes/routes.module';
+import { RouteSchedulesModule } from './route-schedules/route-schedules.module';
+import { ConfirmationsModule } from './confirmations/confirmations.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationPromptsModule } from './notification-prompts/notification-prompts.module';
+import { GroupsModule } from './groups/groups.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -28,6 +36,12 @@ import { LocationModule } from './location/location.module';
     UsersModule,
     CompaniesModule,
     LocationModule,
+    RoutesModule,
+    RouteSchedulesModule,
+    GroupsModule,
+    ConfirmationsModule,
+    NotificationsModule,
+    NotificationPromptsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

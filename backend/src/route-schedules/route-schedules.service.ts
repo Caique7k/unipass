@@ -3,11 +3,31 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma, ScheduleType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import { Prisma, ScheduleType } from '@prisma/client';
 import { getScheduleMetadata } from './schedule-metadata.util';
+
+const scheduleInclude = {
+  bus: {
+    select: {
+      id: true,
+      plate: true,
+    },
+  },
+} satisfies Prisma.RouteScheduleInclude;
+
+type ScheduleWriteParams = {
+  routeId: string;
+  busId?: string | null;
+  type: ScheduleType;
+  title?: string | null;
+  departureTime: Date;
+  dayOfWeek?: number | null;
+  notifyBeforeMinutes: number;
+  active?: boolean;
+};
 
 @Injectable()
 export class RouteSchedulesService {
@@ -16,35 +36,44 @@ export class RouteSchedulesService {
   async create(companyId: string, dto: CreateScheduleDto) {
     await this.ensureRouteBelongsToCompany(companyId, dto.routeId);
     await this.ensureBusBelongsToCompany(companyId, dto.busId);
+
     const departureTime = new Date(dto.departureTime);
-    const metadata = getScheduleMetadata({
-      departureTime,
-      dayOfWeek: dto.dayOfWeek ?? null,
-      notifyBeforeMinutes: dto.notifyBeforeMinutes ?? 30,
+    const dayOfWeeks = this.normalizeSelectedDays(dto.dayOfWeeks, dto.dayOfWeek);
+    const title = dto.title || null;
+    const notifyBeforeMinutes = dto.notifyBeforeMinutes ?? 30;
+    const departureMinutes = this.getDepartureMinutes(departureTime);
+
+    await this.ensureScheduleSlotsAvailable({
+      companyId,
+      routeId: dto.routeId,
+      busId: dto.busId,
+      type: dto.type,
+      title,
+      departureMinutes,
+      dayOfWeeks,
     });
 
-    return this.prisma.routeSchedule.create({
-      data: {
-        routeId: dto.routeId,
-        busId: dto.busId,
-        type: dto.type,
-        title: dto.title?.trim() || null,
-        departureTime,
-        dayOfWeek: dto.dayOfWeek ?? null,
-        notifyBeforeMinutes: dto.notifyBeforeMinutes ?? 30,
-        departureMinutes: metadata.departureMinutes,
-        notificationTimeMinutes: metadata.notificationTimeMinutes,
-        notificationDayOfWeek: metadata.notificationDayOfWeek,
-      },
-      include: {
-        bus: {
-          select: {
-            id: true,
-            plate: true,
-          },
-        },
-      },
-    });
+    const createdSchedules = await this.prisma.$transaction(
+      dayOfWeeks.map((dayOfWeek) =>
+        this.prisma.routeSchedule.create({
+          data: this.buildScheduleData({
+            routeId: dto.routeId,
+            busId: dto.busId,
+            type: dto.type,
+            title,
+            departureTime,
+            dayOfWeek,
+            notifyBeforeMinutes,
+            active: true,
+          }),
+          include: scheduleInclude,
+        }),
+      ),
+    );
+
+    return createdSchedules.length === 1
+      ? createdSchedules[0]
+      : { createdSchedules };
   }
 
   async findByRoute({
@@ -112,14 +141,7 @@ export class RouteSchedulesService {
         skip,
         take: normalizedLimit,
         orderBy: [{ dayOfWeek: 'asc' }, { departureTime: 'asc' }],
-        include: {
-          bus: {
-            select: {
-              id: true,
-              plate: true,
-            },
-          },
-        },
+        include: scheduleInclude,
       }),
       this.prisma.routeSchedule.count({ where }),
     ]);
@@ -140,14 +162,7 @@ export class RouteSchedulesService {
           companyId,
         },
       },
-      include: {
-        bus: {
-          select: {
-            id: true,
-            plate: true,
-          },
-        },
-      },
+      include: scheduleInclude,
     });
 
     if (!schedule) {
@@ -158,47 +173,100 @@ export class RouteSchedulesService {
   }
 
   async update(companyId: string, id: string, dto: UpdateScheduleDto) {
+    if (!this.hasUpdateValues(dto)) {
+      throw new BadRequestException('Nenhum dado informado para atualizacao');
+    }
+
     const currentSchedule = await this.findOne(companyId, id);
-    await this.ensureBusBelongsToCompany(companyId, dto.busId);
+    const busId = dto.busId !== undefined ? dto.busId : currentSchedule.busId;
+    await this.ensureBusBelongsToCompany(companyId, busId);
+
     const departureTime =
       dto.departureTime !== undefined
         ? new Date(dto.departureTime)
         : currentSchedule.departureTime;
-    const dayOfWeek =
-      dto.dayOfWeek !== undefined ? dto.dayOfWeek : currentSchedule.dayOfWeek;
     const notifyBeforeMinutes =
       dto.notifyBeforeMinutes !== undefined
         ? dto.notifyBeforeMinutes
         : currentSchedule.notifyBeforeMinutes;
-    const metadata = getScheduleMetadata({
-      departureTime,
-      dayOfWeek,
-      notifyBeforeMinutes,
-    });
+    const title = dto.title !== undefined ? dto.title || null : currentSchedule.title;
+    const type = dto.type ?? currentSchedule.type;
+    const active = dto.active ?? currentSchedule.active;
+    const dayOfWeeks = this.normalizeSelectedDays(
+      dto.dayOfWeeks,
+      dto.dayOfWeek,
+      currentSchedule.dayOfWeek,
+    );
+    const primaryDayOfWeek = this.pickPrimaryDayOfWeek(
+      dayOfWeeks,
+      currentSchedule.dayOfWeek,
+    );
+    const additionalDays = dayOfWeeks.filter((day) => day !== primaryDayOfWeek);
+    const departureMinutes = this.getDepartureMinutes(departureTime);
 
-    return this.prisma.routeSchedule.update({
-      where: { id },
-      data: {
-        ...(dto.busId !== undefined ? { busId: dto.busId } : {}),
-        ...(dto.type !== undefined ? { type: dto.type } : {}),
-        ...(dto.title !== undefined ? { title: dto.title.trim() || null } : {}),
-        departureTime,
-        ...(dto.dayOfWeek !== undefined ? { dayOfWeek: dto.dayOfWeek } : {}),
-        notifyBeforeMinutes,
-        departureMinutes: metadata.departureMinutes,
-        notificationTimeMinutes: metadata.notificationTimeMinutes,
-        notificationDayOfWeek: metadata.notificationDayOfWeek,
-        ...(dto.active !== undefined ? { active: dto.active } : {}),
-      },
-      include: {
-        bus: {
-          select: {
-            id: true,
-            plate: true,
-          },
-        },
-      },
-    });
+    if (active) {
+      await this.ensureScheduleSlotsAvailable({
+        companyId,
+        routeId: currentSchedule.routeId,
+        busId,
+        type,
+        title,
+        departureMinutes,
+        dayOfWeeks: [primaryDayOfWeek],
+        excludeId: id,
+      });
+
+      if (additionalDays.length > 0) {
+        await this.ensureScheduleSlotsAvailable({
+          companyId,
+          routeId: currentSchedule.routeId,
+          busId,
+          type,
+          title,
+          departureMinutes,
+          dayOfWeeks: additionalDays,
+        });
+      }
+    }
+
+    const updatedSchedules = await this.prisma.$transaction([
+      this.prisma.routeSchedule.update({
+        where: { id },
+        data: this.buildScheduleData({
+          routeId: currentSchedule.routeId,
+          busId,
+          type,
+          title,
+          departureTime,
+          dayOfWeek: primaryDayOfWeek,
+          notifyBeforeMinutes,
+          active,
+        }),
+        include: scheduleInclude,
+      }),
+      ...additionalDays.map((dayOfWeek) =>
+        this.prisma.routeSchedule.create({
+          data: this.buildScheduleData({
+            routeId: currentSchedule.routeId,
+            busId,
+            type,
+            title,
+            departureTime,
+            dayOfWeek,
+            notifyBeforeMinutes,
+            active,
+          }),
+          include: scheduleInclude,
+        }),
+      ),
+    ]);
+
+    return updatedSchedules.length === 1
+      ? updatedSchedules[0]
+      : {
+          updatedSchedule: updatedSchedules[0],
+          createdSchedules: updatedSchedules.slice(1),
+        };
   }
 
   async deactivateMany(companyId: string, ids: string[]) {
@@ -226,6 +294,120 @@ export class RouteSchedulesService {
         active: false,
       },
     });
+  }
+
+  private buildScheduleData(params: ScheduleWriteParams) {
+    const metadata = getScheduleMetadata({
+      departureTime: params.departureTime,
+      dayOfWeek: params.dayOfWeek ?? null,
+      notifyBeforeMinutes: params.notifyBeforeMinutes,
+    });
+
+    return {
+      routeId: params.routeId,
+      busId: params.busId ?? null,
+      type: params.type,
+      title: params.title || null,
+      departureTime: params.departureTime,
+      dayOfWeek: params.dayOfWeek ?? null,
+      notifyBeforeMinutes: params.notifyBeforeMinutes,
+      departureMinutes: metadata.departureMinutes,
+      notificationTimeMinutes: metadata.notificationTimeMinutes,
+      notificationDayOfWeek: metadata.notificationDayOfWeek,
+      ...(params.active !== undefined ? { active: params.active } : {}),
+    };
+  }
+
+  private hasUpdateValues(dto: UpdateScheduleDto) {
+    return (
+      dto.busId !== undefined ||
+      dto.type !== undefined ||
+      dto.title !== undefined ||
+      dto.departureTime !== undefined ||
+      dto.dayOfWeek !== undefined ||
+      dto.dayOfWeeks !== undefined ||
+      dto.notifyBeforeMinutes !== undefined ||
+      dto.active !== undefined
+    );
+  }
+
+  private normalizeSelectedDays(
+    dayOfWeeks?: number[],
+    dayOfWeek?: number | null,
+    fallbackDayOfWeek?: number | null,
+  ) {
+    if (dayOfWeeks && dayOfWeeks.length > 0) {
+      return [...new Set(dayOfWeeks)].sort((left, right) => left - right);
+    }
+
+    if (dayOfWeek !== undefined) {
+      return [dayOfWeek];
+    }
+
+    return [fallbackDayOfWeek ?? null];
+  }
+
+  private pickPrimaryDayOfWeek(
+    dayOfWeeks: Array<number | null>,
+    currentDayOfWeek?: number | null,
+  ) {
+    const normalizedCurrentDay = currentDayOfWeek ?? null;
+
+    if (dayOfWeeks.includes(normalizedCurrentDay)) {
+      return normalizedCurrentDay;
+    }
+
+    return dayOfWeeks[0] ?? null;
+  }
+
+  private getDepartureMinutes(departureTime: Date) {
+    return departureTime.getUTCHours() * 60 + departureTime.getUTCMinutes();
+  }
+
+  private async ensureScheduleSlotsAvailable(params: {
+    companyId: string;
+    routeId: string;
+    busId?: string | null;
+    type: ScheduleType;
+    title?: string | null;
+    departureMinutes: number;
+    dayOfWeeks: Array<number | null>;
+    excludeId?: string;
+  }) {
+    for (const dayOfWeek of params.dayOfWeeks) {
+      const conflictingSchedule = await this.prisma.routeSchedule.findFirst({
+        where: {
+          routeId: params.routeId,
+          route: {
+            companyId: params.companyId,
+          },
+          active: true,
+          type: params.type,
+          title: params.title || null,
+          busId: params.busId ?? null,
+          departureMinutes: params.departureMinutes,
+          dayOfWeek,
+          ...(params.excludeId
+            ? {
+                id: {
+                  not: params.excludeId,
+                },
+              }
+            : {}),
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (conflictingSchedule) {
+        throw new BadRequestException(
+          dayOfWeek === null
+            ? 'Ja existe um horario identico configurado para todos os dias'
+            : `Ja existe um horario identico configurado para ${this.getDayLabel(dayOfWeek)}`,
+        );
+      }
+    }
   }
 
   private async ensureRouteBelongsToCompany(companyId: string, routeId: string) {
@@ -275,5 +457,26 @@ export class RouteSchedulesService {
     }
 
     return undefined;
+  }
+
+  private getDayLabel(dayOfWeek: number) {
+    switch (dayOfWeek) {
+      case 0:
+        return 'domingo';
+      case 1:
+        return 'segunda';
+      case 2:
+        return 'terca';
+      case 3:
+        return 'quarta';
+      case 4:
+        return 'quinta';
+      case 5:
+        return 'sexta';
+      case 6:
+        return 'sabado';
+      default:
+        return 'o dia selecionado';
+    }
   }
 }

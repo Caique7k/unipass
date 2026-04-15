@@ -11,9 +11,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { buildApiUrl } from "@/services/api";
 import { Route } from "../types/route.types";
+
+const ROUTE_NAME_MAX_LENGTH = 120;
+const ROUTE_DESCRIPTION_MAX_LENGTH = 500;
 
 export function RouteModal({
   open,
@@ -35,15 +39,31 @@ export function RouteModal({
     if (route) {
       setName(route.name);
       setDescription(route.description || "");
-    } else {
-      setName("");
-      setDescription("");
+      return;
     }
+
+    setName("");
+    setDescription("");
   }, [open, route]);
 
   async function handleSave() {
-    if (!name.trim()) {
+    const normalizedName = name.trim();
+    const normalizedDescription = description.trim();
+
+    if (!normalizedName) {
       toast.error("Informe o nome da rota.");
+      return;
+    }
+
+    if (normalizedName.length > ROUTE_NAME_MAX_LENGTH) {
+      toast.error(`O nome da rota pode ter no maximo ${ROUTE_NAME_MAX_LENGTH} caracteres.`);
+      return;
+    }
+
+    if (normalizedDescription.length > ROUTE_DESCRIPTION_MAX_LENGTH) {
+      toast.error(
+        `A descricao pode ter no maximo ${ROUTE_DESCRIPTION_MAX_LENGTH} caracteres.`,
+      );
       return;
     }
 
@@ -59,16 +79,19 @@ export function RouteModal({
           },
           credentials: "include",
           body: JSON.stringify({
-            name: name.trim(),
-            description: description.trim() || undefined,
+            name: normalizedName,
+            description: normalizedDescription || undefined,
           }),
         },
       );
 
-      const data = await response.json();
+      const data = (await response.json()) as { message?: string | string[] };
 
       if (!response.ok) {
-        throw new Error(data.message || "Erro ao salvar rota");
+        const errorMessage = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message;
+        throw new Error(errorMessage || "Erro ao salvar rota");
       }
 
       toast.success(
@@ -78,9 +101,7 @@ export function RouteModal({
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao salvar rota.",
-      );
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar rota.");
     } finally {
       setIsSaving(false);
     }
@@ -88,36 +109,46 @@ export function RouteModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent className="sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar rota" : "Nova rota"}</DialogTitle>
           <DialogDescription>
             {isEdit
               ? "Atualize os dados principais da rota."
-              : "Cadastre uma nova rota para organizar os horários da operação."}
+              : "Cadastre uma nova rota para organizar os horarios da operacao."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="route-name">Nome</Label>
             <Input
               id="route-name"
               placeholder="Ex.: Centro x Campus"
               value={name}
+              maxLength={ROUTE_NAME_MAX_LENGTH}
               onChange={(event) => setName(event.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Use um nome curto e facil de localizar.
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="route-description">Descrição</Label>
-            <textarea
+            <Label htmlFor="route-description">Descricao</Label>
+            <Textarea
               id="route-description"
               value={description}
+              maxLength={ROUTE_DESCRIPTION_MAX_LENGTH}
               onChange={(event) => setDescription(event.target.value)}
-              placeholder="Detalhes adicionais, bairros atendidos ou observações."
-              className="min-h-28 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              placeholder="Detalhes adicionais, bairros atendidos ou observacoes."
             />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Opcional. Campo ideal para contexto operacional.</span>
+              <span>
+                {description.trim().length}/{ROUTE_DESCRIPTION_MAX_LENGTH}
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -138,7 +169,7 @@ export function RouteModal({
               {isSaving
                 ? "Salvando..."
                 : isEdit
-                  ? "Salvar alterações"
+                  ? "Salvar alteracoes"
                   : "Criar rota"}
             </Button>
           </div>

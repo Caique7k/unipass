@@ -3,9 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRouteDto } from './dto/create-route.dto';
-import { Prisma } from '@prisma/client';
 import { UpdateRouteDto } from './dto/update-route.dto';
 
 @Injectable()
@@ -13,16 +13,12 @@ export class RoutesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(companyId: string, dto: CreateRouteDto) {
-    const name = dto.name.trim();
-
-    if (!name) {
-      throw new BadRequestException('Informe o nome da rota');
-    }
+    await this.ensureRouteNameAvailable(companyId, dto.name);
 
     return this.prisma.route.create({
       data: {
-        name,
-        description: dto.description?.trim() || null,
+        name: dto.name,
+        description: dto.description || null,
         companyId,
       },
     });
@@ -116,23 +112,23 @@ export class RoutesService {
   }
 
   async update(companyId: string, id: string, dto: UpdateRouteDto) {
-    await this.findOne(companyId, id);
+    const currentRoute = await this.findOne(companyId, id);
 
-    if (!dto.name && dto.description === undefined) {
+    if (dto.name === undefined && dto.description === undefined) {
       throw new BadRequestException('Nenhum dado informado para atualizacao');
     }
 
-    if (dto.name !== undefined && !dto.name.trim()) {
-      throw new BadRequestException('Informe o nome da rota');
+    if (dto.name !== undefined) {
+      await this.ensureRouteNameAvailable(companyId, dto.name, id);
     }
 
     return this.prisma.route.update({
       where: { id },
       data: {
-        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        name: dto.name ?? currentRoute.name,
         ...(dto.description !== undefined
           ? {
-              description: dto.description.trim() || null,
+              description: dto.description || null,
             }
           : {}),
       },
@@ -158,5 +154,35 @@ export class RoutesService {
         active: false,
       },
     });
+  }
+
+  private async ensureRouteNameAvailable(
+    companyId: string,
+    name: string,
+    excludeId?: string,
+  ) {
+    const existingRoute = await this.prisma.route.findFirst({
+      where: {
+        companyId,
+        ...(excludeId
+          ? {
+              id: {
+                not: excludeId,
+              },
+            }
+          : {}),
+        name: {
+          equals: name,
+          mode: 'insensitive',
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingRoute) {
+      throw new BadRequestException('Ja existe uma rota com esse nome');
+    }
   }
 }

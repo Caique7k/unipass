@@ -1,9 +1,9 @@
-"use client";
+"use client"; // Indica para o Next.js que este componente roda no navegador (Client-Side Rendering), necessário pois usamos hooks como useState e eventos de clique.
 
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -13,17 +13,21 @@ import {
   Mail,
   Sparkles,
   X,
-} from "lucide-react";
-import { toast } from "sonner";
-import { useAuth } from "@/app/contexts/AuthContext";
+} from "lucide-react"; // Ícones usados em botões e inputs
+import { toast } from "sonner"; // Biblioteca para exibir as notificações (alertas de sucesso/erro)
+import { useAuth } from "@/app/contexts/AuthContext"; // Seu contexto de autenticação global
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { api } from "@/services/api";
+import { cn } from "@/lib/utils"; // Utilitário clássico do shadcn/ui para mesclar classes Tailwind
+import { api } from "@/services/api"; // Instância do Axios (provavelmente apontando para o seu backend NestJS)
 
+// Chave para salvar a preferência do usuário no navegador
 const REMEMBER_STORAGE_KEY = "unipass-remember-me";
 
+// ==========================================
+// DADOS DO CARROSSEL (Lado Esquerdo)
+// ==========================================
 const showcaseSlides = [
   {
     src: "/unipass/unipass-dashboard.png",
@@ -50,43 +54,67 @@ const showcaseSlides = [
 
 const quickHighlights = ["Tempo real", "RFID + GPS", "Acesso seguro"];
 
+// Função auxiliar para injetar variáveis CSS de delay nas animações de entrada
 function delayStyle(delay: number): CSSProperties {
   return { "--login-delay": `${delay}ms` } as CSSProperties;
 }
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { refreshUser } = useAuth();
+  const router = useRouter(); // Navegação programática do Next.js
+  const { refreshUser } = useAuth(); // Função do seu AuthContext para atualizar o estado global do usuário
 
-  const [activeSlide, setActiveSlide] = useState(0);
+  // ==========================================
+  // ESTADOS DO COMPONENTE
+  // ==========================================
+  const [activeSlide, setActiveSlide] = useState(0); // Controla qual imagem do carrossel está visível
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [errorModal, setErrorModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Alterna entre ver e ocultar a senha (Eye/EyeOff)
+  const [rememberMe, setRememberMe] = useState(false); // Estado do checkbox de "Manter conectado"
+  const [errorModal, setErrorModal] = useState(false); // Controla a exibição do modal de erro customizado
+  const [loading, setLoading] = useState(false); // Controla o estado de carregamento do botão de submit
+  const [isHoveringCarousel, setIsHoveringCarousel] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
+  const carouselRef = useRef<HTMLDivElement>(null);
 
+  // ==========================================
+  // EFEITOS COLATERAIS (useEffect)
+  // ==========================================
+  
+  // 1. Ao carregar a tela, verifica se o usuário tinha marcado "Lembrar-me" na última visita
   useEffect(() => {
     const savedValue = window.localStorage.getItem(REMEMBER_STORAGE_KEY);
     setRememberMe(savedValue === "true");
   }, []);
 
+  // 2. Loop infinito para trocar os slides do carrossel automaticamente a cada 5.2 segundos
   useEffect(() => {
+    if (isHoveringCarousel) return; // Pausa quando mouse está em cima
     const intervalId = window.setInterval(() => {
       setActiveSlide((current) => (current + 1) % showcaseSlides.length);
     }, 5200);
-
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [isHoveringCarousel]);
 
+  // Handler para rastrear posição do mouse
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setMousePos({ x, y });
+  }
+
+  // ==========================================
+  // LÓGICA DE SUBMISSÃO (O Login em si)
+  // ==========================================
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+    e.preventDefault(); // Evita que a página recarregue ao dar submit no formulário
 
+    // Validações básicas de front-end
     if (!email.trim()) {
       toast.error("Informe seu e-mail para entrar.");
       return;
     }
-
     if (!password.trim()) {
       toast.error("Informe sua senha para entrar.");
       return;
@@ -97,12 +125,15 @@ export default function LoginPage() {
       const payload = {
         email: email.trim(),
         password,
-        ...(rememberMe ? { rememberMe: true } : {}),
+        ...(rememberMe ? { rememberMe: true } : {}), // Só envia a flag de rememberMe se estiver ativa
       };
 
       try {
+        // Tenta fazer o login completo
         await api.post("/auth/login", payload);
       } catch (error) {
+        // Bloco engenhoso: Tratamento de erro específico para caso o backend 
+        // ainda não suporte o campo "rememberMe" no contrato da API.
         const message = axios.isAxiosError(error)
           ? error.response?.data?.message
           : null;
@@ -118,9 +149,10 @@ export default function LoginPage() {
             (typeof message === "string" && message.includes("rememberMe")));
 
         if (!unknownRememberField) {
-          throw error;
+          throw error; // Se for um erro real (senha errada, etc), lança para o catch principal
         }
 
+        // Se o erro foi só por causa do rememberMe, tenta logar de novo sem o campo
         await api.post("/auth/login", {
           email: email.trim(),
           password,
@@ -130,11 +162,13 @@ export default function LoginPage() {
         );
       }
 
+      // Sucesso no login: salva a preferência, atualiza contexto e redireciona pro dashboard
       window.localStorage.setItem(REMEMBER_STORAGE_KEY, String(rememberMe));
       toast.success("Login realizado com sucesso.");
       await refreshUser();
       router.push("/dashboard");
     } catch (error) {
+      // Captura e tratamento de erros reais (401 Não Autorizado, etc)
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error("E-mail ou senha invalidos.");
       } else {
@@ -151,14 +185,19 @@ export default function LoginPage() {
         }
       }
 
-      setErrorModal(true);
+      setErrorModal(true); // Abre o modal visual de erro
     } finally {
-      setLoading(false);
+      setLoading(false); // Desativa o estado de carregamento do botão independente de sucesso ou falha
     }
   }
 
+  // ==========================================
+  // ESTRUTURA VISUAL DA TELA (JSX)
+  // ==========================================
   return (
     <main className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fcfaf7_0%,#f7f4ef_30%,#eef3f8_100%)] text-[#111827]">
+      
+      {/* BACKGROUND EFFECTS: Formas e gradientes abstratos que ficam atrás de tudo */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="login-breath-slow absolute left-[-8rem] top-[10%] h-[22rem] w-[22rem] rounded-full bg-[#ff7a1a]/18 blur-3xl" />
         <div className="login-breath absolute right-[-6rem] top-[-2rem] h-[18rem] w-[18rem] rounded-full bg-[#0f6aad]/16 blur-3xl" />
@@ -167,45 +206,58 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.6),transparent_32%,rgba(255,255,255,0.38)_100%)]" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+      <div className="relative mx-auto flex h-screen w-full max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8 lg:py-6 overflow-hidden">
+        
+        {/* GRID PRINCIPAL: Divide a tela em duas colunas (Esq/Dir) em telas grandes (xl) */}
         <div className="grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-center xl:gap-6">
-          <section className="order-2 hidden xl:block xl:order-1">
-            <div className="mx-auto max-w-3xl xl:mx-0 xl:max-w-none">
-              <div className="login-intro inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/76 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5d5b56] shadow-[0_12px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+          
+          {/* ==========================================
+              LADO ESQUERDO: APRESENTAÇÃO E CARROSSEL 
+              ========================================== */}
+          <section className="order-2 hidden xl:block xl:order-1 max-h-screen overflow-hidden">
+            <div className="mx-auto max-w-3xl xl:mx-0 xl:max-w-none overflow-hidden rounded-[28px]">
+              
+              {/* Badge superior (Plataforma UniPass) */}
+              <div className="login-intro inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/76 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5d5b56] shadow-[0_12px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
                 <Sparkles className="size-3.5 text-[#ff5c00]" />
                 Plataforma UniPass
               </div>
 
-              <div className="login-intro mt-5 max-w-2xl" style={delayStyle(80)}>
-                <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.06em] text-[#0f172a]">
+              {/* Título Principal */}
+              <div className="login-intro mt-2 max-w-2xl" style={delayStyle(80)}>
+                <h1 className="max-w-2xl text-2xl font-semibold tracking-[-0.06em] text-[#0f172a]">
                   Entrar no UniPass
                 </h1>
-                <p className="mt-3 max-w-xl text-base leading-7 text-[#475569]">
+                <p className="mt-2 max-w-xl text-sm leading-6 text-[#475569]">
                   Acesso simples, claro e consistente com o restante da plataforma.
                 </p>
               </div>
 
+              {/* Tags de Destaque Rápido ("Tempo real", etc) */}
               <div
-                className="login-intro mt-4 flex flex-wrap gap-2"
+                className="login-intro mt-2.5 flex flex-wrap gap-2"
                 style={delayStyle(130)}
               >
                 {quickHighlights.map((highlight) => (
                   <div
                     key={highlight}
-                    className="rounded-full border border-white/80 bg-white/74 px-4 py-2 text-sm font-semibold text-[#334155] shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur-xl"
+                    className="rounded-full border border-white/80 bg-white/74 px-3 py-1 text-xs font-semibold text-[#334155] shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur-xl"
                   >
                     {highlight}
                   </div>
                 ))}
               </div>
 
+              {/* Bloco do Carrossel de Telas (Dashboard, Estudantes, Ônibus) */}
               <div
-                className="login-intro mt-5 overflow-hidden rounded-[34px] border border-white/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,248,251,0.82))] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.1)] backdrop-blur-2xl"
-                style={delayStyle(170)}
+                className="login-intro mt-2 overflow-hidden isolate rounded-[28px] border border-white/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,248,251,0.82))] p-2.5 shadow-[0_28px_70px_rgba(15,23,42,0.1)] backdrop-blur-2xl [&>div]:overflow-hidden [&>div]:rounded-[24px]
+                style={delayStyle(170)}"
               >
-                <div className="rounded-[28px] border border-black/5 bg-[#f8f7f3] p-3 shadow-inner shadow-white/80">
-                  <div className="flex items-center justify-between gap-3 px-1 pb-3">
-                    <div className="flex items-center gap-2 px-1 pb-3">
+                <div className="rounded-[24px] border border-black/5 bg-[#f8f7f3] p-2 shadow-inner shadow-white/80 overflow-hidden">
+                  
+                  {/* Cabeçalho do mockup (bolinhas estilo macOS e link de cadastro) */}
+                  <div className="flex items-center justify-between gap-3 px-1 pb-2">
+                    <div className="flex items-center gap-2 px-1 pb-2">
                       <span className="size-2.5 rounded-full bg-[#ff7a1a]" />
                       <span className="size-2.5 rounded-full bg-[#ffb36d]" />
                       <span className="size-2.5 rounded-full bg-[#c7d6e8]" />
@@ -219,8 +271,18 @@ export default function LoginPage() {
                     </Link>
                   </div>
 
-                  <div className="relative overflow-hidden rounded-[22px] border border-white/80 bg-[#eef2f7]">
-                    <div className="relative aspect-[16/10] min-h-[220px]">
+                  {/* Área onde as Imagens trocam */}
+                  <div className="relative overflow-hidden rounded-[20px] border border-white/80 bg-[#eef2f7]">
+                    <div
+                      ref={carouselRef}
+                      className="relative aspect-[16/10] w-full max-h-[54vh]"
+                      onMouseEnter={() => setIsHoveringCarousel(true)}
+                      onMouseLeave={() => {
+                        setIsHoveringCarousel(false);
+                        setMousePos({ x: 0.5, y: 0.5 });
+                      }}
+                      onMouseMove={handleMouseMove}
+                    >
                       {showcaseSlides.map((slide, index) => (
                         <figure
                           key={slide.src}
@@ -231,35 +293,60 @@ export default function LoginPage() {
                               : "z-10 scale-[1.03] opacity-0",
                           )}
                         >
-                          <Image
-                            src={slide.src}
-                            alt={slide.alt}
-                            fill
-                            priority={index === 0}
-                            sizes="(min-width: 1280px) 42vw, (min-width: 768px) 70vw, 92vw"
-                            className="object-cover"
-                          />
-                          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,18,0.02),rgba(7,10,18,0.42))]" />
+                          {/* Wrapper com overflow hidden para conter o zoom */}
+                          <div
+                            className="absolute inset-0 overflow-hidden rounded-[20px]"
+                            style={{
+                              transform: isHoveringCarousel && index === activeSlide
+                                ? `scale(1.08) translate(${(mousePos.x - 0.5) * -6}px, ${(mousePos.y - 0.5) * -6}px)`
+                                : "scale(1) translate(0px, 0px)",
+                              transition: isHoveringCarousel
+                                ? "transform 0.6s cubic-bezier(0.22,1,0.36,1)"
+                                : "transform 0.8s cubic-bezier(0.22,1,0.36,1)",
+                            }}
+                          >
+                            <Image
+                              src={slide.src}
+                              alt={slide.alt}
+                              fill
+                              priority={index === 0}
+                              sizes="(min-width: 1280px) 42vw, (min-width: 768px) 70vw, 92vw"
+                              className="object-cover"
+                            />
+                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,18,0.02),rgba(7,10,18,0.42))]" />
+                          </div>
+
+                          {/* Legenda: sempre visível, desaparece no hover */}
+                          <div
+                            className="absolute inset-x-3 bottom-3 rounded-[18px] border border-white/20 bg-[#09111d]/72 p-3 text-white shadow-[0_18px_40px_rgba(9,17,29,0.28)] backdrop-blur-xl"
+                            style={{
+                              opacity: isHoveringCarousel && index === activeSlide ? 0 : 1,
+                              transform: isHoveringCarousel && index === activeSlide
+                                ? "translateY(6px)"
+                                : "translateY(0px)",
+                              transition: "opacity 0.4s ease, transform 0.4s ease",
+                              pointerEvents: "none",
+                            }}
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/74">
+                                {showcaseSlides[activeSlide].eyebrow}
+                              </p>
+                              <span className="rounded-full bg-[#ff5c00] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                                {showcaseSlides[activeSlide].badge}
+                              </span>
+                            </div>
+                            <h2 className="mt-2 max-w-lg text-base font-semibold tracking-[-0.05em] text-white">
+                              {showcaseSlides[activeSlide].title}
+                            </h2>
+                          </div>
                         </figure>
                       ))}
-
-                      <div className="absolute inset-x-4 bottom-4 rounded-[22px] border border-white/20 bg-[#09111d]/72 p-4 text-white shadow-[0_18px_40px_rgba(9,17,29,0.28)] backdrop-blur-xl">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/74">
-                            {showcaseSlides[activeSlide].eyebrow}
-                          </p>
-                          <span className="rounded-full bg-[#ff5c00] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-                            {showcaseSlides[activeSlide].badge}
-                          </span>
-                        </div>
-                        <h2 className="mt-3 max-w-lg text-xl font-semibold tracking-[-0.05em] text-white">
-                          {showcaseSlides[activeSlide].title}
-                        </h2>
-                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center gap-2">
+                  {/* Controles de paginação do carrossel (os "tracinhos" embaixo da imagem) */}
+                  <div className="mt-2.5 flex items-center gap-2">
                     {showcaseSlides.map((slide, index) => (
                       <button
                         key={slide.src}
@@ -278,12 +365,17 @@ export default function LoginPage() {
             </div>
           </section>
 
-          <section className="order-1 xl:order-2 xl:flex xl:justify-end">
+          {/* ==========================================
+              LADO DIREITO: FORMULÁRIO DE LOGIN (Card Branco)
+              ========================================== */}
+          <section className="order-1 xl:order-2 xl:flex xl:justify-end xl:items-start xl:pt-6">
             <div
               className="login-intro mx-auto w-full max-w-[26rem] xl:mx-0"
               style={delayStyle(160)}
             >
-              <div className="rounded-[32px] border border-white/85 bg-white/90 px-5 py-5 shadow-[0_28px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl sm:px-6 sm:py-6">
+              <div className="rounded-[32px] border border-white/85 bg-white/90 px-5 py-4 shadow-[0_28px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl sm:px-5 sm:py-4">
+                
+                {/* Header do Card (Logo e botão Voltar) */}
                 <div className="flex items-start justify-between gap-4">
                   <Link href="/" className="inline-flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-[#f0dfd2] bg-[linear-gradient(180deg,#fff8f2_0%,#fff1e6_100%)] shadow-[0_14px_30px_rgba(255,92,0,0.12)]">
@@ -315,7 +407,8 @@ export default function LoginPage() {
                   </Link>
                 </div>
 
-                <div className="mt-5 rounded-[24px] border border-[#f2e6da] bg-[linear-gradient(180deg,#fffaf5_0%,#fff3ea_100%)] p-4">
+                {/* Título do Formulário */}
+                <div className="mt-4 rounded-[24px] border border-[#f2e6da] bg-[linear-gradient(180deg,#fffaf5_0%,#fff3ea_100%)] p-3.5">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a5b1f]">
                     Entrar no painel
                   </p>
@@ -327,7 +420,10 @@ export default function LoginPage() {
                   </p>
                 </div>
 
-                <form onSubmit={handleLogin} className="mt-5 space-y-3.5">
+                {/* INÍCIO DO FORMULÁRIO */}
+                <form onSubmit={handleLogin} className="mt-4 space-y-3">
+                  
+                  {/* Input E-mail */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-[#111827]">
                       E-mail
@@ -339,12 +435,13 @@ export default function LoginPage() {
                         placeholder="voce@empresa.com"
                         autoComplete="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setEmail(e.target.value)} // Atualiza estado
                         className="h-13 rounded-2xl border-[#d9cdbf] bg-[#fffdfa] pl-11 pr-4 text-[#0f172a] shadow-none placeholder:text-[#94a3b8] focus-visible:border-[#ff5c00] focus-visible:ring-[#ff5c00]/15 dark:border-[#d9cdbf] dark:bg-[#fffdfa] dark:text-[#0f172a] dark:placeholder:text-[#94a3b8]"
                       />
                     </div>
                   </div>
 
+                  {/* Input Senha */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-[#111827]">
                       Senha
@@ -352,14 +449,15 @@ export default function LoginPage() {
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#7c8899]" />
                       <Input
-                        type={showPassword ? "text" : "password"}
+                        type={showPassword ? "text" : "password"} // Altera o tipo do input dependendo do estado do "olhinho"
                         placeholder="Digite sua senha"
                         autoComplete="current-password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)} // Atualiza estado
                         className="h-13 rounded-2xl border-[#d9cdbf] bg-[#fffdfa] pl-11 pr-12 text-[#0f172a] shadow-none placeholder:text-[#94a3b8] focus-visible:border-[#ff5c00] focus-visible:ring-[#ff5c00]/15 dark:border-[#d9cdbf] dark:bg-[#fffdfa] dark:text-[#0f172a] dark:placeholder:text-[#94a3b8]"
                       />
 
+                      {/* Botão para Mostrar/Ocultar Senha */}
                       <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
@@ -375,6 +473,7 @@ export default function LoginPage() {
                     </div>
                   </div>
 
+                  {/* Checkbox Manter Conectado */}
                   <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ecdfd2] bg-[#fff8f2] px-4 py-3 transition-colors hover:bg-white">
                     <Checkbox
                       checked={rememberMe}
@@ -386,11 +485,13 @@ export default function LoginPage() {
                     </span>
                   </label>
 
+                  {/* Botão de Enviar (Submit) */}
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading} // Bloqueia cliques múltiplos
                     className="h-13 w-full rounded-2xl bg-[linear-gradient(135deg,#ff5c00_0%,#ff7a1a_100%)] text-sm font-semibold text-white shadow-[0_20px_40px_rgba(255,92,0,0.28)] transition-transform hover:-translate-y-0.5 hover:opacity-95 dark:text-white"
                   >
+                    {/* Renderização Condicional: Mostra loading spinner se tiver fazendo a req da API */}
                     {loading ? (
                       <span className="flex items-center gap-2">
                         <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -402,7 +503,8 @@ export default function LoginPage() {
                   </Button>
                 </form>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+                {/* Rodapé do Form: Link de criar conta */}
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                   <p className="text-[#526071]">Primeiro acesso?</p>
                   <Link
                     href="/cadastro/empresa"
@@ -418,14 +520,23 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* ==========================================
+          MODAL DE ERRO CUSTOMIZADO
+          Renderizado condicionalmente apenas se errorModal for 'true'
+          ========================================== */}
       {errorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          
+          {/* Fundo escuro (Overlay) - Clicar nele também fecha o modal */}
           <div
             className="absolute inset-0 animate-[fadeIn_0.2s_ease] bg-[#09111d]/42 backdrop-blur-sm"
             onClick={() => setErrorModal(false)}
           />
 
+          {/* O Modal em si */}
           <div className="relative w-full max-w-sm animate-[scaleIn_0.28s_cubic-bezier(0.22,1,0.36,1)] rounded-[30px] border border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f2_100%)] p-6 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
+            
+            {/* Ícone de Fechar no canto superior direito */}
             <button
               onClick={() => setErrorModal(false)}
               className="absolute right-4 top-4 cursor-pointer text-[#7c8899] transition hover:text-[#334155]"
@@ -433,6 +544,7 @@ export default function LoginPage() {
               <X className="size-4" />
             </button>
 
+            {/* Conteúdo de Erro */}
             <div className="flex size-12 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00] shadow-inner shadow-white">
               <Lock className="size-5" />
             </div>
@@ -445,6 +557,7 @@ export default function LoginPage() {
               O e-mail ou a senha informados estao incorretos.
             </p>
 
+            {/* Botão de Fechar o modal dentro dele */}
             <Button
               onClick={() => setErrorModal(false)}
               className="mt-6 h-11 w-full rounded-2xl bg-[linear-gradient(135deg,#ff5c00_0%,#ff7a1a_100%)] text-white hover:opacity-95 dark:text-white"

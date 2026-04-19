@@ -199,9 +199,9 @@ export default function LoginPage() {
       
       {/* BACKGROUND EFFECTS: Formas e gradientes abstratos que ficam atrás de tudo */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="login-breath-slow absolute left-[-8rem] top-[10%] h-[22rem] w-[22rem] rounded-full bg-[#ff7a1a]/18 blur-3xl" />
-        <div className="login-breath absolute right-[-6rem] top-[-2rem] h-[18rem] w-[18rem] rounded-full bg-[#0f6aad]/16 blur-3xl" />
-        <div className="login-breath-fast absolute bottom-[-10rem] left-[18%] h-[24rem] w-[24rem] rounded-full bg-[#ff5c00]/14 blur-3xl" />
+        <div className="login-breath-slow absolute -left-32 top-[10%] h-88 w-88 rounded-full bg-[#ff7a1a]/18 blur-3xl" />
+        <div className="login-breath absolute -right-24 -top-8 h-72 w-[18rem] rounded-full bg-[#0f6aad]/16 blur-3xl" />
+        <div className="login-breath-fast absolute -bottom-40 left-[18%] h-96 w-[24rem] rounded-full bg-[#ff5c00]/14 blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),transparent_42%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.6),transparent_32%,rgba(255,255,255,0.38)_100%)]" />
       </div>
@@ -275,7 +275,7 @@ export default function LoginPage() {
                   <div className="relative overflow-hidden rounded-[20px] border border-white/80 bg-[#eef2f7]">
                     <div
                       ref={carouselRef}
-                      className="relative aspect-[16/10] w-full max-h-[54vh]"
+                      className="relative aspect-16/10 w-full max-h-[54vh]"
                       onMouseEnter={() => setIsHoveringCarousel(true)}
                       onMouseLeave={() => {
                         setIsHoveringCarousel(false);
@@ -287,7 +287,7 @@ export default function LoginPage() {
                         <figure
                           key={slide.src}
                           className={cn(
-                            "absolute inset-0 transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                            "absolute inset-0 transition-all duration-900 ease-[cubic-bezier(0.22,1,0.36,1)]",
                             index === activeSlide
                               ? "z-20 scale-100 opacity-100"
                               : "z-10 scale-[1.03] opacity-0",
@@ -370,7 +370,7 @@ export default function LoginPage() {
               ========================================== */}
           <section className="order-1 xl:order-2 xl:flex xl:justify-end xl:items-start xl:pt-6">
             <div
-              className="login-intro mx-auto w-full max-w-[26rem] xl:mx-0"
+              className="login-intro mx-auto w-full max-w-104 xl:mx-0"
               style={delayStyle(160)}
             >
               <div className="rounded-[32px] border border-white/85 bg-white/90 px-5 py-4 shadow-[0_28px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl sm:px-5 sm:py-4">
@@ -478,7 +478,7 @@ export default function LoginPage() {
                     <Checkbox
                       checked={rememberMe}
                       onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
-                      className="size-[18px] border-[#d9c2ad] bg-white text-white data-checked:border-[#ff5c00] data-checked:bg-[#ff5c00] dark:border-[#d9c2ad] dark:bg-white dark:data-checked:border-[#ff5c00] dark:data-checked:bg-[#ff5c00]"
+                      className="size-4.5 border-[#d9c2ad] bg-white text-white data-checked:border-[#ff5c00] data-checked:bg-[#ff5c00] dark:border-[#d9c2ad] dark:bg-white dark:data-checked:border-[#ff5c00] dark:data-checked:bg-[#ff5c00]"
                     />
                     <span className="text-sm font-medium text-[#374151]">
                       Manter conectado neste dispositivo

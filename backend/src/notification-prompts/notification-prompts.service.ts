@@ -186,7 +186,7 @@ export class NotificationPromptsService {
             title: true,
             departureTime: true,
             departureMinutes: true,
-            dayOfWeek: true,
+            dayOfWeeks: true,
             notifyBeforeMinutes: true,
           },
         },

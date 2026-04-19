@@ -262,12 +262,12 @@ model RouteSchedule {
   // horário da saída
   departureTime DateTime
   departureMinutes Int
-  dayOfWeek     Int? // 0=domingo até 6=sábado
+  dayOfWeeks    Int[] // 0=domingo até 6=sábado
 
   // quantos minutos antes notificar
   notifyBeforeMinutes Int @default(30)
   notificationTimeMinutes Int
-  notificationDayOfWeek Int?
+  notificationDayOfWeeks Int[]
 
   active        Boolean                @default(true)
   confirmations ScheduleConfirmation[]
@@ -277,7 +277,7 @@ model RouteSchedule {
 
   @@index([departureTime])
   @@index([routeId])
-  @@index([active, notificationTimeMinutes, notificationDayOfWeek])
+  @@index([active, notificationTimeMinutes])
 }
 
 model StudentRoute {

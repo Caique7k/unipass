@@ -6,7 +6,7 @@ export interface Schedule {
   type: ScheduleType;
   title?: string | null;
   departureTime: string;
-  dayOfWeek?: number | null;
+  dayOfWeeks: number[];
   notifyBeforeMinutes: number;
   active: boolean;
   bus?: {

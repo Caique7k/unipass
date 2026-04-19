@@ -2,17 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { AccessDenied } from "@/components/AccessDenied";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageTableSkeleton } from "../../components/DashboardSkeletons";
@@ -133,86 +126,77 @@ export default function RouteSchedulesPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/70 bg-gradient-to-br from-background via-background to-muted/40">
-        <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-fit cursor-pointer"
-              onClick={() => router.push("/dashboard/routes")}
-            >
-              <ArrowLeft className="size-4" />
-              Voltar para rotas
-            </Button>
-            <div className="space-y-1">
-              <CardTitle>Horarios da rota</CardTitle>
-              <CardDescription>
-                {routeName
-                  ? `${routeName} - acompanhe e ajuste os horarios configurados.`
-                  : "Acompanhe e ajuste os horarios configurados."}
-              </CardDescription>
-            </div>
-          </div>
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-fit cursor-pointer"
+          aria-label="Voltar para rotas"
+          onClick={() => router.push("/dashboard/routes")}
+        >
+          {"<-"}
+        </Button>
 
-          {canManage && (
-            <Button
-              onClick={() => {
-                setSelectedSchedule(null);
-                setOpen(true);
-              }}
-              className="cursor-pointer"
-            >
-              + Novo horario
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <Input
-            placeholder="Buscar por tipo, titulo ou onibus..."
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
+        <div>
+          <h1 className="text-2xl font-bold">Horarios da rota</h1>
+          <p className="text-sm text-muted-foreground">
+            {routeName ? `${routeName} - ` : ""}
+            Visualize e mantenha os horarios de saida organizados.
+          </p>
+        </div>
+      </div>
+
+      <Card className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+        <Input
+          placeholder="Buscar por tipo, titulo ou onibus..."
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
+          className="max-w-sm"
+        />
+
+        {canManage && (
+          <Button
+            onClick={() => {
+              setSelectedSchedule(null);
+              setOpen(true);
             }}
-            className="max-w-sm"
-          />
-
-          <div className="rounded-full bg-background px-3 py-1 text-xs text-muted-foreground ring-1 ring-border">
-            {status === "Todos" ? "Mostrando todos" : `Filtro: ${status}`}
-          </div>
-        </CardContent>
+            className="cursor-pointer"
+          >
+            + Novo horario
+          </Button>
+        )}
       </Card>
 
       {isFetching && (
         <p className="animate-pulse text-xs text-muted-foreground">Atualizando...</p>
       )}
 
-      <Card>
-        <CardContent className="p-4">
-          <SchedulesTable
-            data={data}
-            canManage={canManage}
-            page={page}
-            setPage={setPage}
-            lastPage={lastPage}
-            status={status}
-            setStatus={(value) => {
-              setStatus(value);
-              setPage(1);
-            }}
-            onDelete={handleAskDelete}
-            onEdit={(schedule) => {
-              if (!canManage) {
-                return;
-              }
+      <Card className="p-4">
+        <SchedulesTable
+          data={data}
+          canManage={canManage}
+          page={page}
+          setPage={setPage}
+          lastPage={lastPage}
+          status={status}
+          setStatus={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          onDelete={handleAskDelete}
+          onEdit={(schedule) => {
+            if (!canManage) {
+              return;
+            }
 
-              setSelectedSchedule(schedule ?? null);
-              setOpen(true);
-            }}
-          />
-        </CardContent>
+            setSelectedSchedule(schedule ?? null);
+            setOpen(true);
+          }}
+        />
       </Card>
 
       {canManage && (

@@ -19,12 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { buildApiUrl } from "@/services/api";
-import { cn } from "@/lib/utils";
 import { Schedule, ScheduleType } from "../types/schedule";
+import { DaysCombobox, type DayOption } from "./DaysCombobox";
 
 type BusOption = {
   id: string;
@@ -33,7 +32,6 @@ type BusOption = {
 
 type SaveScheduleResponse = {
   message?: string | string[];
-  createdSchedules?: Array<{ id: string }>;
 };
 
 const SCHEDULE_TITLE_MAX_LENGTH = 120;
@@ -45,7 +43,7 @@ const scheduleTypeOptions: Array<{ value: ScheduleType; label: string }> = [
   { value: "SHIFT", label: "Turno" },
 ];
 
-const dayOptions = [
+const dayOptions: DayOption[] = [
   { value: 1, label: "Segunda", shortLabel: "Seg" },
   { value: 2, label: "Terca", shortLabel: "Ter" },
   { value: 3, label: "Quarta", shortLabel: "Qua" },
@@ -54,6 +52,8 @@ const dayOptions = [
   { value: 6, label: "Sabado", shortLabel: "Sab" },
   { value: 0, label: "Domingo", shortLabel: "Dom" },
 ];
+
+const allDayValues = dayOptions.map((option) => option.value);
 
 function formatTimeInput(date?: string) {
   if (!date) {
@@ -80,6 +80,16 @@ function formatDaySummary(selectedDays: number[]) {
     .filter((option) => selectedDays.includes(option.value))
     .map((option) => option.shortLabel)
     .join(", ");
+}
+
+function normalizeSelectedDays(days: number[]) {
+  return dayOptions
+    .filter((option) => days.includes(option.value))
+    .map((option) => option.value);
+}
+
+function isEveryDaySelected(days: number[]) {
+  return allDayValues.every((day) => days.includes(day));
 }
 
 export function ScheduleFormModal({
@@ -116,17 +126,14 @@ export function ScheduleFormModal({
 
   useEffect(() => {
     if (schedule) {
+      const normalizedDays = normalizeSelectedDays(schedule.dayOfWeeks ?? []);
+      const isEveryDay = isEveryDaySelected(normalizedDays);
+
       setType(schedule.type);
       setTitle(schedule.title || "");
       setTime(formatTimeInput(schedule.departureTime));
-      setApplyEveryDay(
-        schedule.dayOfWeek === null || schedule.dayOfWeek === undefined,
-      );
-      setSelectedDays(
-        schedule.dayOfWeek === null || schedule.dayOfWeek === undefined
-          ? []
-          : [schedule.dayOfWeek],
-      );
+      setApplyEveryDay(isEveryDay);
+      setSelectedDays(isEveryDay ? [] : normalizedDays);
       setBusId(schedule.bus?.id || "none");
       setNotifyBeforeMinutes(String(schedule.notifyBeforeMinutes));
       return;
@@ -225,7 +232,7 @@ export function ScheduleFormModal({
       type,
       title: normalizedTitle || undefined,
       departureTime: buildDepartureTimestamp(time),
-      ...(applyEveryDay ? { dayOfWeek: null } : { dayOfWeeks: selectedDays }),
+      dayOfWeeks: applyEveryDay ? allDayValues : selectedDays,
       busId: busId === "none" ? null : busId,
       notifyBeforeMinutes: parsedNotifyBeforeMinutes,
     };
@@ -256,21 +263,9 @@ export function ScheduleFormModal({
         throw new Error(errorMessage || "Erro ao salvar horario");
       }
 
-      const createdCount = data.createdSchedules?.length ?? 0;
-
-      if (isEdit && createdCount > 0) {
-        toast.success(
-          `Horario atualizado e ${createdCount} novo${createdCount > 1 ? "s" : ""} horario${createdCount > 1 ? "s" : ""} criado${createdCount > 1 ? "s" : ""}.`,
-        );
-      } else if (!isEdit && createdCount > 1) {
-        toast.success(`${createdCount} horarios criados com sucesso.`);
-      } else {
-        toast.success(
-          isEdit
-            ? "Horario atualizado com sucesso."
-            : "Horario criado com sucesso.",
-        );
-      }
+      toast.success(
+        isEdit ? "Horario atualizado com sucesso." : "Horario criado com sucesso.",
+      );
 
       onSuccess();
       onOpenChange(false);
@@ -285,216 +280,157 @@ export function ScheduleFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[760px]">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar horario" : "Novo horario"}</DialogTitle>
-          <DialogDescription>
-            Configure o horario de saida, os dias de atendimento e o onibus
-            vinculado.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden p-0 sm:max-w-[760px]">
+        <div className="flex max-h-[calc(100dvh-2rem)] flex-col">
+          <DialogHeader className="border-b border-border/70 px-6 pt-6 pr-14 pb-4">
+            <DialogTitle>{isEdit ? "Editar horario" : "Novo horario"}</DialogTitle>
+            <DialogDescription>
+              Configure o horario de saida, os dias de atendimento e o onibus
+              vinculado.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-5">
-          <Alert className="border-primary/20 bg-primary/5">
-            <CalendarDays className="size-4" />
-            <AlertTitle>Selecionador de dias mais flexivel</AlertTitle>
-            <AlertDescription>
-              Na criacao voce pode marcar varios dias de uma vez. Na edicao,
-              dias extras viram novos horarios automaticamente.
-            </AlertDescription>
-          </Alert>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="space-y-5">
+              <Alert className="border-primary/20 bg-primary/5">
+                <CalendarDays className="size-4" />
+                <AlertTitle>Um horario, varios dias</AlertTitle>
+                <AlertDescription>
+                  O horario fica em um unico item na tabela e as notificacoes
+                  continuam sendo enviadas nos dias selecionados.
+                </AlertDescription>
+              </Alert>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select
-                value={type}
-                onValueChange={(value) => setType((value ?? "GO") as ScheduleType)}
-              >
-                <SelectTrigger className="cursor-pointer">
-                  <SelectValue>
-                    {scheduleTypeOptions.find((item) => item.value === type)?.label}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {scheduleTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="schedule-time">Horario</Label>
-              <Input
-                id="schedule-time"
-                type="time"
-                value={time}
-                onChange={(event) => setTime(event.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="schedule-title">Titulo</Label>
-              <Input
-                id="schedule-title"
-                placeholder="Ex.: Faculdade manha"
-                value={title}
-                maxLength={SCHEDULE_TITLE_MAX_LENGTH}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Opcional. Ajuda a diferenciar turnos e operacoes.</span>
-                <span>
-                  {title.trim().length}/{SCHEDULE_TITLE_MAX_LENGTH}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <Label className="text-sm font-medium">Dias da semana</Label>
-                <p className="text-xs text-muted-foreground">
-                  Resumo atual: {selectedDaysSummary}
-                </p>
-              </div>
-              <div className="rounded-full bg-background px-3 py-1 text-xs text-muted-foreground ring-1 ring-border">
-                {applyEveryDay ? "Recorrencia diaria" : `${selectedDays.length} dia(s)`}
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div
-                className={cn(
-                  "rounded-xl border p-3 transition-colors",
-                  applyEveryDay
-                    ? "border-primary bg-primary/5"
-                    : "border-border bg-background",
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id="schedule-day-all"
-                    checked={applyEveryDay}
-                    onCheckedChange={(checked) => {
-                      const nextValue = checked === true;
-                      setApplyEveryDay(nextValue);
-                      if (nextValue) {
-                        setSelectedDays([]);
-                      }
-                    }}
-                  />
-                  <label
-                    htmlFor="schedule-day-all"
-                    className="flex-1 cursor-pointer space-y-1"
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Select
+                    value={type}
+                    onValueChange={(value) => setType((value ?? "GO") as ScheduleType)}
                   >
-                    <p className="text-sm font-medium">Todos os dias</p>
-                    <p className="text-xs text-muted-foreground">
-                      Mantem um unico horario recorrente.
-                    </p>
-                  </label>
+                    <SelectTrigger className="cursor-pointer">
+                      <SelectValue>
+                        {scheduleTypeOptions.find((item) => item.value === type)?.label}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {scheduleTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="schedule-time">Horario</Label>
+                  <Input
+                    id="schedule-time"
+                    type="time"
+                    value={time}
+                    onChange={(event) => setTime(event.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="schedule-title">Titulo</Label>
+                  <Input
+                    id="schedule-title"
+                    placeholder="Ex.: Faculdade manha"
+                    value={title}
+                    maxLength={SCHEDULE_TITLE_MAX_LENGTH}
+                    onChange={(event) => setTitle(event.target.value)}
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Opcional. Ajuda a diferenciar turnos e operacoes.</span>
+                    <span>
+                      {title.trim().length}/{SCHEDULE_TITLE_MAX_LENGTH}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {dayOptions.map((day) => {
-                const checked = !applyEveryDay && selectedDays.includes(day.value);
+              <DaysCombobox
+                options={dayOptions}
+                selectedValues={selectedDays}
+                applyEveryDay={applyEveryDay}
+                summary={selectedDaysSummary}
+                onToggleDay={toggleDay}
+                onApplyEveryDayChange={(nextValue) => {
+                  setApplyEveryDay(nextValue);
 
-                return (
-                  <div
-                    key={day.value}
-                    className={cn(
-                      "rounded-xl border p-3 transition-colors",
-                      checked
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-background",
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        id={`schedule-day-${day.value}`}
-                        checked={checked}
-                        onCheckedChange={() => toggleDay(day.value)}
-                      />
-                      <label
-                        htmlFor={`schedule-day-${day.value}`}
-                        className="flex-1 cursor-pointer space-y-1"
-                      >
-                        <p className="text-sm font-medium">{day.label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Aplicar esse horario em {day.shortLabel}.
-                        </p>
-                      </label>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Onibus</Label>
-              <Select value={busId} onValueChange={(value) => setBusId(value ?? "none")}>
-                <SelectTrigger className="cursor-pointer">
-                  <SelectValue>
-                    {busId === "none"
-                      ? "Sem onibus vinculado"
-                      : buses.find((bus) => bus.id === busId)?.plate}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem onibus vinculado</SelectItem>
-                  {buses.map((bus) => (
-                    <SelectItem key={bus.id} value={bus.id}>
-                      {bus.plate}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notify-before">Antecedencia do alerta</Label>
-              <Input
-                id="notify-before"
-                type="number"
-                min={0}
-                max={MAX_NOTIFY_BEFORE_MINUTES}
-                value={notifyBeforeMinutes}
-                onChange={(event) => setNotifyBeforeMinutes(event.target.value)}
+                  if (nextValue) {
+                    setSelectedDays([]);
+                  }
+                }}
               />
-              <p className="text-xs text-muted-foreground">
-                Defina em quantos minutos antes o aluno recebe a notificacao.
-              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Onibus</Label>
+                  <Select
+                    value={busId}
+                    onValueChange={(value) => setBusId(value ?? "none")}
+                  >
+                    <SelectTrigger className="cursor-pointer">
+                      <SelectValue>
+                        {busId === "none"
+                          ? "Sem onibus vinculado"
+                          : buses.find((bus) => bus.id === busId)?.plate}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem onibus vinculado</SelectItem>
+                      {buses.map((bus) => (
+                        <SelectItem key={bus.id} value={bus.id}>
+                          {bus.plate}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notify-before">Antecedencia do alerta</Label>
+                  <Input
+                    id="notify-before"
+                    type="number"
+                    min={0}
+                    max={MAX_NOTIFY_BEFORE_MINUTES}
+                    value={notifyBeforeMinutes}
+                    onChange={(event) => setNotifyBeforeMinutes(event.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Defina em quantos minutos antes o aluno recebe a notificacao.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            className="cursor-pointer"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSaving}
-            className="cursor-pointer"
-          >
-            {isSaving
-              ? "Salvando..."
-              : isEdit
-                ? "Salvar alteracoes"
-                : "Criar horario"}
-          </Button>
+          <div className="flex flex-col-reverse gap-3 border-t border-border/70 px-6 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSaving}
+              className="cursor-pointer"
+            >
+              {isSaving
+                ? "Salvando..."
+                : isEdit
+                  ? "Salvar alteracoes"
+                  : "Criar horario"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

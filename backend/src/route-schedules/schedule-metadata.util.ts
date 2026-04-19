@@ -1,12 +1,12 @@
 type ScheduleMetadata = {
   departureMinutes: number;
   notificationTimeMinutes: number;
-  notificationDayOfWeek: number | null;
+  notificationDayOfWeeks: number[];
 };
 
 export function getScheduleMetadata(params: {
   departureTime: Date;
-  dayOfWeek?: number | null;
+  dayOfWeeks: number[];
   notifyBeforeMinutes: number;
 }): ScheduleMetadata {
   const departureMinutes =
@@ -14,16 +14,19 @@ export function getScheduleMetadata(params: {
     params.departureTime.getUTCMinutes();
   const notificationTimeMinutes =
     (departureMinutes - params.notifyBeforeMinutes + 1440) % 1440;
-  const notificationDayOfWeek =
-    params.dayOfWeek === null || params.dayOfWeek === undefined
-      ? null
-      : params.notifyBeforeMinutes > departureMinutes
-        ? (params.dayOfWeek + 6) % 7
-        : params.dayOfWeek;
+  const notificationDayOfWeeks = Array.from(
+    new Set(
+      params.dayOfWeeks.map((dayOfWeek) =>
+        params.notifyBeforeMinutes > departureMinutes
+          ? (dayOfWeek + 6) % 7
+          : dayOfWeek,
+      ),
+    ),
+  ).sort((left, right) => left - right);
 
   return {
     departureMinutes,
     notificationTimeMinutes,
-    notificationDayOfWeek,
+    notificationDayOfWeeks,
   };
 }

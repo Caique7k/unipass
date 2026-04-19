@@ -35,10 +35,9 @@ export class NotificationsService {
         route: {
           active: true,
         },
-        OR: [
-          { notificationDayOfWeek: null },
-          { notificationDayOfWeek: zonedNow.dayOfWeek },
-        ],
+        notificationDayOfWeeks: {
+          has: zonedNow.dayOfWeek,
+        },
       },
       select: {
         id: true,

@@ -18,13 +18,15 @@ const scheduleInclude = {
   },
 } satisfies Prisma.RouteScheduleInclude;
 
+const ALL_DAY_VALUES = [0, 1, 2, 3, 4, 5, 6] as const;
+
 type ScheduleWriteParams = {
   routeId: string;
   busId?: string | null;
   type: ScheduleType;
   title?: string | null;
   departureTime: Date;
-  dayOfWeek?: number | null;
+  dayOfWeeks: number[];
   notifyBeforeMinutes: number;
   active?: boolean;
 };
@@ -38,7 +40,10 @@ export class RouteSchedulesService {
     await this.ensureBusBelongsToCompany(companyId, dto.busId);
 
     const departureTime = new Date(dto.departureTime);
-    const dayOfWeeks = this.normalizeSelectedDays(dto.dayOfWeeks, dto.dayOfWeek);
+    const dayOfWeeks = this.normalizeSelectedDays(
+      dto.dayOfWeeks,
+      dto.dayOfWeek,
+    );
     const title = dto.title || null;
     const notifyBeforeMinutes = dto.notifyBeforeMinutes ?? 30;
     const departureMinutes = this.getDepartureMinutes(departureTime);
@@ -53,27 +58,19 @@ export class RouteSchedulesService {
       dayOfWeeks,
     });
 
-    const createdSchedules = await this.prisma.$transaction(
-      dayOfWeeks.map((dayOfWeek) =>
-        this.prisma.routeSchedule.create({
-          data: this.buildScheduleData({
-            routeId: dto.routeId,
-            busId: dto.busId,
-            type: dto.type,
-            title,
-            departureTime,
-            dayOfWeek,
-            notifyBeforeMinutes,
-            active: true,
-          }),
-          include: scheduleInclude,
-        }),
-      ),
-    );
-
-    return createdSchedules.length === 1
-      ? createdSchedules[0]
-      : { createdSchedules };
+    return this.prisma.routeSchedule.create({
+      data: this.buildScheduleData({
+        routeId: dto.routeId,
+        busId: dto.busId,
+        type: dto.type,
+        title,
+        departureTime,
+        dayOfWeeks,
+        notifyBeforeMinutes,
+        active: true,
+      }),
+      include: scheduleInclude,
+    });
   }
 
   async findByRoute({
@@ -140,7 +137,7 @@ export class RouteSchedulesService {
         where,
         skip,
         take: normalizedLimit,
-        orderBy: [{ dayOfWeek: 'asc' }, { departureTime: 'asc' }],
+        orderBy: [{ departureMinutes: 'asc' }, { createdAt: 'asc' }],
         include: scheduleInclude,
       }),
       this.prisma.routeSchedule.count({ where }),
@@ -189,19 +186,15 @@ export class RouteSchedulesService {
       dto.notifyBeforeMinutes !== undefined
         ? dto.notifyBeforeMinutes
         : currentSchedule.notifyBeforeMinutes;
-    const title = dto.title !== undefined ? dto.title || null : currentSchedule.title;
+    const title =
+      dto.title !== undefined ? dto.title || null : currentSchedule.title;
     const type = dto.type ?? currentSchedule.type;
     const active = dto.active ?? currentSchedule.active;
     const dayOfWeeks = this.normalizeSelectedDays(
       dto.dayOfWeeks,
       dto.dayOfWeek,
-      currentSchedule.dayOfWeek,
+      currentSchedule.dayOfWeeks,
     );
-    const primaryDayOfWeek = this.pickPrimaryDayOfWeek(
-      dayOfWeeks,
-      currentSchedule.dayOfWeek,
-    );
-    const additionalDays = dayOfWeeks.filter((day) => day !== primaryDayOfWeek);
     const departureMinutes = this.getDepartureMinutes(departureTime);
 
     if (active) {
@@ -212,61 +205,25 @@ export class RouteSchedulesService {
         type,
         title,
         departureMinutes,
-        dayOfWeeks: [primaryDayOfWeek],
+        dayOfWeeks,
         excludeId: id,
       });
-
-      if (additionalDays.length > 0) {
-        await this.ensureScheduleSlotsAvailable({
-          companyId,
-          routeId: currentSchedule.routeId,
-          busId,
-          type,
-          title,
-          departureMinutes,
-          dayOfWeeks: additionalDays,
-        });
-      }
     }
 
-    const updatedSchedules = await this.prisma.$transaction([
-      this.prisma.routeSchedule.update({
-        where: { id },
-        data: this.buildScheduleData({
-          routeId: currentSchedule.routeId,
-          busId,
-          type,
-          title,
-          departureTime,
-          dayOfWeek: primaryDayOfWeek,
-          notifyBeforeMinutes,
-          active,
-        }),
-        include: scheduleInclude,
+    return this.prisma.routeSchedule.update({
+      where: { id },
+      data: this.buildScheduleData({
+        routeId: currentSchedule.routeId,
+        busId,
+        type,
+        title,
+        departureTime,
+        dayOfWeeks,
+        notifyBeforeMinutes,
+        active,
       }),
-      ...additionalDays.map((dayOfWeek) =>
-        this.prisma.routeSchedule.create({
-          data: this.buildScheduleData({
-            routeId: currentSchedule.routeId,
-            busId,
-            type,
-            title,
-            departureTime,
-            dayOfWeek,
-            notifyBeforeMinutes,
-            active,
-          }),
-          include: scheduleInclude,
-        }),
-      ),
-    ]);
-
-    return updatedSchedules.length === 1
-      ? updatedSchedules[0]
-      : {
-          updatedSchedule: updatedSchedules[0],
-          createdSchedules: updatedSchedules.slice(1),
-        };
+      include: scheduleInclude,
+    });
   }
 
   async deactivateMany(companyId: string, ids: string[]) {
@@ -299,7 +256,7 @@ export class RouteSchedulesService {
   private buildScheduleData(params: ScheduleWriteParams) {
     const metadata = getScheduleMetadata({
       departureTime: params.departureTime,
-      dayOfWeek: params.dayOfWeek ?? null,
+      dayOfWeeks: params.dayOfWeeks,
       notifyBeforeMinutes: params.notifyBeforeMinutes,
     });
 
@@ -309,11 +266,11 @@ export class RouteSchedulesService {
       type: params.type,
       title: params.title || null,
       departureTime: params.departureTime,
-      dayOfWeek: params.dayOfWeek ?? null,
+      dayOfWeeks: params.dayOfWeeks,
       notifyBeforeMinutes: params.notifyBeforeMinutes,
       departureMinutes: metadata.departureMinutes,
       notificationTimeMinutes: metadata.notificationTimeMinutes,
-      notificationDayOfWeek: metadata.notificationDayOfWeek,
+      notificationDayOfWeeks: metadata.notificationDayOfWeeks,
       ...(params.active !== undefined ? { active: params.active } : {}),
     };
   }
@@ -334,30 +291,25 @@ export class RouteSchedulesService {
   private normalizeSelectedDays(
     dayOfWeeks?: number[],
     dayOfWeek?: number | null,
-    fallbackDayOfWeek?: number | null,
+    fallbackDayOfWeeks?: number[],
   ) {
     if (dayOfWeeks && dayOfWeeks.length > 0) {
-      return [...new Set(dayOfWeeks)].sort((left, right) => left - right);
+      return this.normalizeDayList(dayOfWeeks);
     }
 
     if (dayOfWeek !== undefined) {
-      return [dayOfWeek];
+      return dayOfWeek === null ? [...ALL_DAY_VALUES] : [dayOfWeek];
     }
 
-    return [fallbackDayOfWeek ?? null];
+    if (fallbackDayOfWeeks && fallbackDayOfWeeks.length > 0) {
+      return this.normalizeDayList(fallbackDayOfWeeks);
+    }
+
+    return [...ALL_DAY_VALUES];
   }
 
-  private pickPrimaryDayOfWeek(
-    dayOfWeeks: Array<number | null>,
-    currentDayOfWeek?: number | null,
-  ) {
-    const normalizedCurrentDay = currentDayOfWeek ?? null;
-
-    if (dayOfWeeks.includes(normalizedCurrentDay)) {
-      return normalizedCurrentDay;
-    }
-
-    return dayOfWeeks[0] ?? null;
+  private normalizeDayList(dayOfWeeks: number[]) {
+    return [...new Set(dayOfWeeks)].sort((left, right) => left - right);
   }
 
   private getDepartureMinutes(departureTime: Date) {
@@ -371,7 +323,7 @@ export class RouteSchedulesService {
     type: ScheduleType;
     title?: string | null;
     departureMinutes: number;
-    dayOfWeeks: Array<number | null>;
+    dayOfWeeks: number[];
     excludeId?: string;
   }) {
     for (const dayOfWeek of params.dayOfWeeks) {
@@ -386,7 +338,9 @@ export class RouteSchedulesService {
           title: params.title || null,
           busId: params.busId ?? null,
           departureMinutes: params.departureMinutes,
-          dayOfWeek,
+          dayOfWeeks: {
+            has: dayOfWeek,
+          },
           ...(params.excludeId
             ? {
                 id: {
@@ -402,15 +356,16 @@ export class RouteSchedulesService {
 
       if (conflictingSchedule) {
         throw new BadRequestException(
-          dayOfWeek === null
-            ? 'Ja existe um horario identico configurado para todos os dias'
-            : `Ja existe um horario identico configurado para ${this.getDayLabel(dayOfWeek)}`,
+          `Ja existe um horario identico configurado para ${this.getDayLabel(dayOfWeek)}`,
         );
       }
     }
   }
 
-  private async ensureRouteBelongsToCompany(companyId: string, routeId: string) {
+  private async ensureRouteBelongsToCompany(
+    companyId: string,
+    routeId: string,
+  ) {
     const route = await this.prisma.route.findFirst({
       where: {
         id: routeId,

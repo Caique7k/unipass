@@ -45,9 +45,26 @@ const dayOfWeekLabel: Record<number, string> = {
   6: "Sábado",
 };
 
+const dayDisplayOrder = [1, 2, 3, 4, 5, 6, 0];
+
 function formatTime(date: string) {
   const value = new Date(date);
   return `${String(value.getUTCHours()).padStart(2, "0")}:${String(value.getUTCMinutes()).padStart(2, "0")}`;
+}
+
+function formatDays(dayOfWeeks: number[]) {
+  if (dayOfWeeks.length === 0) {
+    return "-";
+  }
+
+  if (dayOfWeeks.length === dayDisplayOrder.length) {
+    return "Todos";
+  }
+
+  return dayDisplayOrder
+    .filter((day) => dayOfWeeks.includes(day))
+    .map((day) => dayOfWeekLabel[day])
+    .join(", ");
 }
 
 export function SchedulesTable({
@@ -136,7 +153,7 @@ export function SchedulesTable({
               <TableHead>Tipo</TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Horário</TableHead>
-              <TableHead>Dia</TableHead>
+              <TableHead>Dias</TableHead>
               <TableHead>Ônibus</TableHead>
               <TableHead>Alerta</TableHead>
               <TableHead>Status</TableHead>
@@ -175,11 +192,7 @@ export function SchedulesTable({
                     {schedule.title || "-"}
                   </TableCell>
                   <TableCell>{formatTime(schedule.departureTime)}</TableCell>
-                  <TableCell>
-                    {schedule.dayOfWeek === null || schedule.dayOfWeek === undefined
-                      ? "Todos"
-                      : dayOfWeekLabel[schedule.dayOfWeek]}
-                  </TableCell>
+                  <TableCell>{formatDays(schedule.dayOfWeeks)}</TableCell>
                   <TableCell>{schedule.bus?.plate || "-"}</TableCell>
                   <TableCell>{schedule.notifyBeforeMinutes} min</TableCell>
                   <TableCell>

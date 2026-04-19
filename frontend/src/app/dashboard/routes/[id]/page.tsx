@@ -142,7 +142,7 @@ export default function RouteSchedulesPage() {
           <h1 className="text-2xl font-bold">Horarios da rota</h1>
           <p className="text-sm text-muted-foreground">
             {routeName ? `${routeName} - ` : ""}
-            Visualize e mantenha os horarios de saida organizados.
+            Visualize e mantenha os horarios da rota organizados.
           </p>
         </div>
       </div>

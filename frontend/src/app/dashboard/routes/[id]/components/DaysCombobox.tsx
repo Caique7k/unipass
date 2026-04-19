@@ -55,11 +55,15 @@ export function DaysCombobox({
     <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Label className="text-sm font-medium">Dias da semana</Label>
-          <p className="text-xs text-muted-foreground">Resumo atual: {summary}</p>
+          <Label className="text-sm font-medium">Recorrencia semanal</Label>
+          <p className="text-xs text-muted-foreground">
+            Resumo atual: {summary}
+          </p>
         </div>
         <div className="rounded-full bg-background px-3 py-1 text-xs text-muted-foreground ring-1 ring-border">
-          {applyEveryDay ? "Recorrencia diaria" : `${selectedValues.length} dia(s)`}
+          {applyEveryDay
+            ? "Recorrencia diaria"
+            : `${selectedValues.length} dia(s)`}
         </div>
       </div>
 
@@ -88,7 +92,7 @@ export function DaysCombobox({
               {applyEveryDay ? "Todos os dias" : summary}
             </span>
             <span className="text-xs text-muted-foreground">
-              Selecione um ou mais dias no combobox.
+              Selecione os dias em que este horario deve acontecer.
             </span>
           </span>
           <ChevronsUpDown className="size-4 text-muted-foreground" />
@@ -117,10 +121,10 @@ export function DaysCombobox({
                   )}
                   onClick={() => onApplyEveryDayChange(!applyEveryDay)}
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1 cursor-pointer">
                     <p className="text-sm font-medium">Todos os dias</p>
                     <p className="text-xs text-muted-foreground">
-                      Mantem um unico horario recorrente.
+                      Repete este horario diariamente.
                     </p>
                   </div>
                   <Check
@@ -152,9 +156,8 @@ export function DaysCombobox({
                           onClick={() => onToggleDay(day.value)}
                         >
                           <div className="space-y-1">
-                            <p className="text-sm font-medium">{day.label}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Aplicar esse horario em {day.shortLabel}.
+                            <p className="text-sm font-medium cursor-pointer">
+                              {day.label}
                             </p>
                           </div>
                           <Check

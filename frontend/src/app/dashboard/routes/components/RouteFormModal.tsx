@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -34,6 +34,8 @@ export function RouteModal({
   const [description, setDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const isEdit = !!route?.id;
+  const trimmedName = name.trim();
+  const trimmedDescription = description.trim();
 
   useEffect(() => {
     if (route) {
@@ -47,8 +49,8 @@ export function RouteModal({
   }, [open, route]);
 
   async function handleSave() {
-    const normalizedName = name.trim();
-    const normalizedDescription = description.trim();
+    const normalizedName = trimmedName;
+    const normalizedDescription = trimmedDescription;
 
     if (!normalizedName) {
       toast.error("Informe o nome da rota.");
@@ -56,7 +58,9 @@ export function RouteModal({
     }
 
     if (normalizedName.length > ROUTE_NAME_MAX_LENGTH) {
-      toast.error(`O nome da rota pode ter no maximo ${ROUTE_NAME_MAX_LENGTH} caracteres.`);
+      toast.error(
+        `O nome da rota pode ter no maximo ${ROUTE_NAME_MAX_LENGTH} caracteres.`,
+      );
       return;
     }
 
@@ -109,54 +113,92 @@ export function RouteModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[640px]">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar rota" : "Nova rota"}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Atualize os dados principais da rota."
-              : "Cadastre uma nova rota para organizar os horarios da operacao."}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[620px]">
+        <div className="border-b border-[#ff5c00]/10 bg-[#ff5c00]/[0.04] px-6 py-5">
+          <DialogHeader className="gap-1">
+            <DialogTitle className="text-2xl font-bold text-foreground">
+              {isEdit ? "Editar rota" : "Nova rota"}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {isEdit
+                ? "Atualize os dados principais desta rota."
+                : "Cadastre uma rota para organizar os horarios da operacao."}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-5">
+        <div className="unipass-scrollbar min-h-0 space-y-6 overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-6">
+          <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
+            <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
+                Cadastro
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                {isEdit ? "Edicao da rota" : "Nova rota"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {isEdit
+                  ? "Revise nome e descricao antes de salvar."
+                  : "Defina um nome claro para localizar a rota com facilidade."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Resumo rapido
+              </p>
+              <p className="mt-2 break-words text-base font-semibold text-foreground">
+                {trimmedName || "Nome ainda nao definido"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {trimmedDescription ||
+                  "Adicione uma descricao opcional para bairros, pontos ou observacoes."}
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="route-name">Nome</Label>
+            <Label htmlFor="route-name" className="text-sm font-medium">
+              Nome da rota
+            </Label>
             <Input
               id="route-name"
               placeholder="Ex.: Centro x Campus"
               value={name}
               maxLength={ROUTE_NAME_MAX_LENGTH}
+              className="h-11 rounded-xl border-border/70 bg-background px-3"
               onChange={(event) => setName(event.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              Use um nome curto e facil de localizar.
-            </p>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Use um nome curto e facil de localizar.</span>
+              <span>{trimmedName.length}/{ROUTE_NAME_MAX_LENGTH}</span>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="route-description">Descricao</Label>
+            <Label htmlFor="route-description" className="text-sm font-medium">
+              Descricao
+            </Label>
             <Textarea
               id="route-description"
               value={description}
               maxLength={ROUTE_DESCRIPTION_MAX_LENGTH}
+              className="min-h-32 rounded-2xl border-border/70 bg-background px-3 py-3"
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Detalhes adicionais, bairros atendidos ou observacoes."
             />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Opcional. Campo ideal para contexto operacional.</span>
-              <span>
-                {description.trim().length}/{ROUTE_DESCRIPTION_MAX_LENGTH}
-              </span>
+              <span>{trimmedDescription.length}/{ROUTE_DESCRIPTION_MAX_LENGTH}</span>
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
-              className="cursor-pointer"
+              className="w-full cursor-pointer sm:w-auto"
             >
               Cancelar
             </Button>
@@ -164,7 +206,7 @@ export function RouteModal({
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="cursor-pointer"
+              className="h-11 w-full cursor-pointer rounded-xl px-6 sm:w-auto"
             >
               {isSaving
                 ? "Salvando..."

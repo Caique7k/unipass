@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,11 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { buildApiUrl } from "@/services/api";
 import { Schedule, ScheduleType } from "../types/schedule";
 import { DaysCombobox, type DayOption } from "./DaysCombobox";
+import { TimeSelect } from "./TimeSelect";
 
 type BusOption = {
   id: string;
@@ -37,10 +36,30 @@ type SaveScheduleResponse = {
 const SCHEDULE_TITLE_MAX_LENGTH = 120;
 const MAX_NOTIFY_BEFORE_MINUTES = 1439;
 
-const scheduleTypeOptions: Array<{ value: ScheduleType; label: string }> = [
-  { value: "GO", label: "Ida" },
-  { value: "BACK", label: "Volta" },
-  { value: "SHIFT", label: "Turno" },
+const scheduleTypeOptions: Array<{
+  value: ScheduleType;
+  label: string;
+  description: string;
+  titlePlaceholder: string;
+}> = [
+  {
+    value: "GO",
+    label: "Ida",
+    description: "Use para viagens de ida desta rota.",
+    titlePlaceholder: "Ex.: Ida campus - manha",
+  },
+  {
+    value: "BACK",
+    label: "Volta",
+    description: "Use para viagens de volta desta rota.",
+    titlePlaceholder: "Ex.: Volta centro - 18h",
+  },
+  {
+    value: "SHIFT",
+    label: "Turno",
+    description: "Use quando o horario representa um turno especifico.",
+    titlePlaceholder: "Ex.: Turno noturno",
+  },
 ];
 
 const dayOptions: DayOption[] = [
@@ -124,6 +143,15 @@ export function ScheduleFormModal({
     return formatDaySummary(selectedDays);
   }, [applyEveryDay, selectedDays]);
 
+  const currentTypeOption =
+    scheduleTypeOptions.find((option) => option.value === type) ??
+    scheduleTypeOptions[0];
+  const trimmedTitle = title.trim();
+  const busSummary =
+    busId === "none"
+      ? "Sem onibus vinculado"
+      : buses.find((bus) => bus.id === busId)?.plate ?? "Onibus selecionado";
+
   useEffect(() => {
     if (schedule) {
       const normalizedDays = normalizeSelectedDays(schedule.dayOfWeeks ?? []);
@@ -155,9 +183,12 @@ export function ScheduleFormModal({
 
     async function loadBuses() {
       try {
-        const response = await fetch(`${buildApiUrl("/buses")}?page=1&limit=100`, {
-          credentials: "include",
-        });
+        const response = await fetch(
+          `${buildApiUrl("/buses")}?page=1&limit=100`,
+          {
+            credentials: "include",
+          },
+        );
 
         if (!response.ok) {
           throw new Error();
@@ -184,19 +215,23 @@ export function ScheduleFormModal({
       }
 
       return [...currentDays, day].sort((left, right) => {
-        const leftIndex = dayOptions.findIndex((option) => option.value === left);
-        const rightIndex = dayOptions.findIndex((option) => option.value === right);
+        const leftIndex = dayOptions.findIndex(
+          (option) => option.value === left,
+        );
+        const rightIndex = dayOptions.findIndex(
+          (option) => option.value === right,
+        );
         return leftIndex - rightIndex;
       });
     });
   }
 
   async function handleSubmit() {
-    const normalizedTitle = title.trim();
+    const normalizedTitle = trimmedTitle;
     const parsedNotifyBeforeMinutes = Number(notifyBeforeMinutes);
 
     if (!time) {
-      toast.error("Informe o horario de saida.");
+      toast.error("Informe o horario.");
       return;
     }
 
@@ -250,7 +285,9 @@ export function ScheduleFormModal({
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify(isEdit ? { ...payload, routeId: undefined } : payload),
+          body: JSON.stringify(
+            isEdit ? { ...payload, routeId: undefined } : payload,
+          ),
         },
       );
 
@@ -264,7 +301,9 @@ export function ScheduleFormModal({
       }
 
       toast.success(
-        isEdit ? "Horario atualizado com sucesso." : "Horario criado com sucesso.",
+        isEdit
+          ? "Horario atualizado com sucesso."
+          : "Horario criado com sucesso.",
       );
 
       onSuccess();
@@ -280,141 +319,191 @@ export function ScheduleFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden p-0 sm:max-w-[760px]">
-        <div className="flex max-h-[calc(100dvh-2rem)] flex-col">
-          <DialogHeader className="border-b border-border/70 px-6 pt-6 pr-14 pb-4">
-            <DialogTitle>{isEdit ? "Editar horario" : "Novo horario"}</DialogTitle>
-            <DialogDescription>
-              Configure o horario de saida, os dias de atendimento e o onibus
-              vinculado.
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[760px]">
+        <div className="border-b border-[#ff5c00]/10 bg-[#ff5c00]/[0.04] px-6 py-5">
+          <DialogHeader className="gap-1">
+            <DialogTitle className="text-2xl font-bold text-foreground">
+              {isEdit ? "Editar horario" : "Novo horario"}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {isEdit
+                ? "Atualize tipo, horario, recorrencia e vinculacao deste cadastro."
+                : "Defina tipo, horario e dias em que esta rota sera atendida."}
             </DialogDescription>
           </DialogHeader>
+        </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-            <div className="space-y-5">
-              <Alert className="border-primary/20 bg-primary/5">
-                <CalendarDays className="size-4" />
-                <AlertTitle>Um horario, varios dias</AlertTitle>
-                <AlertDescription>
-                  O horario fica em um unico item na tabela e as notificacoes
-                  continuam sendo enviadas nos dias selecionados.
-                </AlertDescription>
-              </Alert>
+        <div className="unipass-scrollbar min-h-0 space-y-6 overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-6">
+          <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
+            <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
+                Operacao
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                {currentTypeOption.label}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {currentTypeOption.description}
+              </p>
+            </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <Select
-                    value={type}
-                    onValueChange={(value) => setType((value ?? "GO") as ScheduleType)}
-                  >
-                    <SelectTrigger className="cursor-pointer">
-                      <SelectValue>
-                        {scheduleTypeOptions.find((item) => item.value === type)?.label}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {scheduleTypeOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="schedule-time">Horario</Label>
-                  <Input
-                    id="schedule-time"
-                    type="time"
-                    value={time}
-                    onChange={(event) => setTime(event.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="schedule-title">Titulo</Label>
-                  <Input
-                    id="schedule-title"
-                    placeholder="Ex.: Faculdade manha"
-                    value={title}
-                    maxLength={SCHEDULE_TITLE_MAX_LENGTH}
-                    onChange={(event) => setTitle(event.target.value)}
-                  />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Opcional. Ajuda a diferenciar turnos e operacoes.</span>
-                    <span>
-                      {title.trim().length}/{SCHEDULE_TITLE_MAX_LENGTH}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <DaysCombobox
-                options={dayOptions}
-                selectedValues={selectedDays}
-                applyEveryDay={applyEveryDay}
-                summary={selectedDaysSummary}
-                onToggleDay={toggleDay}
-                onApplyEveryDayChange={(nextValue) => {
-                  setApplyEveryDay(nextValue);
-
-                  if (nextValue) {
-                    setSelectedDays([]);
-                  }
-                }}
-              />
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Onibus</Label>
-                  <Select
-                    value={busId}
-                    onValueChange={(value) => setBusId(value ?? "none")}
-                  >
-                    <SelectTrigger className="cursor-pointer">
-                      <SelectValue>
-                        {busId === "none"
-                          ? "Sem onibus vinculado"
-                          : buses.find((bus) => bus.id === busId)?.plate}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem onibus vinculado</SelectItem>
-                      {buses.map((bus) => (
-                        <SelectItem key={bus.id} value={bus.id}>
-                          {bus.plate}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notify-before">Antecedencia do alerta</Label>
-                  <Input
-                    id="notify-before"
-                    type="number"
-                    min={0}
-                    max={MAX_NOTIFY_BEFORE_MINUTES}
-                    value={notifyBeforeMinutes}
-                    onChange={(event) => setNotifyBeforeMinutes(event.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Defina em quantos minutos antes o aluno recebe a notificacao.
-                  </p>
-                </div>
-              </div>
+            <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Resumo rapido
+              </p>
+              <p className="mt-2 text-base font-semibold text-foreground">
+                {time || "Defina o horario"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {selectedDaysSummary}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {busSummary}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-border/70 px-6 py-4 sm:flex-row sm:justify-end">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Tipo de horario</Label>
+              <Select
+                value={type}
+                onValueChange={(value) =>
+                  setType((value ?? "GO") as ScheduleType)
+                }
+              >
+                <SelectTrigger className="h-11 w-full cursor-pointer rounded-xl border-border/70 bg-background px-3">
+                  <SelectValue>
+                    {currentTypeOption.label}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {scheduleTypeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {currentTypeOption.description}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notify-before" className="text-sm font-medium">
+                Antecedencia do alerta
+              </Label>
+              <Input
+                id="notify-before"
+                type="number"
+                min={0}
+                max={MAX_NOTIFY_BEFORE_MINUTES}
+                value={notifyBeforeMinutes}
+                className="h-11 rounded-xl border-border/70 bg-background px-3"
+                onChange={(event) =>
+                  setNotifyBeforeMinutes(event.target.value)
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Defina quantos minutos antes o aluno recebe a notificacao.
+              </p>
+            </div>
+          </div>
+
+          <TimeSelect
+            value={time}
+            onValueChange={setTime}
+            description={`Escolha a hora e os minutos deste horario de ${currentTypeOption.label.toLowerCase()}.`}
+          />
+
+          <DaysCombobox
+            options={dayOptions}
+            selectedValues={selectedDays}
+            applyEveryDay={applyEveryDay}
+            summary={selectedDaysSummary}
+            onToggleDay={toggleDay}
+            onApplyEveryDayChange={(nextValue) => {
+              setApplyEveryDay(nextValue);
+
+              if (nextValue) {
+                setSelectedDays([]);
+              }
+            }}
+          />
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="schedule-title" className="text-sm font-medium">
+                Identificacao do horario
+              </Label>
+              <Input
+                id="schedule-title"
+                placeholder={currentTypeOption.titlePlaceholder}
+                value={title}
+                maxLength={SCHEDULE_TITLE_MAX_LENGTH}
+                className="h-11 rounded-xl border-border/70 bg-background px-3"
+                onChange={(event) => setTitle(event.target.value)}
+              />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  Opcional. Use para diferenciar turnos, bairros ou observacoes.
+                </span>
+                <span>{trimmedTitle.length}/{SCHEDULE_TITLE_MAX_LENGTH}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Onibus vinculado</Label>
+              <Select
+                value={busId}
+                onValueChange={(value) => setBusId(value ?? "none")}
+              >
+                <SelectTrigger className="h-11 w-full cursor-pointer rounded-xl border-border/70 bg-background px-3">
+                  <SelectValue>
+                    {busId === "none"
+                      ? "Sem onibus vinculado"
+                      : buses.find((bus) => bus.id === busId)?.plate}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem onibus vinculado</SelectItem>
+                  {buses.map((bus) => (
+                    <SelectItem key={bus.id} value={bus.id}>
+                      {bus.plate}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {busId === "none"
+                  ? "Voce pode salvar agora e vincular o onibus depois."
+                  : `Onibus selecionado: ${busSummary}.`}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Configuracao atual
+              </p>
+              <p className="mt-2 break-words text-base font-semibold text-foreground">
+                {trimmedTitle || `${currentTypeOption.label} sem titulo`}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {time || "Sem horario definido"} - {selectedDaysSummary}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {busSummary}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 border-t border-border/60 pt-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
-              className="cursor-pointer"
+              className="w-full cursor-pointer sm:w-auto"
             >
               Cancelar
             </Button>
@@ -422,7 +511,7 @@ export function ScheduleFormModal({
               type="button"
               onClick={handleSubmit}
               disabled={isSaving}
-              className="cursor-pointer"
+              className="h-11 w-full cursor-pointer rounded-xl px-6 sm:w-auto"
             >
               {isSaving
                 ? "Salvando..."

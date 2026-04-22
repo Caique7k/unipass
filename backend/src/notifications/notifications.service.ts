@@ -96,7 +96,8 @@ export class NotificationsService {
             promptId: prompt.promptId,
           },
           {
-            jobId: `notification-prompt:${prompt.promptId}`,
+            // BullMQ does not allow ":" in custom job ids.
+            jobId: `notification-prompt-${prompt.promptId}`,
           },
         );
       }

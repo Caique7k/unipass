@@ -18,12 +18,13 @@ export class TransportController {
 
   @Roles('DRIVER', 'ADMIN')
   @Post('boarding')
-  register(@Body() dto: BoardingDto) {
-    return this.transportService.registerBoarding(dto);
+  /*  */
+  register(@Req() req: any, @Body() dto: BoardingDto) {
+    return this.transportService.registerBoarding(req.user.companyId, dto);
   }
   @Roles('DRIVER', 'ADMIN')
   @Post('deboarding')
-  async registerDeboarding(@Body() dto: BoardingDto) {
-    return this.transportService.registerDeboarding(dto);
+  async registerDeboarding(@Req() req: any, @Body() dto: BoardingDto) {
+    return this.transportService.registerDeboarding(req.user.companyId, dto);
   }
 }

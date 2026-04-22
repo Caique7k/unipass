@@ -78,6 +78,21 @@ export class TransportService {
     return device;
   }
 
+  private ensureDeviceBelongsToCompany(
+    device: { companyId: string | null },
+    companyId?: string | null,
+  ) {
+    if (!companyId) {
+      throw new ForbiddenException('Usuario sem empresa vinculada');
+    }
+
+    if (device.companyId !== companyId) {
+      throw new ForbiddenException(
+        'Este dispositivo nao pertence a empresa do usuario autenticado',
+      );
+    }
+  }
+
   private async validateDeviceCredentials(code: string, secret: string) {
     const device = await this.prisma.device.findUnique({
       where: { code },
@@ -119,6 +134,13 @@ export class TransportService {
     }
 
     const student = card.student;
+
+    if (card.companyId !== device.companyId || student.companyId !== device.companyId) {
+      await this.logDenied(device, card, student.id);
+      throw new ForbiddenException(
+        'TAG nao pertence a mesma empresa do dispositivo',
+      );
+    }
 
     if (!student.active) {
       await this.logDenied(device, card, student.id);
@@ -167,6 +189,13 @@ export class TransportService {
 
     const student = card.student;
 
+    if (card.companyId !== device.companyId || student.companyId !== device.companyId) {
+      await this.logDenied(device, card, student.id);
+      throw new ForbiddenException(
+        'TAG nao pertence a mesma empresa do dispositivo',
+      );
+    }
+
     const lastEvent = await this.prisma.transportEvent.findFirst({
       where: {
         studentId: student.id,
@@ -202,8 +231,9 @@ export class TransportService {
     };
   }
 
-  async registerBoarding(dto: BoardingDto) {
+  async registerBoarding(companyId: string | null | undefined, dto: BoardingDto) {
     const device = await this.validateDevice(dto.deviceIdentifier);
+    this.ensureDeviceBelongsToCompany(device, companyId);
     return this.processBoarding(device, dto.rfidTag);
   }
 
@@ -212,8 +242,12 @@ export class TransportService {
     return this.processBoarding(device, dto.rfidTag);
   }
 
-  async registerDeboarding(dto: BoardingDto) {
+  async registerDeboarding(
+    companyId: string | null | undefined,
+    dto: BoardingDto,
+  ) {
     const device = await this.validateDevice(dto.deviceIdentifier);
+    this.ensureDeviceBelongsToCompany(device, companyId);
     return this.processDeboarding(device, dto.rfidTag);
   }
 

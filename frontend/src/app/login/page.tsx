@@ -30,8 +30,8 @@ const REMEMBER_STORAGE_KEY = "unipass-remember-me";
 // ==========================================
 const showcaseSlides = [
   {
-    src: "/unipass/unipass-dashboard.png",
-    alt: "Dashboard principal do UniPass",
+    src: "/unipass/unipass-painel-central.png",
+    alt: "Painel central do UniPass",
     eyebrow: "Painel central",
     title: "Visao clara da operacao.",
     badge: "Ao vivo",
@@ -250,8 +250,8 @@ export default function LoginPage() {
 
               {/* Bloco do Carrossel de Telas (Dashboard, Estudantes, Ônibus) */}
               <div
-                className="login-intro mt-2 overflow-hidden isolate rounded-[28px] border border-white/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,248,251,0.82))] p-2.5 shadow-[0_28px_70px_rgba(15,23,42,0.1)] backdrop-blur-2xl [&>div]:overflow-hidden [&>div]:rounded-[24px]
-                style={delayStyle(170)}"
+                className="login-intro mt-2 isolate overflow-hidden rounded-[28px] border border-white/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,248,251,0.82))] p-2.5 shadow-[0_28px_70px_rgba(15,23,42,0.1)] backdrop-blur-2xl [&>div]:overflow-hidden [&>div]:rounded-[24px]"
+                style={delayStyle(170)}
               >
                 <div className="rounded-[24px] border border-black/5 bg-[#f8f7f3] p-2 shadow-inner shadow-white/80 overflow-hidden">
                   
@@ -275,7 +275,7 @@ export default function LoginPage() {
                   <div className="relative overflow-hidden rounded-[20px] border border-white/80 bg-[#eef2f7]">
                     <div
                       ref={carouselRef}
-                      className="relative aspect-16/10 w-full max-h-[54vh]"
+                      className="relative aspect-16/10 w-full max-h-[59vh]"
                       onMouseEnter={() => setIsHoveringCarousel(true)}
                       onMouseLeave={() => {
                         setIsHoveringCarousel(false);
@@ -310,7 +310,8 @@ export default function LoginPage() {
                               alt={slide.alt}
                               fill
                               priority={index === 0}
-                              sizes="(min-width: 1280px) 42vw, (min-width: 768px) 70vw, 92vw"
+                              unoptimized
+                              sizes="(min-width: 1536px) 760px, (min-width: 1280px) 46vw, (min-width: 768px) 70vw, 92vw"
                               className="object-cover"
                             />
                             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,18,0.02),rgba(7,10,18,0.42))]" />
@@ -330,14 +331,14 @@ export default function LoginPage() {
                           >
                             <div className="flex flex-wrap items-center justify-between gap-3">
                               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/74">
-                                {showcaseSlides[activeSlide].eyebrow}
+                                {slide.eyebrow}
                               </p>
                               <span className="rounded-full bg-[#ff5c00] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-                                {showcaseSlides[activeSlide].badge}
+                                {slide.badge}
                               </span>
                             </div>
                             <h2 className="mt-2 max-w-lg text-base font-semibold tracking-[-0.05em] text-white">
-                              {showcaseSlides[activeSlide].title}
+                              {slide.title}
                             </h2>
                           </div>
                         </figure>

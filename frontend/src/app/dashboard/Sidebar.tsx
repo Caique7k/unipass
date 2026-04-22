@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   BookUserIcon,
   Building2,
+  ClipboardList,
   Compass,
   Home,
   Layers3,
@@ -133,6 +134,14 @@ export default function Sidebar() {
                 Gestao
               </p>
             )}
+
+            <SidebarItem
+              href="/dashboard/boarding"
+              icon={<ClipboardList size={25} />}
+              label="Embarques"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/boarding"}
+            />
 
             <SidebarItem
               href="/dashboard/students"

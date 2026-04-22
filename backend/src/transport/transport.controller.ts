@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Req } from '@nestjs/common';
 import { TransportService } from './transport.service';
 import { JwtAuthGuard } from 'src/auth/dto/jwt-auth.guard';
 import { Roles } from 'src/auth/roles.decorator';
@@ -9,6 +9,13 @@ import { BoardingDto } from './dto/boarding.dto';
 @Controller('transport')
 export class TransportController {
   constructor(private readonly transportService: TransportService) {}
+
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
+  @Get('boarding-overview/today')
+  getDailyBoardingOverview(@Req() req: any) {
+    return this.transportService.getDailyBoardingOverview(req.user.companyId);
+  }
+
   @Roles('DRIVER', 'ADMIN')
   @Post('boarding')
   register(@Body() dto: BoardingDto) {

@@ -7,6 +7,7 @@ import {
   Building2,
   ClipboardList,
   Compass,
+  FileBarChart2,
   Home,
   Layers3,
   LogOut,
@@ -213,6 +214,14 @@ export default function Sidebar() {
               label="Usuarios"
               isOpen={isOpen}
               active={pathname === "/dashboard/users"}
+            />
+
+            <SidebarItem
+              href="/dashboard/reports"
+              icon={<FileBarChart2 size={25} />}
+              label="Relatorios"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/reports"}
             />
           </div>
         )}

@@ -401,9 +401,9 @@ export default function BoardingPage() {
                         </TableCell>
                         <TableCell>{formatTime(student.firstBoardingAt)}</TableCell>
                         <TableCell>
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                            {formatTime(student.secondBoardingAt)}
-                          </span>
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                          {formatTime(student.secondBoardingAt)}
+                        </span>
                         </TableCell>
                         <TableCell>{student.group?.name || "--"}</TableCell>
                       </TableRow>
@@ -507,7 +507,7 @@ export default function BoardingPage() {
                           </span>
                         </div>
 
-                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
                           1o boarding as {formatTime(student.firstBoardingAt)}
                         </span>
                       </div>
@@ -596,7 +596,9 @@ function SummaryCard({
           <p className="mt-2 text-xs text-muted-foreground">{description}</p>
         </div>
 
-        <div className="rounded-2xl bg-[#ffefe5] p-3 text-[#c44a00]">{icon}</div>
+        <div className="rounded-2xl bg-[#ffefe5] p-3 text-[#c44a00] dark:bg-[#3a2618] dark:text-[#ffb07a]">
+          {icon}
+        </div>
       </CardContent>
     </Card>
   );

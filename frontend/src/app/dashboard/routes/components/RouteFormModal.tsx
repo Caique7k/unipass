@@ -122,7 +122,7 @@ export function RouteModal({
             <DialogDescription className="text-sm text-muted-foreground">
               {isEdit
                 ? "Atualize os dados principais desta rota."
-                : "Cadastre uma rota para organizar os horarios da operacao."}
+                : "Cadastre uma rota para organizar os horários da operação."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -145,14 +145,14 @@ export function RouteModal({
 
             <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Resumo rapido
+                Resumo rápido
               </p>
               <p className="mt-2 break-words text-base font-semibold text-foreground">
-                {trimmedName || "Nome ainda nao definido"}
+                {trimmedName || "Nome ainda não definido"}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {trimmedDescription ||
-                  "Adicione uma descricao opcional para bairros, pontos ou observacoes."}
+                  "Adicione uma descrição opcional para bairros, pontos ou observações."}
               </p>
             </div>
           </div>
@@ -177,7 +177,7 @@ export function RouteModal({
 
           <div className="space-y-2">
             <Label htmlFor="route-description" className="text-sm font-medium">
-              Descricao
+              Descrição
             </Label>
             <Textarea
               id="route-description"
@@ -185,7 +185,7 @@ export function RouteModal({
               maxLength={ROUTE_DESCRIPTION_MAX_LENGTH}
               className="min-h-32 rounded-2xl border-border/70 bg-background px-3 py-3"
               onChange={(event) => setDescription(event.target.value)}
-              placeholder="Detalhes adicionais, bairros atendidos ou observacoes."
+              placeholder="Detalhes adicionais, bairros atendidos ou observações."
             />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Opcional. Campo ideal para contexto operacional.</span>
@@ -211,7 +211,7 @@ export function RouteModal({
               {isSaving
                 ? "Salvando..."
                 : isEdit
-                  ? "Salvar alteracoes"
+                  ? "Salvar alterações"
                   : "Criar rota"}
             </Button>
           </div>

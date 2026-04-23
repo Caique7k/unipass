@@ -3,10 +3,10 @@ import { ScheduleType } from '@prisma/client';
 export function buildNotificationMessage(type: ScheduleType) {
   switch (type) {
     case 'GO':
-      return 'Voce vai hoje com o onibus?';
+      return 'Você vai hoje com o ônibus?';
     case 'BACK':
-      return 'Voce vai embora com o onibus hoje?';
+      return 'Você vai embora com o ônibus hoje?';
     case 'SHIFT':
-      return 'Voce ira no turno hoje?';
+      return 'Você irá no turno hoje?';
   }
 }

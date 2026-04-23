@@ -159,7 +159,7 @@ const STUDENT_STATUS_LABELS: Array<{ value: StudentStatus; label: string }> = [
 ];
 
 const CATEGORY_LABELS: Record<ReportCategory, string> = {
-  operacao: "Operacao",
+  operacao: "Operação",
   pessoas: "Pessoas",
 };
 
@@ -302,7 +302,7 @@ function getReportSelectionNote(reportType: ReportType) {
     case "fleet":
       return "Melhor para comparar a carga operacional entre os veiculos da frota.";
     case "routes":
-      return "Melhor para revisar quais rotas estao realmente sendo utilizadas.";
+      return "Melhor para revisar quais rotas estão realmente sendo utilizadas.";
     case "groups":
       return "Melhor para enxergar concentracao de uso por unidade, turma ou setor.";
     default:
@@ -523,7 +523,7 @@ export default function ReportsPage() {
       setFilters(normalizeFilters(response.data.filters));
       setError(null);
     } catch {
-      setError("Nao foi possivel gerar o relatorio com os filtros informados.");
+      setError("Não foi possível gerar o relatório com os filtros informados.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -536,7 +536,7 @@ export default function ReportsPage() {
 
   if (!canManage) {
     return (
-      <AccessDenied description="Somente o administrador da empresa pode acessar a area de relatorios." />
+      <AccessDenied description="Somente o administrador da empresa pode acessar a área de relatórios." />
     );
   }
 
@@ -614,7 +614,7 @@ export default function ReportsPage() {
   const selectedBusLabel = getOptionLabel(
     options?.buses,
     filters.busId,
-    "Todos os onibus",
+    "Todos os ônibus",
   );
   const selectedRouteLabel = getOptionLabel(
     options?.routes,
@@ -668,8 +668,8 @@ export default function ReportsPage() {
       cursorY += 14;
 
       const activeFilters = [
-        `Periodo: ${formatDateLabel(filters.startDate)} ate ${formatDateLabel(filters.endDate)}`,
-        `Onibus: ${getOptionLabel(options?.buses, filters.busId, "Todos os onibus")}`,
+        `Período: ${formatDateLabel(filters.startDate)} até ${formatDateLabel(filters.endDate)}`,
+        `Ônibus: ${getOptionLabel(options?.buses, filters.busId, "Todos os ônibus")}`,
         `Rota: ${getOptionLabel(options?.routes, filters.routeId, "Todas as rotas")}`,
         `Grupo: ${getOptionLabel(options?.groups, filters.groupId, "Todos os grupos")}`,
         ...(selectedFilterConfig.eventType
@@ -749,20 +749,20 @@ export default function ReportsPage() {
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00] dark:text-[#ffb07a]">
-              Administracao
+              Administração
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-foreground">
-              Relatorios operacionais e gerenciais
+              Relatórios operacionais e gerenciais
             </h1>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Relatorios de operacao, alunos, rotas, grupos e frota com filtros
-              por periodo e exportacao em PDF do resultado atual.
+              Relatórios de operação, alunos, rotas, grupos e frota com filtros
+              por período e exportação em PDF do resultado atual.
             </p>
           </div>
 
           <div className="rounded-[24px] border border-white/80 bg-white/85 px-5 py-4 shadow-sm dark:border-white/10 dark:bg-[#222222]/85">
             <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-              Ultima geracao
+              Última geração
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
               {formatGeneratedAt(data?.generatedAt)}
@@ -778,7 +778,7 @@ export default function ReportsPage() {
               <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00] dark:bg-[#3a2618] dark:text-[#ffb07a]">
                 <FileBarChart2 className="size-5" />
               </div>
-              Catalogo de relatorios
+              Catálogo de relatórios
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -787,7 +787,7 @@ export default function ReportsPage() {
               <Input
                 value={catalogSearch}
                 onChange={(event) => setCatalogSearch(event.target.value)}
-                placeholder="Buscar relatorio..."
+                placeholder="Buscar relatório..."
                 className="h-11 rounded-2xl pl-9"
               />
             </div>
@@ -855,7 +855,7 @@ export default function ReportsPage() {
 
                   {groupedCatalog[category].length === 0 && (
                     <div className="rounded-[20px] border border-dashed border-border/70 px-4 py-5 text-sm text-muted-foreground">
-                      Nenhum relatorio encontrado nessa categoria.
+                      Nenhum relatório encontrado nessa categoria.
                     </div>
                   )}
                 </div>
@@ -887,7 +887,7 @@ export default function ReportsPage() {
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00] dark:text-[#ffb07a]">
                         {selectedReportCard
                           ? CATEGORY_LABELS[selectedReportCard.category]
-                          : "Relatorio"}
+                          : "Relatório"}
                       </p>
                       <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-foreground">
                         {selectedReportCard?.label ?? report?.title}
@@ -939,7 +939,7 @@ export default function ReportsPage() {
                 <div className="flex size-11 items-center justify-center rounded-2xl bg-[#fff1e8] text-[#ff5c00] dark:bg-[#3a2618] dark:text-[#ffb07a]">
                   <Filter className="size-5" />
                 </div>
-                Filtros e periodo
+                Filtros e período
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -977,18 +977,18 @@ export default function ReportsPage() {
                   />
                 </Field>
 
-                <Field label="Onibus">
+                <Field label="Ônibus">
                   <Select
                     value={filters.busId}
                     onValueChange={(value) => updateFilter("busId", value ?? "all")}
                   >
                     <SelectTrigger className="h-11 w-full rounded-2xl">
-                      <SelectValue placeholder="Todos os onibus">
+                      <SelectValue placeholder="Todos os ônibus">
                         {selectedBusLabel}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os onibus</SelectItem>
+                      <SelectItem value="all">Todos os ônibus</SelectItem>
                       {(options?.buses ?? []).map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -1091,11 +1091,11 @@ export default function ReportsPage() {
 
               <div className="flex flex-wrap gap-2">
                 <ActiveFilterChip
-                  label={`Periodo ${formatDateLabel(filters.startDate)} ate ${formatDateLabel(filters.endDate)}`}
+                  label={`Período ${formatDateLabel(filters.startDate)} até ${formatDateLabel(filters.endDate)}`}
                 />
                 {filters.busId !== "all" && (
                   <ActiveFilterChip
-                    label={getOptionLabel(options?.buses, filters.busId, "Onibus")}
+                    label={getOptionLabel(options?.buses, filters.busId, "Ônibus")}
                   />
                 )}
                 {filters.routeId !== "all" && (
@@ -1130,8 +1130,8 @@ export default function ReportsPage() {
 
               <div className="flex flex-col gap-3 border-t border-black/6 pt-5 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  A geracao cruza os filtros com o relatorio selecionado e prepara o
-                  mesmo conteudo para consulta na tela e exportacao em PDF.
+                  A geração cruza os filtros com o relatório selecionado e prepara o
+                  mesmo conteúdo para consulta na tela e exportação em PDF.
                 </p>
 
                 <div className="flex flex-col gap-3 sm:flex-row">
@@ -1154,7 +1154,7 @@ export default function ReportsPage() {
                     ) : (
                       <SearchCheck className="size-4" />
                     )}
-                    Gerar relatorio
+                    Gerar relatório
                   </Button>
                 </div>
               </div>

@@ -92,7 +92,7 @@ export function DaysCombobox({
               {applyEveryDay ? "Todos os dias" : summary}
             </span>
             <span className="text-xs text-muted-foreground">
-              Selecione os dias em que este horario deve acontecer.
+              Selecione os dias em que este horário deve acontecer.
             </span>
           </span>
           <ChevronsUpDown className="size-4 text-muted-foreground" />
@@ -124,7 +124,7 @@ export function DaysCombobox({
                   <div className="space-y-1 cursor-pointer">
                     <p className="text-sm font-medium">Todos os dias</p>
                     <p className="text-xs text-muted-foreground">
-                      Repete este horario diariamente.
+                      Repete este horário diariamente.
                     </p>
                   </div>
                   <Check

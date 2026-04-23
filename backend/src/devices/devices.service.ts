@@ -42,7 +42,7 @@ export class DevicesService {
     }
 
     throw new BadRequestException(
-      'Nao foi possivel gerar um codigo unico para o device',
+      'Não foi possível gerar um código único para o dispositivo.',
     );
   }
 
@@ -59,7 +59,7 @@ export class DevicesService {
     }
 
     throw new BadRequestException(
-      'Nao foi possivel gerar um codigo temporario para o device',
+      'Não foi possível gerar um código temporário para o dispositivo.',
     );
   }
 
@@ -162,7 +162,7 @@ export class DevicesService {
     });
 
     if (!device) {
-      throw new NotFoundException('Device nao encontrado');
+      throw new NotFoundException('Dispositivo não encontrado.');
     }
 
     if (!device.active) {
@@ -174,7 +174,7 @@ export class DevicesService {
       !device.pairingCodeExpiresAt ||
       device.pairingCodeExpiresAt <= new Date()
     ) {
-      throw new BadRequestException('Codigo temporario invalido ou expirado');
+      throw new BadRequestException('Código temporário inválido ou expirado.');
     }
 
     if (!device.companyId || !device.code || !device.secret) {
@@ -214,12 +214,12 @@ export class DevicesService {
       device.pairingCodeExpiresAt <= new Date()
     ) {
       throw new NotFoundException(
-        'Codigo temporario nao encontrado ou expirado',
+        'Código temporário não encontrado ou expirado.',
       );
     }
 
     if (device.companyId && device.companyId !== user.companyId) {
-      throw new BadRequestException('Device ja vinculado a outra empresa');
+      throw new BadRequestException('Dispositivo já vinculado a outra empresa.');
     }
 
     const bus = await this.prisma.bus.findFirst({
@@ -230,7 +230,7 @@ export class DevicesService {
     });
 
     if (!bus) {
-      throw new NotFoundException('Onibus nao encontrado');
+      throw new NotFoundException('Ônibus não encontrado.');
     }
 
     const data: {
@@ -334,7 +334,7 @@ export class DevicesService {
     });
 
     if (!device) {
-      throw new NotFoundException('Device nao encontrado');
+      throw new NotFoundException('Dispositivo não encontrado.');
     }
 
     return this.prisma.device.update({
@@ -362,11 +362,11 @@ export class DevicesService {
     ]);
 
     if (!device) {
-      throw new NotFoundException('Device nao encontrado');
+      throw new NotFoundException('Dispositivo não encontrado.');
     }
 
     if (!bus) {
-      throw new NotFoundException('Onibus nao encontrado');
+      throw new NotFoundException('Ônibus não encontrado.');
     }
 
     return this.prisma.device.update({

@@ -68,7 +68,7 @@ export class NotificationsService {
           : zonedNow.dateKey;
 
       this.logger.log(
-        `Preparando prompts do horario ${schedule.id} para ${occurrenceKey}.`,
+        `Preparando prompts do horário ${schedule.id} para ${occurrenceKey}.`,
       );
 
       for (const routeStudent of schedule.route.students) {

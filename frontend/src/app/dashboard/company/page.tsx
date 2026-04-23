@@ -120,7 +120,7 @@ export default function CompanyPage() {
           contactPhone: formatPhone(nextProfile.contactPhone ?? ""),
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Nao foi possivel carregar a empresa."));
+        toast.error(getErrorMessage(error, "Não foi possível carregar a empresa."));
       } finally {
         setLoading(false);
       }
@@ -147,18 +147,18 @@ export default function CompanyPage() {
     }
 
     if (form.cnpj.replace(/\D/g, "").length !== 14) {
-      nextErrors.cnpj = "Digite um CNPJ valido com 14 numeros.";
+      nextErrors.cnpj = "Digite um CNPJ válido com 14 números.";
     }
 
     if (form.contactName.trim() && form.contactName.trim().length < 3) {
-      nextErrors.contactName = "Informe um nome valido para o responsavel.";
+      nextErrors.contactName = "Informe um nome válido para o responsável.";
     }
 
     if (
       form.contactPhone.trim() &&
       form.contactPhone.replace(/\D/g, "").length < 10
     ) {
-      nextErrors.contactPhone = "Digite um telefone valido com DDD.";
+      nextErrors.contactPhone = "Digite um telefone válido com DDD.";
     }
 
     setErrors(nextErrors);
@@ -196,7 +196,7 @@ export default function CompanyPage() {
       });
       toast.success("Dados da empresa atualizados com sucesso.");
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Nao foi possivel salvar as alteracoes."));
+      toast.error(getErrorMessage(error, "Não foi possível salvar as alterações."));
     } finally {
       setSaving(false);
     }
@@ -224,11 +224,11 @@ export default function CompanyPage() {
           Empresa
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-foreground">
-          Edite os dados institucionais da sua operacao
+          Edite os dados institucionais da sua operação.
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
           Atualize nome, CNPJ e contato principal da empresa sem mexer no
-          dominio que hoje sustenta os acessos e cadastros vinculados.
+          domínio que hoje sustenta os acessos e cadastros vinculados.
         </p>
       </div>
 
@@ -291,7 +291,7 @@ export default function CompanyPage() {
 
             <div className="grid gap-4 rounded-[28px] border border-[#ecebe5] bg-[#fafaf7] p-4 dark:border-white/10 dark:bg-[#17191f] md:grid-cols-2">
               <ReadOnlyField
-                label="Dominio da empresa"
+                label="Domínio da empresa"
                 value={profile ? `@${profile.emailDomain}` : "-"}
                 icon={<ShieldCheck className="size-4" />}
               />
@@ -313,7 +313,7 @@ export default function CompanyPage() {
                 disabled={saving}
                 className="h-11 rounded-2xl bg-[#ff5c00] px-5 text-white hover:bg-[#eb5600]"
               >
-                {saving ? "Salvando..." : "Salvar alteracoes"}
+                {saving ? "Salvando..." : "Salvar alterações"}
                 <Save className="size-4" />
               </Button>
             </div>
@@ -323,12 +323,12 @@ export default function CompanyPage() {
         <aside className="space-y-4">
           <Card className="rounded-[30px] border-white/75 bg-white/82 shadow-[0_20px_55px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-[#1f2127]">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Resumo rapido</CardTitle>
+              <CardTitle className="text-lg">Resumo rápido</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <SummaryRow label="Usuarios" value={String(profile?._count.users ?? 0)} />
+              <SummaryRow label="Usuários" value={String(profile?._count.users ?? 0)} />
               <SummaryRow label="Alunos" value={String(profile?._count.students ?? 0)} />
-              <SummaryRow label="Onibus" value={String(profile?._count.buses ?? 0)} />
+              <SummaryRow label="Ônibus" value={String(profile?._count.buses ?? 0)} />
               <SummaryRow label="UniHubs" value={String(profile?._count.devices ?? 0)} />
             </CardContent>
           </Card>
@@ -340,10 +340,10 @@ export default function CompanyPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  Dominio protegido
+                  Domínio protegido
                 </p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  O dominio institucional ficou apenas para consulta nesta tela
+                  O domínio institucional ficou apenas para consulta nesta tela
                   para evitar conflito com usuarios e alunos ja vinculados.
                 </p>
               </div>
@@ -361,7 +361,7 @@ export default function CompanyPage() {
                 text={
                   profile?.contactPhone
                     ? formatPhone(profile.contactPhone)
-                    : "Telefone ainda nao informado"
+                    : "Telefone ainda não informado"
                 }
               />
             </CardContent>

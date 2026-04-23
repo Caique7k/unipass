@@ -159,8 +159,8 @@ export default async function AppPage() {
                 </p>
                 <p className="text-sm leading-6 text-muted-foreground">
                   Os QR codes desta tela usam as URLs publicas do frontend. Se
-                  algum card ainda nao estiver pronto, basta configurar o link
-                  correspondente e atualizar a aplicacao.
+                  algum card ainda não estiver pronto, basta configurar o link
+                  correspondente e atualizar a aplicação.
                 </p>
               </div>
             </CardContent>
@@ -216,7 +216,7 @@ function DownloadCard({ download }: { download: AppDownload }) {
             <div className="flex size-[220px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#d7d7d2] bg-[#fafaf7] px-5 text-center dark:border-[#cbd5e1] dark:bg-[#f8fafc]">
               <QrCode className="size-10 text-muted-foreground" />
               <p className="mt-4 text-sm font-medium text-foreground">
-                Link ainda nao configurado
+                Link ainda não configurado
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 Defina a URL oficial desta plataforma para liberar o QR code.

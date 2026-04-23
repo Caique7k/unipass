@@ -208,9 +208,9 @@ export function DeviceModal({
 
           {!isEditing && (
             <div className="space-y-2">
-              <div className="text-sm font-medium">Codigo temporario</div>
+              <div className="text-sm font-medium">Código temporário</div>
               <Input
-                placeholder="Codigo temporario exibido no IoT"
+                placeholder="Código temporário exibido no IoT"
                 value={pairingCode}
                 onChange={(e) => setPairingCode(e.target.value)}
                 className="h-11 rounded-xl border-border/70 bg-background px-3"

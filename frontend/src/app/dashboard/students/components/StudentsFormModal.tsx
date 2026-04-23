@@ -211,11 +211,11 @@ export function StudentModal({
     const newErrors: Errors = {};
 
     if (!form.name || form.name.length < 3) {
-      newErrors.name = "Nome invalido";
+      newErrors.name = "Nome inválido.";
     }
 
     if (!form.registration || form.registration.length < 3) {
-      newErrors.registration = "Matricula invalida";
+      newErrors.registration = "Matrícula inválida.";
     }
 
     if (!form.groupId) {
@@ -230,11 +230,11 @@ export function StudentModal({
       newErrors.emailLocalPart = "Informe o login do e-mail";
     } else if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/i.test(emailLocalPart.trim())) {
       newErrors.emailLocalPart =
-        "Use apenas letras, numeros, ponto, hifen ou underline";
+        "Use apenas letras, números, ponto, hífen ou underline.";
     }
 
     if (!form.phone || form.phone.replace(/\D/g, "").length < 10) {
-      newErrors.phone = "Telefone invalido";
+      newErrors.phone = "Telefone inválido.";
     }
 
     setErrors(newErrors);
@@ -317,14 +317,14 @@ export function StudentModal({
 
   const handleConfirmLink = async () => {
     if (!rfidTag.trim()) {
-      toast.error("Informe o codigo RFID para concluir o vinculo.");
+      toast.error("Informe o código RFID para concluir o vínculo.");
       return;
     }
 
     const studentId = createdStudent?.id ?? student?.id;
 
     if (!studentId) {
-      toast.error("Nao foi possivel identificar o aluno para vincular o RFID.");
+      toast.error("Não foi possível identificar o aluno para vincular o RFID.");
       return;
     }
 
@@ -404,7 +404,7 @@ export function StudentModal({
                     {isEdit ? "Edicao de aluno" : "Novo aluno"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    O e-mail do aluno fica sempre amarrado ao dominio da
+                    O e-mail do aluno fica sempre amarrado ao domínio da
                     empresa.
                   </p>
                 </div>
@@ -418,7 +418,7 @@ export function StudentModal({
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {emailDomain
-                      ? `Dominio fixo da empresa: @${emailDomain}`
+                      ? `Domínio fixo da empresa: @${emailDomain}`
                       : "Use o login que o aluno vai usar para acessar."}
                   </p>
                 </div>
@@ -440,7 +440,7 @@ export function StudentModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Matricula</Label>
+                  <Label className="text-sm font-medium">Matrícula</Label>
                   <Input
                     value={form.registration || ""}
                     onChange={(e) =>
@@ -701,7 +701,7 @@ export function StudentModal({
                           : isSaving
                             ? "Salvando..."
                             : isEdit
-                              ? "Salvar alteracoes"
+                              ? "Salvar alterações"
                               : "Criar e vincular RFID"}
                 </Button>
               </div>
@@ -717,7 +717,7 @@ export function StudentModal({
                     Cartao do aluno
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Aproxime o cartao ou informe o codigo RFID manualmente.
+                    Aproxime o cartão ou informe o código RFID manualmente.
                   </p>
                 </div>
 
@@ -736,7 +736,7 @@ export function StudentModal({
 
               <div className="space-y-2 text-center">
                 <p className="text-sm font-medium text-foreground">
-                  Aproxime o cartao ou insira o codigo abaixo
+                  Aproxime o cartão ou insira o código abaixo.
                 </p>
 
                 <Input

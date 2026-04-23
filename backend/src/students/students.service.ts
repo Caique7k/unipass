@@ -164,8 +164,8 @@ export class StudentsService {
         ) {
           throw new BadRequestException(
             normalizedEmail
-              ? 'Ja existe um aluno com esse email neste dominio.'
-              : 'Matricula ja cadastrada',
+              ? 'Já existe um aluno com esse e-mail neste domínio.'
+              : 'Matrícula já cadastrada.',
           );
         }
 
@@ -319,7 +319,7 @@ export class StudentsService {
     });
 
     if (!company) {
-      throw new NotFoundException('Empresa nao encontrada');
+      throw new NotFoundException('Empresa não encontrada.');
     }
 
     return company;
@@ -339,7 +339,7 @@ export class StudentsService {
 
     if (!group) {
       throw new BadRequestException(
-        'Selecione um grupo ativo e valido para o colaborador.',
+        'Selecione um grupo ativo e válido para o colaborador.',
       );
     }
 
@@ -407,7 +407,7 @@ export class StudentsService {
     if (normalized.includes('@')) {
       if (!normalized.endsWith(expectedSuffix)) {
         throw new BadRequestException(
-          `O email do aluno deve usar o dominio da empresa (${expectedSuffix}).`,
+          `O e-mail do aluno deve usar o domínio da empresa (${expectedSuffix}).`,
         );
       }
 
@@ -416,7 +416,7 @@ export class StudentsService {
 
     if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(normalized)) {
       throw new BadRequestException(
-        'Use apenas letras, numeros, ponto, underline ou hifen antes do dominio.',
+        'Use apenas letras, números, ponto, underline ou hífen antes do domínio.',
       );
     }
 

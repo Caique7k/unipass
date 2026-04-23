@@ -132,7 +132,7 @@ export default function Sidebar() {
           <div>
             {isOpen && (
               <p className="mb-2 text-xs uppercase text-muted-foreground">
-                Gestao
+                Gestão
               </p>
             )}
 
@@ -163,7 +163,7 @@ export default function Sidebar() {
             <SidebarItem
               href="/dashboard/buses"
               icon={<Truck size={25} />}
-              label="Onibus"
+              label="Ônibus"
               isOpen={isOpen}
               active={pathname === "/dashboard/buses"}
             />
@@ -196,7 +196,7 @@ export default function Sidebar() {
           <div>
             {isOpen && (
               <p className="mb-2 text-xs uppercase text-muted-foreground">
-                Administracao
+                Administração
               </p>
             )}
 
@@ -211,7 +211,7 @@ export default function Sidebar() {
             <SidebarItem
               href="/dashboard/users"
               icon={<Users size={25} />}
-              label="Usuarios"
+              label="Usuários"
               isOpen={isOpen}
               active={pathname === "/dashboard/users"}
             />
@@ -219,7 +219,7 @@ export default function Sidebar() {
             <SidebarItem
               href="/dashboard/reports"
               icon={<FileBarChart2 size={25} />}
-              label="Relatorios"
+              label="Relatórios"
               isOpen={isOpen}
               active={pathname === "/dashboard/reports"}
             />

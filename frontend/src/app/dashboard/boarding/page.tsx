@@ -171,7 +171,7 @@ export default function BoardingPage() {
         setData(response.data);
         setError(null);
       } catch {
-        setError("Nao foi possivel carregar o painel de embarques.");
+        setError("Não foi possível carregar o painel de embarques.");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -204,7 +204,7 @@ export default function BoardingPage() {
 
   if (!canView) {
     return (
-      <AccessDenied description="Este perfil nao pode acessar o painel de embarques." />
+      <AccessDenied description="Este perfil não pode acessar o painel de embarques." />
     );
   }
 
@@ -244,9 +244,9 @@ export default function BoardingPage() {
   );
   const selectedBusLabel =
     selectedBusFilter === "all"
-      ? "Todos os onibus"
+      ? "Todos os ônibus"
       : data?.busOptions.find((option) => option.value === selectedBusFilter)
-          ?.label ?? "Todos os onibus";
+          ?.label ?? "Todos os ônibus";
 
   return (
     <div className="space-y-6">
@@ -311,7 +311,7 @@ export default function BoardingPage() {
           icon={<UserCheck className="size-5" />}
         />
         <SummaryCard
-          title="Onibus da volta"
+          title="Ônibus da volta"
           value={String(data?.summary.busesWithSecondBoarding ?? 0)}
           description="Veiculos com segundo boarding registrado"
           icon={<Truck className="size-5" />}
@@ -323,7 +323,7 @@ export default function BoardingPage() {
           <CardTitle>Embarcaram na volta</CardTitle>
           <CardDescription>
             Tabela com alunos que ja atingiram o segundo boarding do dia, com
-            filtro por nome e por onibus.
+            filtro por nome e por ônibus.
           </CardDescription>
         </CardHeader>
 
@@ -345,12 +345,12 @@ export default function BoardingPage() {
                 onValueChange={(value) => setSelectedBusFilter(value ?? "all")}
               >
                 <SelectTrigger className="w-full md:w-64">
-                  <SelectValue placeholder="Filtrar por onibus">
+                  <SelectValue placeholder="Filtrar por ônibus">
                     {selectedBusLabel}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os onibus</SelectItem>
+                  <SelectItem value="all">Todos os ônibus</SelectItem>
                   {(data?.busOptions ?? []).map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -372,8 +372,8 @@ export default function BoardingPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Aluno</TableHead>
-                      <TableHead>Matricula</TableHead>
-                      <TableHead>Onibus</TableHead>
+                      <TableHead>Matrícula</TableHead>
+                      <TableHead>Ônibus</TableHead>
                       <TableHead>1o boarding</TableHead>
                       <TableHead>2o boarding</TableHead>
                       <TableHead>Grupo</TableHead>
@@ -454,7 +454,7 @@ export default function BoardingPage() {
           ) : (
             <EmptyState
               title="Nenhum aluno encontrado na tabela"
-              description="Ajuste a busca ou o filtro de onibus, ou aguarde o segundo boarding dos alunos."
+              description="Ajuste a busca ou o filtro de ônibus, ou aguarde o segundo boarding dos alunos."
             />
           )}
         </CardContent>
@@ -465,7 +465,7 @@ export default function BoardingPage() {
           <CardTitle>Aguardando segundo boarding</CardTitle>
           <CardDescription>
             Esta lista mostra apenas alunos que ja tiveram o primeiro boarding e
-            ainda nao registraram o segundo boarding da volta.
+            ainda não registraram o segundo boarding da volta.
           </CardDescription>
         </CardHeader>
 
@@ -502,7 +502,7 @@ export default function BoardingPage() {
                             {student.name}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            Matricula {student.registration}
+                            Matrícula {student.registration}
                             {student.group ? ` - ${student.group.name}` : ""}
                           </span>
                         </div>
@@ -516,26 +516,26 @@ export default function BoardingPage() {
                     <AccordionContent className="pb-5">
                       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <AccordionDetail
-                          label="Matricula"
+                          label="Matrícula"
                           value={student.registration}
                         />
                         <AccordionDetail
                           label="Telefone"
-                          value={student.phone || "Nao informado"}
+                          value={student.phone || "Não informado"}
                         />
                         <AccordionDetail
                           label="Email"
-                          value={student.email || "Nao informado"}
+                          value={student.email || "Não informado"}
                         />
                         <AccordionDetail
                           label="TAG"
-                          value={student.rfidTag || "Nao vinculada"}
+                          value={student.rfidTag || "Não vinculada"}
                         />
                       </div>
 
                       <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <AccordionDetail
-                          label="Primeiro onibus"
+                          label="Primeiro ônibus"
                           value={student.firstBusPlate}
                         />
                         <AccordionDetail
@@ -543,7 +543,7 @@ export default function BoardingPage() {
                           value={
                             student.firstDeviceName ||
                             student.firstDeviceCode ||
-                            "Nao identificado"
+                            "Não identificado"
                           }
                         />
                         <AccordionDetail
@@ -567,7 +567,7 @@ export default function BoardingPage() {
           ) : (
             <EmptyState
               title="Nenhum aluno aguardando o segundo boarding"
-              description="Quando o primeiro boarding acontecer, o aluno aparece aqui ate registrar a volta."
+              description="Quando o primeiro boarding acontecer, o aluno aparece aqui até registrar a volta."
             />
           )}
         </CardContent>

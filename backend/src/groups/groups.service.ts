@@ -80,7 +80,7 @@ export class GroupsService {
     });
 
     if (!group) {
-      throw new NotFoundException('Grupo nao encontrado');
+      throw new NotFoundException('Grupo não encontrado.');
     }
 
     return group;
@@ -142,7 +142,7 @@ export class GroupsService {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     ) {
-      throw new BadRequestException('Ja existe um grupo com esse nome');
+      throw new BadRequestException('Já existe um grupo com esse nome.');
     }
 
     throw error;

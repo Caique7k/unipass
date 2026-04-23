@@ -33,22 +33,22 @@ const showcaseSlides = [
     src: "/unipass/unipass-painel-central.png",
     alt: "Painel central do UniPass",
     eyebrow: "Painel central",
-    title: "Visao clara da operacao.",
+    title: "Visão clara da operação.",
     badge: "Ao vivo",
   },
   {
     src: "/unipass/unipass-student.png",
     alt: "Tela de acompanhamento de alunos no UniPass",
-    eyebrow: "Gestao de alunos",
+    eyebrow: "Gestão de alunos",
     title: "Cadastros mais organizados.",
-    badge: "Fluxo rapido",
+    badge: "Fluxo rápido",
   },
   {
     src: "/unipass/unipass-bus.png",
     alt: "Tela de acompanhamento da frota no UniPass",
     eyebrow: "Monitoramento de frota",
     title: "Frota e telemetria no mesmo lugar.",
-    badge: "Visao completa",
+    badge: "Visão completa",
   },
 ];
 
@@ -158,7 +158,7 @@ export default function LoginPage() {
           password,
         });
         toast.warning(
-          "O backend ainda nao aplicou 'Manter conectado'. Entrando sem persistencia.",
+          "O backend ainda não aplicou 'Manter conectado'. Entrando sem persistência.",
         );
       }
 
@@ -170,7 +170,7 @@ export default function LoginPage() {
     } catch (error) {
       // Captura e tratamento de erros reais (401 Não Autorizado, etc)
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        toast.error("E-mail ou senha invalidos.");
+        toast.error("E-mail ou senha inválidos.");
       } else {
         const message = axios.isAxiosError(error)
           ? error.response?.data?.message
@@ -181,7 +181,7 @@ export default function LoginPage() {
         } else if (typeof message === "string") {
           toast.error(message);
         } else {
-          toast.error("Nao foi possivel entrar agora.");
+          toast.error("Não foi possível entrar agora.");
         }
       }
 
@@ -551,11 +551,11 @@ export default function LoginPage() {
             </div>
 
             <h3 className="mt-5 text-xl font-semibold tracking-[-0.04em] text-[#111827]">
-              Login invalido
+              Login inválido
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-[#5b6472]">
-              O e-mail ou a senha informados estao incorretos.
+              O e-mail ou a senha informados estão incorretos.
             </p>
 
             {/* Botão de Fechar o modal dentro dele */}

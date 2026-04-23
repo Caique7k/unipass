@@ -65,7 +65,7 @@ export function TimeSelect({
             Horario
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {description ?? "Escolha a hora e os minutos deste horario."}
+            {description ?? "Escolha a hora e os minutos deste horário."}
           </p>
         </div>
 

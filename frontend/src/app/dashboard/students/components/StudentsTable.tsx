@@ -144,7 +144,7 @@ export function StudentsTable({
             <TableRow>
               {canManage && <TableHead />}
               <TableHead>Nome</TableHead>
-              <TableHead>Matricula</TableHead>
+              <TableHead>Matrícula</TableHead>
               <TableHead>Grupo</TableHead>
               <TableHead>Rotas</TableHead>
               <TableHead>Email</TableHead>

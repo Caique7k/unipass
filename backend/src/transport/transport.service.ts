@@ -64,7 +64,7 @@ export class TransportService {
     });
 
     if (!device) {
-      throw new NotFoundException('Device nao encontrado');
+      throw new NotFoundException('Dispositivo não encontrado.');
     }
 
     if (!device.active) {
@@ -72,7 +72,7 @@ export class TransportService {
     }
 
     if (!device.companyId) {
-      throw new BadRequestException('Device nao vinculado');
+      throw new BadRequestException('Dispositivo não vinculado.');
     }
 
     return device;
@@ -88,7 +88,7 @@ export class TransportService {
 
     if (device.companyId !== companyId) {
       throw new ForbiddenException(
-        'Este dispositivo nao pertence a empresa do usuario autenticado',
+        'Este dispositivo não pertence à empresa do usuário autenticado.',
       );
     }
   }
@@ -99,7 +99,7 @@ export class TransportService {
     });
 
     if (!device || device.secret !== secret) {
-      throw new NotFoundException('Credenciais do device invalidas');
+      throw new NotFoundException('Credenciais do dispositivo inválidas.');
     }
 
     if (!device.active) {
@@ -107,7 +107,7 @@ export class TransportService {
     }
 
     if (!device.companyId) {
-      throw new BadRequestException('Device ainda nao foi vinculado no painel');
+      throw new BadRequestException('O dispositivo ainda não foi vinculado no painel.');
     }
 
     return device;
@@ -130,7 +130,7 @@ export class TransportService {
 
     if (!card || !card.student) {
       await this.logDenied(device, card);
-      throw new ForbiddenException('TAG nao autorizada');
+      throw new ForbiddenException('TAG não autorizada.');
     }
 
     const student = card.student;
@@ -138,7 +138,7 @@ export class TransportService {
     if (card.companyId !== device.companyId || student.companyId !== device.companyId) {
       await this.logDenied(device, card, student.id);
       throw new ForbiddenException(
-        'TAG nao pertence a mesma empresa do dispositivo',
+        'A TAG não pertence à mesma empresa do dispositivo.',
       );
     }
 
@@ -156,7 +156,7 @@ export class TransportService {
     });
 
     if (lastEvent?.type === 'BOARDING') {
-      throw new BadRequestException('Aluno ja esta no onibus');
+      throw new BadRequestException('O aluno já está no ônibus.');
     }
 
     const event = await this.prisma.transportEvent.create({
@@ -184,7 +184,7 @@ export class TransportService {
     const card = await this.getCardWithStudent(rfidTag, device.companyId);
 
     if (!card || !card.student) {
-      throw new ForbiddenException('TAG nao autorizada');
+      throw new ForbiddenException('TAG não autorizada.');
     }
 
     const student = card.student;
@@ -192,7 +192,7 @@ export class TransportService {
     if (card.companyId !== device.companyId || student.companyId !== device.companyId) {
       await this.logDenied(device, card, student.id);
       throw new ForbiddenException(
-        'TAG nao pertence a mesma empresa do dispositivo',
+        'A TAG não pertence à mesma empresa do dispositivo.',
       );
     }
 
@@ -207,7 +207,7 @@ export class TransportService {
     });
 
     if (!lastEvent || lastEvent.type !== 'BOARDING') {
-      throw new BadRequestException('Aluno nao esta no onibus');
+      throw new BadRequestException('O aluno não está no ônibus.');
     }
 
     const event = await this.prisma.transportEvent.create({
@@ -422,7 +422,7 @@ export class TransportService {
           firstDeviceCode: firstBoarding.device.code,
           firstDeviceName: firstBoarding.device.name,
           firstBusId: firstBoarding.device.bus?.id ?? null,
-          firstBusPlate: firstBoarding.device.bus?.plate ?? 'Sem onibus vinculado',
+          firstBusPlate: firstBoarding.device.bus?.plate ?? 'Sem ônibus vinculado',
         });
         continue;
       }
@@ -437,7 +437,7 @@ export class TransportService {
         secondBoardingAt: secondBoarding.createdAt,
         busId: secondBoarding.device.bus?.id ?? null,
         busFilterKey,
-        busPlate: secondBoarding.device.bus?.plate ?? 'Sem onibus vinculado',
+        busPlate: secondBoarding.device.bus?.plate ?? 'Sem ônibus vinculado',
         capacity: secondBoarding.device.bus?.capacity ?? null,
         deviceId: secondBoarding.device.id,
         deviceCode: secondBoarding.device.code,

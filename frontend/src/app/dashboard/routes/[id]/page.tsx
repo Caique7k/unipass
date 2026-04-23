@@ -62,7 +62,7 @@ export default function RouteSchedulesPage() {
 
         setRouteName(json.name);
       } catch {
-        toast.error("Nao foi possivel carregar a rota.");
+        toast.error("Não foi possível carregar a rota.");
       }
     }
 
@@ -71,7 +71,7 @@ export default function RouteSchedulesPage() {
 
   if (!canView) {
     return (
-      <AccessDenied description="Este perfil nao pode acessar os horarios da rota." />
+      <AccessDenied description="Este perfil não pode acessar os horários da rota." />
     );
   }
 
@@ -118,7 +118,7 @@ export default function RouteSchedulesPage() {
 
       refetch();
     } catch {
-      toast.error("Erro ao desativar horarios.", {
+      toast.error("Erro ao desativar horários.", {
         description: "Tente novamente em instantes.",
       });
     }
@@ -142,14 +142,14 @@ export default function RouteSchedulesPage() {
           <h1 className="text-2xl font-bold">Horarios da rota</h1>
           <p className="text-sm text-muted-foreground">
             {routeName ? `${routeName} - ` : ""}
-            Visualize e mantenha os horarios da rota organizados.
+            Visualize e mantenha os horários da rota organizados.
           </p>
         </div>
       </div>
 
       <Card className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
         <Input
-          placeholder="Buscar por tipo, titulo ou onibus..."
+          placeholder="Buscar por tipo, título ou ônibus..."
           value={search}
           onChange={(event) => {
             setSearch(event.target.value);
@@ -166,7 +166,7 @@ export default function RouteSchedulesPage() {
             }}
             className="cursor-pointer"
           >
-            + Novo horario
+            + Novo horário
           </Button>
         )}
       </Card>

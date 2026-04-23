@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "UniPass",
-  description: "Plataforma UniPass para operacao, rastreio e gestao escolar.",
+  description: "Plataforma UniPass para operação, rastreio e gestão escolar.",
 };
 
 export default function RootLayout({

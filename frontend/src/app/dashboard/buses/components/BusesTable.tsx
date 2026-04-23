@@ -116,7 +116,7 @@ export function BusesTable({
                   {canManage && (
                     <TableCell className="text-right">
                       <RowEditButton
-                        label={`Editar onibus ${bus.plate}`}
+                        label={`Editar ônibus ${bus.plate}`}
                         onClick={() => onEdit(bus)}
                       />
                     </TableCell>

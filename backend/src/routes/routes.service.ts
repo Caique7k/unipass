@@ -105,7 +105,7 @@ export class RoutesService {
     });
 
     if (!route) {
-      throw new NotFoundException('Rota nao encontrada');
+      throw new NotFoundException('Rota não encontrada.');
     }
 
     return route;
@@ -182,7 +182,7 @@ export class RoutesService {
     });
 
     if (existingRoute) {
-      throw new BadRequestException('Ja existe uma rota com esse nome');
+      throw new BadRequestException('Já existe uma rota com esse nome.');
     }
   }
 }

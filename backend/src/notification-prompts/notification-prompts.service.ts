@@ -109,7 +109,7 @@ export class NotificationPromptsService {
     });
 
     if (!prompt) {
-      this.logger.warn(`Prompt ${promptId} nao encontrado para dispatch.`);
+      this.logger.warn(`Prompt ${promptId} não encontrado para dispatch.`);
       return;
     }
 
@@ -146,7 +146,7 @@ export class NotificationPromptsService {
       });
 
       this.logger.log(
-        `Prompt ${prompt.id} liberado para o usuario ${prompt.userId}.`,
+        `Prompt ${prompt.id} liberado para o usuário ${prompt.userId}.`,
       );
     } catch (error) {
       const message =
@@ -259,7 +259,7 @@ export class NotificationPromptsService {
     });
 
     if (!prompt) {
-      throw new NotFoundException('Prompt de notificacao nao encontrado');
+      throw new NotFoundException('Prompt de notificação não encontrado.');
     }
 
     if (this.isExpired(prompt)) {
@@ -270,7 +270,7 @@ export class NotificationPromptsService {
         },
       });
 
-      throw new BadRequestException('Esse prompt ja expirou');
+      throw new BadRequestException('Esse prompt já expirou.');
     }
 
     const [, confirmation] = await this.prisma.$transaction([

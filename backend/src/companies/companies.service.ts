@@ -95,7 +95,7 @@ export class CompaniesService {
     });
 
     if (existingCompanyByCnpj && existingCompanyByCnpj.id !== company.id) {
-      throw new BadRequestException('Ja existe uma empresa cadastrada com este CNPJ.');
+      throw new BadRequestException('Já existe uma empresa cadastrada com este CNPJ.');
     }
 
     return this.prisma.company.update({
@@ -139,7 +139,7 @@ export class CompaniesService {
       available: false,
       normalizedDomain,
       suggestions: await this.buildDomainSuggestions(normalizedDomain),
-      message: `O dominio ${normalizedDomain} ja esta em uso.`,
+      message: `O domínio ${normalizedDomain} já está em uso.`,
     };
   }
 
@@ -173,11 +173,11 @@ export class CompaniesService {
 
     if (!challenge || challenge.expiresAt.getTime() < Date.now()) {
       this.smsChallenges.delete(normalizedPhone);
-      throw new BadRequestException('O codigo expirou. Solicite um novo SMS.');
+      throw new BadRequestException('O código expirou. Solicite um novo SMS.');
     }
 
     if (challenge.code !== code.trim()) {
-      throw new BadRequestException('Codigo invalido.');
+      throw new BadRequestException('Código inválido.');
     }
 
     challenge.verifiedAt = new Date();
@@ -261,11 +261,11 @@ export class CompaniesService {
     ]);
 
     if (existingCompanyByCnpj) {
-      throw new BadRequestException('Ja existe uma empresa cadastrada com este CNPJ.');
+      throw new BadRequestException('Já existe uma empresa cadastrada com este CNPJ.');
     }
 
     if (existingCompanyByDomain) {
-      throw new BadRequestException('Este dominio ja esta em uso por outra empresa.');
+      throw new BadRequestException('Este domínio já está em uso por outra empresa.');
     }
   }
 
@@ -276,7 +276,7 @@ export class CompaniesService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('Ja existe um usuario com este email.');
+      throw new BadRequestException('Já existe um usuário com este e-mail.');
     }
   }
 
@@ -290,7 +290,7 @@ export class CompaniesService {
     });
 
     if (!company) {
-      throw new BadRequestException('Empresa nao encontrada.');
+      throw new BadRequestException('Empresa não encontrada.');
     }
 
     return company;
@@ -306,7 +306,7 @@ export class CompaniesService {
       .replace(/[^a-z0-9.-]/g, '');
 
     if (!/^[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)+$/.test(sanitized)) {
-      throw new BadRequestException('Informe um dominio valido, como empresa.com.br.');
+      throw new BadRequestException('Informe um domínio válido, como empresa.com.br.');
     }
 
     return sanitized;
@@ -332,7 +332,7 @@ export class CompaniesService {
     const digits = phone.replace(/\D/g, '');
 
     if (digits.length < 10 || digits.length > 13) {
-      throw new BadRequestException('Informe um telefone celular valido.');
+      throw new BadRequestException('Informe um telefone celular válido.');
     }
 
     return digits.startsWith('55') ? `+${digits}` : `+55${digits}`;
@@ -342,7 +342,7 @@ export class CompaniesService {
     const digits = cnpj.replace(/\D/g, '');
 
     if (digits.length !== 14) {
-      throw new BadRequestException('Informe um CNPJ valido com 14 digitos.');
+      throw new BadRequestException('Informe um CNPJ válido com 14 dígitos.');
     }
 
     return digits;
@@ -396,7 +396,7 @@ export class CompaniesService {
     }
 
     throw new ServiceUnavailableException(
-      'O provedor de SMS configurado nao e suportado.',
+      'O provedor de SMS configurado não é suportado.',
     );
   }
 
@@ -413,13 +413,13 @@ export class CompaniesService {
         'Configuracao Twilio incompleta. Defina TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN e TWILIO_MESSAGING_SERVICE_SID ou TWILIO_FROM_NUMBER.',
       );
       throw new ServiceUnavailableException(
-        'O envio de SMS nao esta configurado no servidor.',
+        'O envio de SMS não está configurado no servidor.',
       );
     }
 
     const payload = new URLSearchParams({
       To: phone,
-      Body: `Seu codigo de verificacao UniPass e ${code}. Ele expira em 10 minutos.`,
+      Body: `Seu código de verificação UniPass é ${code}. Ele expira em 10 minutos.`,
     });
 
     if (messagingServiceSid) {
@@ -452,7 +452,7 @@ export class CompaniesService {
       );
 
       throw new ServiceUnavailableException(
-        'Nao foi possivel enviar o SMS de verificacao agora.',
+        'Não foi possível enviar o SMS de verificação agora.',
       );
     }
   }

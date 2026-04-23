@@ -180,7 +180,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('Usuario nao encontrado');
+      throw new NotFoundException('Usuário não encontrado.');
     }
 
     const nextRole = dto.role ?? user.role;
@@ -268,7 +268,7 @@ export class UsersService {
 
   private async getCompanyOrFail(companyId?: string | null) {
     if (!companyId) {
-      throw new BadRequestException('Usuario sem empresa vinculada');
+      throw new BadRequestException('Usuário sem empresa vinculada.');
     }
 
     const company = await this.prisma.company.findUnique({
@@ -276,7 +276,7 @@ export class UsersService {
     });
 
     if (!company) {
-      throw new NotFoundException('Empresa nao encontrada');
+      throw new NotFoundException('Empresa não encontrada.');
     }
 
     return company;
@@ -315,17 +315,17 @@ export class UsersService {
       });
 
       if (!student) {
-        throw new BadRequestException('Aluno nao encontrado para esta empresa.');
+        throw new BadRequestException('Aluno não encontrado para esta empresa.');
       }
 
       if (!student.email) {
         throw new BadRequestException(
-          'O aluno selecionado precisa ter um email antes de criar o usuario.',
+          'O aluno selecionado precisa ter um e-mail antes de criar o usuário.',
         );
       }
 
       if (student.user && student.user.id !== currentUserId) {
-        throw new BadRequestException('Este aluno ja possui um usuario vinculado.');
+        throw new BadRequestException('Este aluno já possui um usuário vinculado.');
       }
 
       return {
@@ -337,16 +337,16 @@ export class UsersService {
 
     if (dto.role === UserRole.USER) {
       throw new BadRequestException(
-        'Para criar um usuario de aluno, selecione um aluno ja cadastrado.',
+        'Para criar um usuário de aluno, selecione um aluno já cadastrado.',
       );
     }
 
     if (!dto.name?.trim()) {
-      throw new BadRequestException('Informe o nome do usuario.');
+      throw new BadRequestException('Informe o nome do usuário.');
     }
 
     if (!dto.email?.trim()) {
-      throw new BadRequestException('Informe o email do usuario.');
+      throw new BadRequestException('Informe o e-mail do usuário.');
     }
 
     return {
@@ -364,13 +364,13 @@ export class UsersService {
 
     if (!normalizedEmail.endsWith(expectedSuffix)) {
       throw new BadRequestException(
-        `O email deve usar o dominio da empresa (${expectedSuffix})`,
+        `O e-mail deve usar o domínio da empresa (${expectedSuffix}).`,
       );
     }
 
     if (!emailPattern.test(normalizedEmail)) {
       throw new BadRequestException(
-        'Use o formato nome.sobrenome@dominio-da-empresa',
+        'Use o formato nome.sobrenome@dominio-da-empresa.',
       );
     }
 
@@ -402,7 +402,7 @@ export class UsersService {
 
     if (existingUser) {
       throw new BadRequestException(
-        'Ja existe um usuario com esse nome de login neste dominio',
+        'Já existe um usuário com esse nome de login neste domínio.',
       );
     }
   }
@@ -428,7 +428,7 @@ export class UsersService {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     ) {
-      throw new BadRequestException('Email ja cadastrado');
+      throw new BadRequestException('E-mail já cadastrado.');
     }
 
     throw error;

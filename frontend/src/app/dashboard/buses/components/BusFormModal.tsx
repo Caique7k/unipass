@@ -115,7 +115,7 @@ export function BusFormModal({
           <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
-                Operacao
+                Operação
               </p>
               <p className="mt-2 text-sm font-medium text-foreground">
                 {isEdit ? "Edição de veículo" : "Novo veículo"}

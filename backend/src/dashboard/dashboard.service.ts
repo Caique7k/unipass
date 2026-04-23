@@ -101,7 +101,7 @@ const AVAILABLE_REPORTS: DashboardReportCard[] = [
     id: 'boarding',
     label: 'Movimentacao',
     description:
-      'Concentra embarques, desembarques e eventos negados para acompanhar o fluxo diario.',
+      'Concentra embarques, desembarques e eventos negados para acompanhar o fluxo diário.',
     category: 'operacao',
   },
   {
@@ -113,16 +113,16 @@ const AVAILABLE_REPORTS: DashboardReportCard[] = [
   },
   {
     id: 'fleet',
-    label: 'Frota e operacao',
+    label: 'Frota e operação',
     description:
-      'Mostra uso dos onibus, viagens registradas, dispositivos e volume de passageiros.',
+      'Mostra o uso dos ônibus, viagens registradas, dispositivos e volume de passageiros.',
     category: 'operacao',
   },
   {
     id: 'routes',
     label: 'Rotas',
     description:
-      'Acompanha alunos vinculados, uso por rota e quais itinerarios tiveram movimentacao no periodo.',
+      'Acompanha alunos vinculados, uso por rota e quais itinerários tiveram movimentação no período.',
     category: 'operacao',
   },
   {
@@ -430,13 +430,13 @@ export class DashboardService {
 
     return {
       type: 'boarding',
-      title: 'Relatorio de movimentacao',
+      title: 'Relatório de movimentação',
       description:
-        'Mostra os eventos operacionais do periodo com foco em embarques, desembarques e recusas.',
+        'Mostra os eventos operacionais do período com foco em embarques, desembarques e recusas.',
       highlight: this.formatPeriodLabel(filters.startDate, filters.endDate),
       summaryCards: [
         {
-          label: 'Eventos no periodo',
+          label: 'Eventos no período',
           value: this.formatCount(events.length),
           helper: 'Soma de embarques, desembarques e negados.',
         },
@@ -448,7 +448,7 @@ export class DashboardService {
         {
           label: 'Desembarques',
           value: this.formatCount(deboardings),
-          helper: 'Saidas registradas no mesmo periodo.',
+          helper: 'Saídas registradas no mesmo período.',
         },
         {
           label: 'Alunos unicos',
@@ -459,7 +459,7 @@ export class DashboardService {
       chart: {
         title: 'Volume por dia',
         description:
-          'Distribuicao diaria para comparar o comportamento da operacao no periodo filtrado.',
+          'Distribuição diária para comparar o comportamento da operação no período filtrado.',
         xKey: 'date',
         series: [
           { key: 'boardings', label: 'Boardings', color: '#ff8a4c' },
@@ -478,7 +478,7 @@ export class DashboardService {
           { key: 'student', label: 'Aluno' },
           { key: 'group', label: 'Grupo' },
           { key: 'routes', label: 'Rotas' },
-          { key: 'bus', label: 'Onibus' },
+          { key: 'bus', label: 'Ônibus' },
           { key: 'device', label: 'UniHub' },
         ],
         rows: events.map((event) => ({
@@ -488,20 +488,20 @@ export class DashboardService {
             type: this.formatEventType(event.type),
             student:
               event.student?.name ??
-              (event.rfidCard?.tag ? `TAG ${event.rfidCard.tag}` : 'Nao identificado'),
+              (event.rfidCard?.tag ? `TAG ${event.rfidCard.tag}` : 'Não identificado'),
             group: event.student?.group?.name ?? '--',
             routes:
               this.joinRouteNames(
                 event.student?.routes.map((studentRoute) => studentRoute.route.name) ??
                   [],
               ) ?? '--',
-            bus: event.device.bus?.plate ?? 'Sem onibus',
+            bus: event.device.bus?.plate ?? 'Sem ônibus',
             device: event.device.name ?? event.device.code ?? 'UniHub',
           },
         })),
         emptyTitle: 'Nenhum evento encontrado',
         emptyDescription:
-          'Ajuste o periodo ou remova filtros para visualizar a movimentacao.',
+          'Ajuste o período ou remova filtros para visualizar a movimentação.',
       },
     };
   }
@@ -617,7 +617,7 @@ export class DashboardService {
       metrics.days.add(dateKey);
       metrics.lastEventAt = metrics.lastEventAt ?? event.createdAt;
       metrics.lastBusPlate =
-        metrics.lastBusPlate ?? event.device.bus?.plate ?? 'Sem onibus';
+        metrics.lastBusPlate ?? event.device.bus?.plate ?? 'Sem ônibus';
 
       const studentSet = chartStudentSets.get(dateKey) ?? new Set<string>();
       studentSet.add(event.studentId);
@@ -644,9 +644,9 @@ export class DashboardService {
 
     return {
       type: 'students',
-      title: 'Relatorio de frequencia',
+      title: 'Relatório de frequência',
       description:
-        'Resume o comportamento dos alunos no periodo e ajuda a identificar uso, ausencia e recorrencia.',
+        'Resume o comportamento dos alunos no período e ajuda a identificar uso, ausência e recorrência.',
       highlight: this.formatPeriodLabel(filters.startDate, filters.endDate),
       summaryCards: [
         {
@@ -655,17 +655,17 @@ export class DashboardService {
           helper: 'Base considerada apos aplicar os filtros.',
         },
         {
-          label: 'Com movimentacao',
+          label: 'Com movimentação',
           value: this.formatCount(studentsWithUsage),
-          helper: 'Alunos que tiveram ao menos um evento no periodo.',
+          helper: 'Alunos que tiveram ao menos um evento no período.',
         },
         {
-          label: 'Sem movimentacao',
+          label: 'Sem movimentação',
           value: this.formatCount(Math.max(0, students.length - studentsWithUsage)),
           helper: 'Ajuda a localizar ausencias ou falta de uso.',
         },
         {
-          label: 'Media de boardings/aluno',
+          label: 'Média de boardings/aluno',
           value: this.formatDecimal(
             students.length > 0 ? totalBoardings / students.length : 0,
           ),
@@ -673,9 +673,9 @@ export class DashboardService {
         },
       ],
       chart: {
-        title: 'Frequencia diaria',
+        title: 'Frequência diária',
         description:
-          'Compara alunos ativos no periodo com o volume de boardings registrados por dia.',
+          'Compara alunos ativos no período com o volume de boardings registrados por dia.',
         xKey: 'date',
         series: [
           { key: 'activeStudents', label: 'Alunos com uso', color: '#ffb27a' },
@@ -686,7 +686,7 @@ export class DashboardService {
       table: {
         title: 'Resumo por aluno',
         description:
-          'Mostra situacao, recorrencia e ultimo ponto conhecido de movimentacao.',
+          'Mostra situação, recorrência e último ponto conhecido de movimentação.',
         columns: [
           { key: 'student', label: 'Aluno' },
           { key: 'status', label: 'Status' },
@@ -695,8 +695,8 @@ export class DashboardService {
           { key: 'days', label: 'Dias com uso' },
           { key: 'boardings', label: 'Boardings' },
           { key: 'deboardings', label: 'Desembarques' },
-          { key: 'lastEvent', label: 'Ultimo registro' },
-          { key: 'lastBus', label: 'Ultimo onibus' },
+          { key: 'lastEvent', label: 'Último registro' },
+          { key: 'lastBus', label: 'Último ônibus' },
         ],
         rows: students
           .map((student) => {
@@ -738,7 +738,7 @@ export class DashboardService {
           .map(({ id, values }) => ({ id, values })),
         emptyTitle: 'Nenhum aluno encontrado',
         emptyDescription:
-          'Revise os filtros de grupo, rota ou status para montar a base do relatorio.',
+          'Revise os filtros de grupo, rota ou status para montar a base do relatório.',
       },
     };
   }
@@ -1012,28 +1012,28 @@ export class DashboardService {
 
     return {
       type: 'fleet',
-      title: 'Relatorio de frota',
+      title: 'Relatório de frota',
       description:
-        'Consolida o uso de onibus e dispositivos no periodo, ajudando a enxergar carga operacional.',
+        'Consolida o uso de ônibus e dispositivos no período, ajudando a enxergar a carga operacional.',
       highlight: this.formatPeriodLabel(filters.startDate, filters.endDate),
       summaryCards: [
         {
-          label: 'Onibus analisados',
+          label: 'Ônibus analisados',
           value: this.formatCount(rows.length),
           helper: 'Quantidade de veiculos considerados no recorte.',
         },
         {
           label: 'Com atividade',
           value: this.formatCount(busesWithActivity),
-          helper: 'Onibus com viagem ou evento registrado.',
+          helper: 'Ônibus com viagem ou evento registrado.',
         },
         {
           label: 'Viagens registradas',
           value: this.formatCount(trips.length),
-          helper: 'Saidas registradas no periodo.',
+          helper: 'Saídas registradas no período.',
         },
         {
-          label: 'Media de boardings/onibus',
+          label: 'Média de boardings/ônibus',
           value: this.formatDecimal(rows.length > 0 ? totalBoardings / rows.length : 0),
           helper: 'Volume medio de entradas por veiculo filtrado.',
         },
@@ -1041,21 +1041,21 @@ export class DashboardService {
       chart: {
         title: 'Carga operacional por dia',
         description:
-          'Cruza boardings, viagens registradas e quantidade de onibus ativos por dia.',
+          'Cruza boardings, viagens registradas e a quantidade de ônibus ativos por dia.',
         xKey: 'date',
         series: [
           { key: 'trips', label: 'Viagens', color: '#ffd0b2' },
           { key: 'boardings', label: 'Boardings', color: '#ff7a2f' },
-          { key: 'activeBuses', label: 'Onibus ativos', color: '#c2410c' },
+          { key: 'activeBuses', label: 'Ônibus ativos', color: '#c2410c' },
         ],
         data: chart.data,
       },
       table: {
-        title: 'Resumo por onibus',
+        title: 'Resumo por ônibus',
         description:
           'Ajuda a comparar uso, lotacao potencial, dispositivos e rotas vinculadas.',
         columns: [
-          { key: 'bus', label: 'Onibus' },
+          { key: 'bus', label: 'Ônibus' },
           { key: 'capacity', label: 'Capacidade' },
           { key: 'devices', label: 'UniHubs' },
           { key: 'routes', label: 'Rotas vinculadas' },
@@ -1063,7 +1063,7 @@ export class DashboardService {
           { key: 'boardings', label: 'Boardings' },
           { key: 'deboardings', label: 'Desembarques' },
           { key: 'students', label: 'Alunos unicos' },
-          { key: 'lastEvent', label: 'Ultimo evento' },
+          { key: 'lastEvent', label: 'Último evento' },
         ],
         rows: rows.map((row) => ({
           id: row.id,
@@ -1079,9 +1079,9 @@ export class DashboardService {
             lastEvent: row.lastEventAt ? this.formatDateTime(row.lastEventAt) : '--',
           },
         })),
-        emptyTitle: 'Nenhum onibus encontrado',
+        emptyTitle: 'Nenhum ônibus encontrado',
         emptyDescription:
-          'Use outro periodo ou revise os filtros de rota e onibus para montar o relatorio.',
+          'Use outro período ou revise os filtros de rota e ônibus para montar o relatório.',
       },
     };
   }
@@ -1278,15 +1278,15 @@ export class DashboardService {
 
     return {
       type: 'routes',
-      title: 'Relatorio de rotas',
+      title: 'Relatório de rotas',
       description:
-        'Resume rotas cadastradas, alunos vinculados e o uso operacional no periodo filtrado.',
+        'Resume rotas cadastradas, alunos vinculados e o uso operacional no período filtrado.',
       highlight: this.formatPeriodLabel(filters.startDate, filters.endDate),
       summaryCards: [
         {
           label: 'Rotas analisadas',
           value: this.formatCount(rows.length),
-          helper: 'Quantidade de rotas consideradas no relatorio.',
+          helper: 'Quantidade de rotas consideradas no relatório.',
         },
         {
           label: 'Rotas com uso',
@@ -1296,7 +1296,7 @@ export class DashboardService {
         {
           label: 'Alunos vinculados',
           value: this.formatCount(assignedStudents),
-          helper: 'Total unico de alunos vinculados nas rotas filtradas.',
+          helper: 'Total único de alunos vinculados nas rotas filtradas.',
         },
         {
           label: 'Boardings nas rotas',
@@ -1309,7 +1309,7 @@ export class DashboardService {
       chart: {
         title: 'Uso por dia nas rotas',
         description:
-          'Compara volume de boardings com a quantidade de rotas que tiveram movimentacao.',
+          'Compara o volume de boardings com a quantidade de rotas que tiveram movimentação.',
         xKey: 'date',
         series: [
           { key: 'boardings', label: 'Boardings', color: '#ff8b4c' },
@@ -1324,7 +1324,7 @@ export class DashboardService {
       table: {
         title: 'Resumo por rota',
         description:
-          'Mostra capacidade operacional de cada rota com alunos vinculados, horarios e movimentacao.',
+          'Mostra a capacidade operacional de cada rota com alunos vinculados, horários e movimentação.',
         columns: [
           { key: 'route', label: 'Rota' },
           { key: 'status', label: 'Status' },
@@ -1334,7 +1334,7 @@ export class DashboardService {
           { key: 'boardings', label: 'Boardings' },
           { key: 'deboardings', label: 'Desembarques' },
           { key: 'studentsWithUsage', label: 'Alunos com uso' },
-          { key: 'lastEvent', label: 'Ultimo evento' },
+          { key: 'lastEvent', label: 'Último evento' },
         ],
         rows: rows.map((row) => ({
           id: row.id,
@@ -1352,7 +1352,7 @@ export class DashboardService {
         })),
         emptyTitle: 'Nenhuma rota encontrada',
         emptyDescription:
-          'Ajuste os filtros para localizar rotas com alunos vinculados ou movimentacao.',
+          'Ajuste os filtros para localizar rotas com alunos vinculados ou movimentação.',
       },
     };
   }
@@ -1505,9 +1505,9 @@ export class DashboardService {
 
     return {
       type: 'groups',
-      title: 'Relatorio de grupos',
+      title: 'Relatório de grupos',
       description:
-        'Compara grupos da empresa e destaca quais concentraram mais alunos e uso no transporte.',
+          'Compara os grupos da empresa e destaca quais concentraram mais alunos e uso no transporte.',
       highlight: this.formatPeriodLabel(filters.startDate, filters.endDate),
       summaryCards: [
         {
@@ -1516,19 +1516,19 @@ export class DashboardService {
           helper: 'Total de grupos considerados nos filtros.',
         },
         {
-          label: 'Com movimentacao',
+          label: 'Com movimentação',
           value: this.formatCount(groupsWithMovement),
-          helper: 'Grupos com pelo menos um evento de transporte no periodo.',
+          helper: 'Grupos com pelo menos um evento de transporte no período.',
         },
         {
           label: 'Alunos nos grupos',
           value: this.formatCount(
             rows.reduce((sum, row) => sum + row.students, 0),
           ),
-          helper: 'Soma dos alunos distribuidos nos grupos filtrados.',
+          helper: 'Soma dos alunos distribuídos nos grupos filtrados.',
         },
         {
-          label: 'Media de boardings/grupo',
+          label: 'Média de boardings/grupo',
           value: this.formatDecimal(
             rows.length > 0
               ? rows.reduce((sum, row) => sum + row.boardings, 0) / rows.length
@@ -1540,7 +1540,7 @@ export class DashboardService {
       chart: {
         title: 'Uso dos grupos por dia',
         description:
-          'Mostra os boardings do periodo e quantos grupos tiveram movimentacao diaria.',
+          'Mostra os boardings do período e quantos grupos tiveram movimentação diária.',
         xKey: 'date',
         series: [
           { key: 'boardings', label: 'Boardings', color: '#ff8d54' },
@@ -1565,7 +1565,7 @@ export class DashboardService {
           { key: 'deboardings', label: 'Desembarques' },
           { key: 'denied', label: 'Negados' },
           { key: 'studentsWithUsage', label: 'Alunos com uso' },
-          { key: 'lastEvent', label: 'Ultimo evento' },
+          { key: 'lastEvent', label: 'Último evento' },
         ],
         rows: rows.map((row) => ({
           id: row.id,
@@ -1583,7 +1583,7 @@ export class DashboardService {
         })),
         emptyTitle: 'Nenhum grupo encontrado',
         emptyDescription:
-          'Revise os filtros para encontrar grupos com alunos vinculados ou uso no periodo.',
+          'Revise os filtros para encontrar grupos com alunos vinculados ou uso no período.',
       },
     };
   }
@@ -1597,7 +1597,7 @@ export class DashboardService {
 
     if (startDate > endDate) {
       throw new BadRequestException(
-        'A data inicial nao pode ser maior que a data final.',
+        'A data inicial não pode ser maior que a data final.',
       );
     }
 

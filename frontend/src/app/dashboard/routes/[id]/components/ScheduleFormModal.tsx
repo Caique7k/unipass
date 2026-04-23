@@ -57,7 +57,7 @@ const scheduleTypeOptions: Array<{
   {
     value: "SHIFT",
     label: "Turno",
-    description: "Use quando o horario representa um turno especifico.",
+    description: "Use quando o horário representa um turno específico.",
     titlePlaceholder: "Ex.: Turno noturno",
   },
 ];
@@ -149,8 +149,8 @@ export function ScheduleFormModal({
   const trimmedTitle = title.trim();
   const busSummary =
     busId === "none"
-      ? "Sem onibus vinculado"
-      : buses.find((bus) => bus.id === busId)?.plate ?? "Onibus selecionado";
+      ? "Sem ônibus vinculado"
+      : buses.find((bus) => bus.id === busId)?.plate ?? "Ônibus selecionado";
 
   useEffect(() => {
     if (schedule) {
@@ -200,7 +200,7 @@ export function ScheduleFormModal({
 
         setBuses(json.data);
       } catch {
-        toast.error("Nao foi possivel carregar os onibus.");
+        toast.error("Não foi possível carregar os ônibus.");
       }
     }
 
@@ -231,7 +231,7 @@ export function ScheduleFormModal({
     const parsedNotifyBeforeMinutes = Number(notifyBeforeMinutes);
 
     if (!time) {
-      toast.error("Informe o horario.");
+      toast.error("Informe o horário.");
       return;
     }
 
@@ -297,7 +297,7 @@ export function ScheduleFormModal({
         const errorMessage = Array.isArray(data.message)
           ? data.message.join(", ")
           : data.message;
-        throw new Error(errorMessage || "Erro ao salvar horario");
+        throw new Error(errorMessage || "Erro ao salvar horário");
       }
 
       toast.success(
@@ -310,7 +310,7 @@ export function ScheduleFormModal({
       onOpenChange(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Erro ao salvar horario.",
+        error instanceof Error ? error.message : "Erro ao salvar horário.",
       );
     } finally {
       setIsSaving(false);
@@ -323,12 +323,12 @@ export function ScheduleFormModal({
         <div className="border-b border-[#ff5c00]/10 bg-[#ff5c00]/[0.04] px-6 py-5">
           <DialogHeader className="gap-1">
             <DialogTitle className="text-2xl font-bold text-foreground">
-              {isEdit ? "Editar horario" : "Novo horario"}
+              {isEdit ? "Editar horário" : "Novo horário"}
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               {isEdit
-                ? "Atualize tipo, horario, recorrencia e vinculacao deste cadastro."
-                : "Defina tipo, horario e dias em que esta rota sera atendida."}
+                ? "Atualize tipo, horário, recorrência e vinculação deste cadastro."
+                : "Defina tipo, horário e dias em que esta rota será atendida."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -337,7 +337,7 @@ export function ScheduleFormModal({
           <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
-                Operacao
+                Operação
               </p>
               <p className="mt-2 text-sm font-medium text-foreground">
                 {currentTypeOption.label}
@@ -349,10 +349,10 @@ export function ScheduleFormModal({
 
             <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Resumo rapido
+                Resumo rápido
               </p>
               <p className="mt-2 text-base font-semibold text-foreground">
-                {time || "Defina o horario"}
+                {time || "Defina o horário"}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {selectedDaysSummary}
@@ -365,7 +365,7 @@ export function ScheduleFormModal({
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Tipo de horario</Label>
+              <Label className="text-sm font-medium">Tipo de horário</Label>
               <Select
                 value={type}
                 onValueChange={(value) =>
@@ -414,7 +414,7 @@ export function ScheduleFormModal({
           <TimeSelect
             value={time}
             onValueChange={setTime}
-            description={`Escolha a hora e os minutos deste horario de ${currentTypeOption.label.toLowerCase()}.`}
+            description={`Escolha a hora e os minutos deste horário de ${currentTypeOption.label.toLowerCase()}.`}
           />
 
           <DaysCombobox
@@ -435,7 +435,7 @@ export function ScheduleFormModal({
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="schedule-title" className="text-sm font-medium">
-                Identificacao do horario
+                Identificação do horário
               </Label>
               <Input
                 id="schedule-title"
@@ -447,14 +447,14 @@ export function ScheduleFormModal({
               />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                  Opcional. Use para diferenciar turnos, bairros ou observacoes.
+                  Opcional. Use para diferenciar turnos, bairros ou observações.
                 </span>
                 <span>{trimmedTitle.length}/{SCHEDULE_TITLE_MAX_LENGTH}</span>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Onibus vinculado</Label>
+              <Label className="text-sm font-medium">Ônibus vinculado</Label>
               <Select
                 value={busId}
                 onValueChange={(value) => setBusId(value ?? "none")}
@@ -462,12 +462,12 @@ export function ScheduleFormModal({
                 <SelectTrigger className="h-11 w-full cursor-pointer rounded-xl border-border/70 bg-background px-3">
                   <SelectValue>
                     {busId === "none"
-                      ? "Sem onibus vinculado"
+                      ? "Sem ônibus vinculado"
                       : buses.find((bus) => bus.id === busId)?.plate}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sem onibus vinculado</SelectItem>
+                  <SelectItem value="none">Sem ônibus vinculado</SelectItem>
                   {buses.map((bus) => (
                     <SelectItem key={bus.id} value={bus.id}>
                       {bus.plate}
@@ -477,8 +477,8 @@ export function ScheduleFormModal({
               </Select>
               <p className="text-xs text-muted-foreground">
                 {busId === "none"
-                  ? "Voce pode salvar agora e vincular o onibus depois."
-                  : `Onibus selecionado: ${busSummary}.`}
+                  ? "Você pode salvar agora e vincular o ônibus depois."
+                  : `Ônibus selecionado: ${busSummary}.`}
               </p>
             </div>
 
@@ -490,7 +490,7 @@ export function ScheduleFormModal({
                 {trimmedTitle || `${currentTypeOption.label} sem titulo`}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {time || "Sem horario definido"} - {selectedDaysSummary}
+                {time || "Sem horário definido"} - {selectedDaysSummary}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {busSummary}
@@ -516,8 +516,8 @@ export function ScheduleFormModal({
               {isSaving
                 ? "Salvando..."
                 : isEdit
-                  ? "Salvar alteracoes"
-                  : "Criar horario"}
+                  ? "Salvar alterações"
+                  : "Criar horário"}
             </Button>
           </div>
         </div>

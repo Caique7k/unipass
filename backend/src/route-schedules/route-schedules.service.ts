@@ -163,7 +163,7 @@ export class RouteSchedulesService {
     });
 
     if (!schedule) {
-      throw new NotFoundException('Horario nao encontrado');
+      throw new NotFoundException('Horário não encontrado.');
     }
 
     return schedule;
@@ -356,7 +356,7 @@ export class RouteSchedulesService {
 
       if (conflictingSchedule) {
         throw new BadRequestException(
-          `Ja existe um horario identico configurado para ${this.getDayLabel(dayOfWeek)}`,
+          `Já existe um horário idêntico configurado para ${this.getDayLabel(dayOfWeek)}.`,
         );
       }
     }
@@ -377,7 +377,7 @@ export class RouteSchedulesService {
     });
 
     if (!route) {
-      throw new NotFoundException('Rota nao encontrada');
+      throw new NotFoundException('Rota não encontrada.');
     }
   }
 
@@ -400,7 +400,7 @@ export class RouteSchedulesService {
     });
 
     if (!bus) {
-      throw new BadRequestException('Onibus nao encontrado para esta empresa');
+      throw new BadRequestException('Ônibus não encontrado para esta empresa.');
     }
   }
 

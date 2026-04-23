@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import type { StringValue } from 'ms';
+import { OpaqueIdService } from 'src/security/opaque-id.service';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +12,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private readonly opaqueIdService: OpaqueIdService,
   ) {}
 
   private getTokenExpiration(rememberMe: boolean) {
@@ -51,11 +53,11 @@ export class AuthService {
     }
 
     const payload = {
-      sub: user.id,
+      sub: this.opaqueIdService.encode(user.id),
       email: user.email,
       name: user.name,
       role: user.role,
-      companyId: user.companyId,
+      companyId: this.opaqueIdService.encode(user.companyId),
       emailDomain: user.company?.emailDomain ?? null,
       companyName: user.company?.name ?? null,
     };

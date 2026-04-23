@@ -7,9 +7,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { Public } from '../auth/public.decorator';
 import { CompaniesService } from './companies.service';
 import { CheckDomainDto } from './dto/check-domain.dto';
 import { SendSmsCodeDto } from './dto/send-sms-code.dto';
@@ -42,21 +44,49 @@ export class CompaniesController {
     return this.companiesService.updateMine(req.user.companyId, dto);
   }
 
+  @Public()
+  @Throttle({
+    default: {
+      limit: 20,
+      ttl: 60_000,
+    },
+  })
   @Post('domain-check')
   checkDomain(@Body() dto: CheckDomainDto) {
     return this.companiesService.checkDomainAvailability(dto.domain);
   }
 
+  @Public()
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 10 * 60_000,
+    },
+  })
   @Post('onboarding/sms/send')
   sendSmsCode(@Body() dto: SendSmsCodeDto) {
     return this.companiesService.sendSmsCode(dto.phone);
   }
 
+  @Public()
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 10 * 60_000,
+    },
+  })
   @Post('onboarding/sms/verify')
   verifySmsCode(@Body() dto: VerifySmsCodeDto) {
     return this.companiesService.verifySmsCode(dto.phone, dto.code);
   }
 
+  @Public()
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 15 * 60_000,
+    },
+  })
   @Post('onboarding')
   createOnboarding(@Body() dto: CreateCompanyOnboardingDto) {
     return this.companiesService.createOnboarding(dto);

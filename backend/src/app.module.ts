@@ -5,6 +5,8 @@ import { AppService } from './app.service';
 import { TransportModule } from './transport/transport.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { StudentsModule } from './students/students.module';
 import { RfidModule } from './rfid/rfid.module';
@@ -19,6 +21,7 @@ import { ConfirmationsModule } from './confirmations/confirmations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { NotificationPromptsModule } from './notification-prompts/notification-prompts.module';
 import { GroupsModule } from './groups/groups.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
@@ -26,6 +29,23 @@ import { GroupsModule } from './groups/groups.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [
+          {
+            name: 'default',
+            ttl: Number(
+              configService.get<string>('RATE_LIMIT_TTL_MS') ?? `${60_000}`,
+            ),
+            limit: Number(
+              configService.get<string>('RATE_LIMIT_LIMIT') ?? '120',
+            ),
+          },
+        ],
+      }),
+    }),
+    SecurityModule,
     TransportModule,
     AuthModule,
     DashboardModule,

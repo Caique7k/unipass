@@ -20,6 +20,28 @@ function parseAllowedOrigins(value?: string) {
   return origins?.length ? origins : fallback;
 }
 
+function replaceObjectContents(
+  target: Record<string, unknown> | undefined,
+  nextValue: unknown,
+) {
+  if (
+    !target ||
+    typeof target !== 'object' ||
+    !nextValue ||
+    typeof nextValue !== 'object' ||
+    Array.isArray(target) ||
+    Array.isArray(nextValue)
+  ) {
+    return;
+  }
+
+  for (const key of Object.keys(target)) {
+    delete target[key];
+  }
+
+  Object.assign(target, nextValue);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
@@ -33,15 +55,32 @@ async function bootstrap() {
   app.use(cookieParser());
   app.use((req, _res, next) => {
     if (req.params) {
-      req.params = opaqueIdService.decodeRequestIdentifiers(req.params);
+      replaceObjectContents(
+        req.params as Record<string, unknown>,
+        opaqueIdService.decodeRequestIdentifiers(req.params),
+      );
     }
 
     if (req.query) {
-      req.query = opaqueIdService.decodeRequestIdentifiers(req.query);
+      replaceObjectContents(
+        req.query as Record<string, unknown>,
+        opaqueIdService.decodeRequestIdentifiers(req.query),
+      );
     }
 
     if (req.body) {
-      req.body = opaqueIdService.decodeRequestIdentifiers(req.body);
+      if (
+        typeof req.body === 'object' &&
+        req.body !== null &&
+        !Array.isArray(req.body)
+      ) {
+        replaceObjectContents(
+          req.body as Record<string, unknown>,
+          opaqueIdService.decodeRequestIdentifiers(req.body),
+        );
+      } else {
+        req.body = opaqueIdService.decodeRequestIdentifiers(req.body);
+      }
     }
 
     next();

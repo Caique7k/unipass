@@ -227,7 +227,7 @@ export class RouteSchedulesService {
   }
 
   async deactivateMany(companyId: string, ids: string[]) {
-    return this.prisma.routeSchedule.updateMany({
+    const result = await this.prisma.routeSchedule.updateMany({
       where: {
         id: {
           in: ids,
@@ -240,6 +240,14 @@ export class RouteSchedulesService {
         active: false,
       },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException(
+        'Nenhum horário encontrado para desativar.',
+      );
+    }
+
+    return result;
   }
 
   async remove(companyId: string, id: string) {

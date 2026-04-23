@@ -250,7 +250,7 @@ export class UsersService {
   ) {
     const company = await this.getCompanyOrFail(currentUser.companyId);
 
-    return this.prisma.user.updateMany({
+    const result = await this.prisma.user.updateMany({
       where: {
         id: {
           in: ids,
@@ -264,6 +264,12 @@ export class UsersService {
         active: false,
       },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Nenhum usuário encontrado para desativar.');
+    }
+
+    return result;
   }
 
   private async getCompanyOrFail(companyId?: string | null) {

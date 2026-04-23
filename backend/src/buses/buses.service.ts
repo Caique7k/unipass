@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateBusDto } from './dto/create-bus.dto';
 import { UpdateBusDto } from './dto/update-bus.dto';
@@ -103,12 +107,18 @@ export class BusesService {
   }
 
   async deleteMany(ids: string[]) {
-    return this.prisma.bus.deleteMany({
+    const result = await this.prisma.bus.deleteMany({
       where: {
         id: {
           in: ids,
         },
       },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Nenhum ônibus encontrado para remover.');
+    }
+
+    return result;
   }
 }

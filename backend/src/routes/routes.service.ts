@@ -143,7 +143,7 @@ export class RoutesService {
   }
 
   async deactivateMany(companyId: string, ids: string[]) {
-    return this.prisma.route.updateMany({
+    const result = await this.prisma.route.updateMany({
       where: {
         companyId,
         id: {
@@ -154,6 +154,12 @@ export class RoutesService {
         active: false,
       },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Nenhuma rota encontrada para desativar.');
+    }
+
+    return result;
   }
 
   private async ensureRouteNameAvailable(

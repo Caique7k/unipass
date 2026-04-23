@@ -314,7 +314,7 @@ export class DevicesService {
   }
 
   async deleteMany(user, dto: DeleteDevicesDto) {
-    return this.prisma.device.updateMany({
+    const result = await this.prisma.device.updateMany({
       where: {
         id: { in: dto.ids },
         companyId: user.companyId,
@@ -323,6 +323,14 @@ export class DevicesService {
         active: false,
       },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException(
+        'Nenhum dispositivo encontrado para desativar.',
+      );
+    }
+
+    return result;
   }
 
   async update(user, id: string, dto: { name: string }) {

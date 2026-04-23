@@ -110,7 +110,7 @@ export class GroupsService {
   }
 
   async deactivateMany(companyId: string, ids: string[]) {
-    return this.prisma.group.updateMany({
+    const result = await this.prisma.group.updateMany({
       where: {
         companyId,
         id: {
@@ -121,6 +121,12 @@ export class GroupsService {
         active: false,
       },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Nenhum grupo encontrado para desativar.');
+    }
+
+    return result;
   }
 
   private normalizeName(value: string) {

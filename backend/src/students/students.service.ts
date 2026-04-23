@@ -257,7 +257,7 @@ export class StudentsService {
     });
   }
   async desactivateMany(companyId: string, ids: string[]) {
-    return this.prisma.student.updateMany({
+    const result = await this.prisma.student.updateMany({
       where: {
         companyId,
         id: {
@@ -268,6 +268,12 @@ export class StudentsService {
         active: false,
       },
     });
+
+    if (result.count === 0) {
+      throw new NotFoundException('Nenhum aluno encontrado para desativar.');
+    }
+
+    return result;
   }
 
   async findUserCandidates(companyId: string, includeUserId?: string) {

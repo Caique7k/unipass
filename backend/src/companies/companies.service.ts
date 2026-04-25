@@ -5,17 +5,46 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
 import { CompanyPlan, UserRole } from '@prisma/client';
-import { CreateCompanyOnboardingDto } from './dto/create-company-onboarding.dto';
-import { UpdateCompanyProfileDto } from './dto/update-company-profile.dto';
 import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateCompanyOnboardingDto } from './dto/create-company-onboarding.dto';
+import { RequestCompanyPlanChangeDto } from './dto/request-company-plan-change.dto';
+import { UpdateCompanyProfileDto } from './dto/update-company-profile.dto';
 
 type SmsChallenge = {
   code: string;
   expiresAt: Date;
   verifiedAt?: Date;
+};
+
+type CompanySummaryRecord = {
+  id: string;
+  name: string;
+  cnpj: string;
+  emailDomain: string;
+  plan: CompanyPlan;
+  requestedPlan: CompanyPlan | null;
+  planChangeRequestedAt: Date | null;
+  planChangeRequestedByName: string | null;
+  planChangeRequestedByEmail: string | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  smsVerifiedAt: Date | null;
+  createdAt: Date;
+  _count: {
+    users: number;
+    students: number;
+    buses: number;
+    devices: number;
+  };
+};
+
+type CurrentUserIdentity = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
 };
 
 @Injectable()
@@ -29,7 +58,7 @@ export class CompaniesService {
   ) {}
 
   async findAll() {
-    return this.prisma.company.findMany({
+    const companies = await this.prisma.company.findMany({
       orderBy: {
         createdAt: 'desc',
       },
@@ -44,45 +73,20 @@ export class CompaniesService {
         },
       },
     });
+
+    return companies.map((company) => this.mapCompanySummary(company));
   }
 
   async findMine(companyId?: string | null) {
-    const company = await this.getCompanyOrFail(companyId);
+    const company = await this.getCompanySummaryOrFail(companyId);
 
-    const counts = await this.prisma.company.findUnique({
-      where: { id: company.id },
-      include: {
-        _count: {
-          select: {
-            users: true,
-            students: true,
-            buses: true,
-            devices: true,
-          },
-        },
-      },
-    });
-
-    return {
-      id: company.id,
-      name: company.name,
-      cnpj: company.cnpj,
-      emailDomain: company.emailDomain,
-      plan: company.plan,
-      contactName: company.contactName,
-      contactPhone: company.contactPhone,
-      smsVerifiedAt: company.smsVerifiedAt,
-      createdAt: company.createdAt,
-      _count: counts?._count ?? {
-        users: 0,
-        students: 0,
-        buses: 0,
-        devices: 0,
-      },
-    };
+    return this.mapCompanySummary(company);
   }
 
-  async updateMine(companyId: string | null | undefined, dto: UpdateCompanyProfileDto) {
+  async updateMine(
+    companyId: string | null | undefined,
+    dto: UpdateCompanyProfileDto,
+  ) {
     const company = await this.getCompanyOrFail(companyId);
     const normalizedCnpj = this.normalizeCnpj(dto.cnpj);
     const normalizedPhone = dto.contactPhone
@@ -95,10 +99,12 @@ export class CompaniesService {
     });
 
     if (existingCompanyByCnpj && existingCompanyByCnpj.id !== company.id) {
-      throw new BadRequestException('Já existe uma empresa cadastrada com este CNPJ.');
+      throw new BadRequestException(
+        'Já existe uma empresa cadastrada com este CNPJ.',
+      );
     }
 
-    return this.prisma.company.update({
+    await this.prisma.company.update({
       where: { id: company.id },
       data: {
         name: dto.name.trim(),
@@ -106,18 +112,76 @@ export class CompaniesService {
         contactName: dto.contactName?.trim() || null,
         contactPhone: normalizedPhone,
       },
-      select: {
-        id: true,
-        name: true,
-        cnpj: true,
-        emailDomain: true,
-        plan: true,
-        contactName: true,
-        contactPhone: true,
-        smsVerifiedAt: true,
-        createdAt: true,
+    });
+
+    return this.findMine(company.id);
+  }
+
+  async requestPlanChange(
+    companyId: string | null | undefined,
+    currentUser: CurrentUserIdentity,
+    dto: RequestCompanyPlanChangeDto,
+  ) {
+    const company = await this.getCompanyOrFail(companyId);
+
+    if (dto.plan === company.plan) {
+      throw new BadRequestException(
+        'Sua empresa já utiliza o plano selecionado.',
+      );
+    }
+
+    if (company.requestedPlan === dto.plan && company.planChangeRequestedAt) {
+      return {
+        message:
+          'Já existe uma solicitação pendente para este plano. O dono da plataforma já consegue visualizar essa pendência.',
+        company: await this.findMine(company.id),
+      };
+    }
+
+    await this.prisma.company.update({
+      where: { id: company.id },
+      data: {
+        requestedPlan: dto.plan,
+        planChangeRequestedAt: new Date(),
+        planChangeRequestedByName: currentUser.name?.trim() || null,
+        planChangeRequestedByEmail:
+          currentUser.email?.trim().toLowerCase() || null,
       },
     });
+
+    return {
+      message:
+        'Solicitação de mudança de plano enviada com sucesso. O dono da plataforma verá essa pendência e poderá entrar em contato com o responsável.',
+      company: await this.findMine(company.id),
+    };
+  }
+
+  async applyRequestedPlan(companyId: string) {
+    const company = await this.getCompanyOrFail(companyId);
+
+    if (!company.requestedPlan) {
+      throw new BadRequestException(
+        'Não há solicitação de plano pendente para esta empresa.',
+      );
+    }
+
+    await this.prisma.company.update({
+      where: { id: company.id },
+      data: {
+        plan: company.requestedPlan,
+        requestedPlan: null,
+        planChangeRequestedAt: null,
+        planChangeRequestedByName: null,
+        planChangeRequestedByEmail: null,
+      },
+    });
+
+    return {
+      message: `Plano solicitado aplicado com sucesso para ${company.name}.`,
+      company: this.mapCompanySummary(
+        await this.getCompanySummaryOrFail(company.id),
+      ),
+    };
   }
 
   async checkDomainAvailability(rawDomain: string) {
@@ -261,11 +325,15 @@ export class CompaniesService {
     ]);
 
     if (existingCompanyByCnpj) {
-      throw new BadRequestException('Já existe uma empresa cadastrada com este CNPJ.');
+      throw new BadRequestException(
+        'Já existe uma empresa cadastrada com este CNPJ.',
+      );
     }
 
     if (existingCompanyByDomain) {
-      throw new BadRequestException('Este domínio já está em uso por outra empresa.');
+      throw new BadRequestException(
+        'Este domínio já está em uso por outra empresa.',
+      );
     }
   }
 
@@ -282,7 +350,7 @@ export class CompaniesService {
 
   private async getCompanyOrFail(companyId?: string | null) {
     if (!companyId) {
-      throw new BadRequestException('Usuario sem empresa vinculada.');
+      throw new BadRequestException('Usuário sem empresa vinculada.');
     }
 
     const company = await this.prisma.company.findUnique({
@@ -296,6 +364,68 @@ export class CompaniesService {
     return company;
   }
 
+  private async getCompanySummaryOrFail(companyId?: string | null) {
+    if (!companyId) {
+      throw new BadRequestException('Usuário sem empresa vinculada.');
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      include: {
+        _count: {
+          select: {
+            users: true,
+            students: true,
+            buses: true,
+            devices: true,
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      throw new BadRequestException('Empresa não encontrada.');
+    }
+
+    return company;
+  }
+
+  private mapCompanySummary(company: CompanySummaryRecord) {
+    return {
+      id: company.id,
+      name: company.name,
+      cnpj: company.cnpj,
+      emailDomain: company.emailDomain,
+      plan: company.plan,
+      contactName: company.contactName,
+      contactPhone: company.contactPhone,
+      smsVerifiedAt: company.smsVerifiedAt,
+      createdAt: company.createdAt,
+      _count: company._count,
+      pendingPlanChangeRequest: this.buildPendingPlanChangeRequest(company),
+    };
+  }
+
+  private buildPendingPlanChangeRequest(company: {
+    plan: CompanyPlan;
+    requestedPlan: CompanyPlan | null;
+    planChangeRequestedAt: Date | null;
+    planChangeRequestedByName: string | null;
+    planChangeRequestedByEmail: string | null;
+  }) {
+    if (!company.requestedPlan || !company.planChangeRequestedAt) {
+      return null;
+    }
+
+    return {
+      currentPlan: company.plan,
+      requestedPlan: company.requestedPlan,
+      requestedAt: company.planChangeRequestedAt,
+      requestedByName: company.planChangeRequestedByName,
+      requestedByEmail: company.planChangeRequestedByEmail,
+    };
+  }
+
   private normalizeDomain(domain: string) {
     const sanitized = domain
       .trim()
@@ -305,8 +435,12 @@ export class CompaniesService {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9.-]/g, '');
 
-    if (!/^[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)+$/.test(sanitized)) {
-      throw new BadRequestException('Informe um domínio válido, como empresa.com.br.');
+    if (
+      !/^[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)+$/.test(sanitized)
+    ) {
+      throw new BadRequestException(
+        'Informe um domínio válido, como empresa.com.br.',
+      );
     }
 
     return sanitized;
@@ -378,7 +512,9 @@ export class CompaniesService {
 
     const used = new Set(companies.map((company) => company.emailDomain));
 
-    return uniqueVariants.filter((candidate) => !used.has(candidate)).slice(0, 4);
+    return uniqueVariants
+      .filter((candidate) => !used.has(candidate))
+      .slice(0, 4);
   }
 
   private getSmsProvider() {
@@ -410,7 +546,7 @@ export class CompaniesService {
 
     if (!accountSid || !authToken || (!messagingServiceSid && !from)) {
       this.logger.error(
-        'Configuracao Twilio incompleta. Defina TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN e TWILIO_MESSAGING_SERVICE_SID ou TWILIO_FROM_NUMBER.',
+        'Configuração Twilio incompleta. Defina TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN e TWILIO_MESSAGING_SERVICE_SID ou TWILIO_FROM_NUMBER.',
       );
       throw new ServiceUnavailableException(
         'O envio de SMS não está configurado no servidor.',

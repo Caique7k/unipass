@@ -22,15 +22,19 @@ enum CompanyPlan {
 }
 
 model Company {
-  id            String      @id @default(uuid())
-  name          String
-  cnpj          String      @unique
-  emailDomain   String      @unique
-  plan          CompanyPlan @default(ESSENTIAL)
-  contactName   String?
-  contactPhone  String?
-  smsVerifiedAt DateTime?
-  createdAt     DateTime    @default(now())
+  id                         String      @id @default(uuid())
+  name                       String
+  cnpj                       String      @unique
+  emailDomain                String      @unique
+  plan                       CompanyPlan @default(ESSENTIAL)
+  requestedPlan              CompanyPlan?
+  planChangeRequestedAt      DateTime?
+  planChangeRequestedByName  String?
+  planChangeRequestedByEmail String?
+  contactName                String?
+  contactPhone               String?
+  smsVerifiedAt              DateTime?
+  createdAt                  DateTime    @default(now())
 
   users           User[]
   students        Student[]
@@ -41,6 +45,8 @@ model Company {
   trips           Trip[]
   routes          Route[]
   groups          Group[]
+
+  @@index([requestedPlan, planChangeRequestedAt])
 }
 
 model User {

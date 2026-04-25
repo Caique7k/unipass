@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Patch,
   Post,
   Req,
@@ -18,6 +19,7 @@ import { SendSmsCodeDto } from './dto/send-sms-code.dto';
 import { VerifySmsCodeDto } from './dto/verify-sms-code.dto';
 import { CreateCompanyOnboardingDto } from './dto/create-company-onboarding.dto';
 import { UpdateCompanyProfileDto } from './dto/update-company-profile.dto';
+import { RequestCompanyPlanChangeDto } from './dto/request-company-plan-change.dto';
 
 @Controller('companies')
 export class CompaniesController {
@@ -42,6 +44,24 @@ export class CompaniesController {
   @Roles('ADMIN')
   updateMine(@Req() req: any, @Body() dto: UpdateCompanyProfileDto) {
     return this.companiesService.updateMine(req.user.companyId, dto);
+  }
+
+  @Post('me/plan-change-request')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  requestPlanChange(@Req() req: any, @Body() dto: RequestCompanyPlanChangeDto) {
+    return this.companiesService.requestPlanChange(
+      req.user.companyId,
+      req.user,
+      dto,
+    );
+  }
+
+  @Patch(':id/apply-requested-plan')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('PLATFORM_ADMIN')
+  applyRequestedPlan(@Param('id') id: string) {
+    return this.companiesService.applyRequestedPlan(id);
   }
 
   @Public()

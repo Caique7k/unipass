@@ -170,12 +170,12 @@ export class OpaqueIdService {
   }
 
   private isPlainObject(value: unknown): value is Record<string, unknown> {
+    if (typeof value !== 'object' || value === null) {
+      return false;
+    }
+
     const prototype = Object.getPrototypeOf(value);
 
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      (prototype === Object.prototype || prototype === null)
-    );
+    return prototype === Object.prototype || prototype === null;
   }
 }

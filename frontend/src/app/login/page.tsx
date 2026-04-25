@@ -3,7 +3,16 @@
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -57,6 +66,11 @@ const showcaseSlides = [
 const quickHighlights = ["Tempo real", "RFID + GPS", "Acesso seguro"];
 const defaultCarouselFocus = { x: 0.5, y: 0.5 };
 
+type LoginDialogState = {
+  title: string;
+  description: string;
+};
+
 // Função auxiliar para injetar variáveis CSS de delay nas animações de entrada
 function delayStyle(delay: number): CSSProperties {
   return { "--login-delay": `${delay}ms` } as CSSProperties;
@@ -77,9 +91,23 @@ function getRelativePointerPosition(
   };
 }
 
+function getApiErrorMessage(error: unknown) {
+  const message = axios.isAxiosError(error)
+    ? error.response?.data?.message
+    : null;
+
+  if (Array.isArray(message)) {
+    return message.find((item): item is string => typeof item === "string") ?? null;
+  }
+
+  return typeof message === "string" ? message : null;
+}
+
 export default function LoginPage() {
-  const router = useRouter(); // Navegação programática do Next.js
-  const { refreshUser } = useAuth(); // Função do seu AuthContext para atualizar o estado global do usuário
+  const router = useRouter();
+  const { refreshUser } = useAuth();
+  const emailInputId = useId();
+  const passwordInputId = useId();
 
   // ==========================================
   // ESTADOS DO COMPONENTE
@@ -89,13 +117,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false); // Alterna entre ver e ocultar a senha (Eye/EyeOff)
   const [rememberMe, setRememberMe] = useState(false); // Estado do checkbox de "Manter conectado"
-  const [errorModal, setErrorModal] = useState(false); // Controla a exibição do modal de erro customizado
+  const [loginError, setLoginError] = useState<LoginDialogState | null>(null);
   const [loading, setLoading] = useState(false); // Controla o estado de carregamento do botão de submit
   const [isHoveringCarousel, setIsHoveringCarousel] = useState(false);
   const [isZoomedCarousel, setIsZoomedCarousel] = useState(false);
   const [mousePos, setMousePos] = useState(defaultCarouselFocus);
   const [zoomOrigin, setZoomOrigin] = useState(defaultCarouselFocus);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const resetCarouselZoom = useCallback(() => {
+    setIsZoomedCarousel(false);
+    setMousePos(defaultCarouselFocus);
+    setZoomOrigin(defaultCarouselFocus);
+  }, []);
 
   // ==========================================
   // EFEITOS COLATERAIS (useEffect)
@@ -118,19 +150,17 @@ export default function LoginPage() {
   }, [isHoveringCarousel, isZoomedCarousel]);
 
   useEffect(() => {
-    setIsZoomedCarousel(false);
-    setMousePos(defaultCarouselFocus);
-    setZoomOrigin(defaultCarouselFocus);
-  }, [activeSlide]);
+    resetCarouselZoom();
+  }, [activeSlide, resetCarouselZoom]);
 
   // Handler para rastrear posição do mouse
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+  function handleMouseMove(e: MouseEvent<HTMLDivElement>) {
     setMousePos(
       getRelativePointerPosition(e.currentTarget, e.clientX, e.clientY),
     );
   }
 
-  function handleCarouselClick(e: React.MouseEvent<HTMLDivElement>) {
+  function handleCarouselClick(e: MouseEvent<HTMLDivElement>) {
     const nextPosition = getRelativePointerPosition(
       e.currentTarget,
       e.clientX,
@@ -138,9 +168,7 @@ export default function LoginPage() {
     );
 
     if (isZoomedCarousel) {
-      setIsZoomedCarousel(false);
-      setMousePos(defaultCarouselFocus);
-      setZoomOrigin(defaultCarouselFocus);
+      resetCarouselZoom();
       return;
     }
 
@@ -149,14 +177,12 @@ export default function LoginPage() {
     setIsZoomedCarousel(true);
   }
 
-  function handleCarouselKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+  function handleCarouselKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
 
     if (isZoomedCarousel) {
-      setIsZoomedCarousel(false);
-      setMousePos(defaultCarouselFocus);
-      setZoomOrigin(defaultCarouselFocus);
+      resetCarouselZoom();
       return;
     }
 
@@ -169,9 +195,10 @@ export default function LoginPage() {
   // ==========================================
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); // Evita que a página recarregue ao dar submit no formulário
+    const normalizedEmail = email.trim();
 
     // Validações básicas de front-end
-    if (!email.trim()) {
+    if (!normalizedEmail) {
       toast.error("Informe seu e-mail para entrar.");
       return;
     }
@@ -182,70 +209,34 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const payload = {
-        email: email.trim(),
+      setLoginError(null);
+      await api.post("/auth/login", {
+        email: normalizedEmail,
         password,
-        ...(rememberMe ? { rememberMe: true } : {}), // Só envia a flag de rememberMe se estiver ativa
-      };
-
-      try {
-        // Tenta fazer o login completo
-        await api.post("/auth/login", payload);
-      } catch (error) {
-        // Bloco engenhoso: Tratamento de erro específico para caso o backend 
-        // ainda não suporte o campo "rememberMe" no contrato da API.
-        const message = axios.isAxiosError(error)
-          ? error.response?.data?.message
-          : null;
-
-        const unknownRememberField =
-          error &&
-          axios.isAxiosError(error) &&
-          error.response?.status === 400 &&
-          ((Array.isArray(message) &&
-            message.some(
-              (item) => typeof item === "string" && item.includes("rememberMe"),
-            )) ||
-            (typeof message === "string" && message.includes("rememberMe")));
-
-        if (!unknownRememberField) {
-          throw error; // Se for um erro real (senha errada, etc), lança para o catch principal
-        }
-
-        // Se o erro foi só por causa do rememberMe, tenta logar de novo sem o campo
-        await api.post("/auth/login", {
-          email: email.trim(),
-          password,
-        });
-        toast.warning(
-          "O backend ainda não aplicou 'Manter conectado'. Entrando sem persistência.",
-        );
-      }
+        ...(rememberMe ? { rememberMe: true } : {}),
+      });
 
       // Sucesso no login: salva a preferência, atualiza contexto e redireciona pro dashboard
       window.localStorage.setItem(REMEMBER_STORAGE_KEY, String(rememberMe));
       toast.success("Login realizado com sucesso.");
       await refreshUser();
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       // Captura e tratamento de erros reais (401 Não Autorizado, etc)
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error("E-mail ou senha inválidos.");
+        setLoginError({
+          title: "Login inválido",
+          description: "O e-mail ou a senha informados estão incorretos.",
+        });
       } else {
-        const message = axios.isAxiosError(error)
-          ? error.response?.data?.message
-          : null;
-
-        if (Array.isArray(message) && typeof message[0] === "string") {
-          toast.error(message[0]);
-        } else if (typeof message === "string") {
-          toast.error(message);
-        } else {
-          toast.error("Não foi possível entrar agora.");
-        }
+        const message = getApiErrorMessage(error) ?? "Não foi possível entrar agora.";
+        toast.error(message);
+        setLoginError({
+          title: "Não foi possível entrar",
+          description: message,
+        });
       }
-
-      setErrorModal(true); // Abre o modal visual de erro
     } finally {
       setLoading(false); // Desativa o estado de carregamento do botão independente de sucesso ou falha
     }
@@ -334,7 +325,6 @@ export default function LoginPage() {
                   {/* Área onde as Imagens trocam */}
                   <div className="relative overflow-hidden rounded-[20px] border border-white/80 bg-[#eef2f7]">
                     <div
-                      ref={carouselRef}
                       className={cn(
                         "relative aspect-16/10 w-full max-h-[59vh] outline-none",
                         isZoomedCarousel ? "cursor-zoom-out" : "cursor-zoom-in",
@@ -531,12 +521,16 @@ export default function LoginPage() {
                   
                   {/* Input E-mail */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-[#111827]">
+                    <label
+                      htmlFor={emailInputId}
+                      className="text-sm font-semibold text-[#111827]"
+                    >
                       E-mail
                     </label>
                     <div className="relative">
                       <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#7c8899]" />
                       <Input
+                        id={emailInputId}
                         type="email"
                         placeholder="voce@empresa.com"
                         autoComplete="email"
@@ -549,12 +543,16 @@ export default function LoginPage() {
 
                   {/* Input Senha */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-[#111827]">
+                    <label
+                      htmlFor={passwordInputId}
+                      className="text-sm font-semibold text-[#111827]"
+                    >
                       Senha
                     </label>
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#7c8899]" />
                       <Input
+                        id={passwordInputId}
                         type={showPassword ? "text" : "password"} // Altera o tipo do input dependendo do estado do "olhinho"
                         placeholder="Digite sua senha"
                         autoComplete="current-password"
@@ -628,23 +626,31 @@ export default function LoginPage() {
 
       {/* ==========================================
           MODAL DE ERRO CUSTOMIZADO
-          Renderizado condicionalmente apenas se errorModal for 'true'
+          Renderizado condicionalmente apenas se loginError existir
           ========================================== */}
-      {errorModal && (
+      {loginError && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           
           {/* Fundo escuro (Overlay) - Clicar nele também fecha o modal */}
           <div
             className="absolute inset-0 animate-[fadeIn_0.2s_ease] bg-[#09111d]/42 backdrop-blur-sm"
-            onClick={() => setErrorModal(false)}
+            onClick={() => setLoginError(null)}
           />
 
           {/* O Modal em si */}
-          <div className="relative w-full max-w-sm animate-[scaleIn_0.28s_cubic-bezier(0.22,1,0.36,1)] rounded-[30px] border border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f2_100%)] p-6 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-error-title"
+            aria-describedby="login-error-description"
+            className="relative w-full max-w-sm animate-[scaleIn_0.28s_cubic-bezier(0.22,1,0.36,1)] rounded-[30px] border border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f2_100%)] p-6 shadow-[0_30px_90px_rgba(15,23,42,0.18)]"
+          >
             
             {/* Ícone de Fechar no canto superior direito */}
             <button
-              onClick={() => setErrorModal(false)}
+              type="button"
+              aria-label="Fechar modal de erro"
+              onClick={() => setLoginError(null)}
               className="absolute right-4 top-4 cursor-pointer text-[#7c8899] transition hover:text-[#334155]"
             >
               <X className="size-4" />
@@ -655,17 +661,24 @@ export default function LoginPage() {
               <Lock className="size-5" />
             </div>
 
-            <h3 className="mt-5 text-xl font-semibold tracking-[-0.04em] text-[#111827]">
-              Login inválido
+            <h3
+              id="login-error-title"
+              className="mt-5 text-xl font-semibold tracking-[-0.04em] text-[#111827]"
+            >
+              {loginError.title}
             </h3>
 
-            <p className="mt-2 text-sm leading-6 text-[#5b6472]">
-              O e-mail ou a senha informados estão incorretos.
+            <p
+              id="login-error-description"
+              className="mt-2 text-sm leading-6 text-[#5b6472]"
+            >
+              {loginError.description}
             </p>
 
             {/* Botão de Fechar o modal dentro dele */}
             <Button
-              onClick={() => setErrorModal(false)}
+              type="button"
+              onClick={() => setLoginError(null)}
               className="mt-6 h-11 w-full rounded-2xl bg-[linear-gradient(135deg,#ff5c00_0%,#ff7a1a_100%)] text-white hover:opacity-95 dark:text-white"
             >
               Tentar novamente

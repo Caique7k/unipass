@@ -12,6 +12,8 @@ import {
   Lock,
   Mail,
   Sparkles,
+  ZoomIn,
+  ZoomOut,
   X,
 } from "lucide-react"; // Ícones usados em botões e inputs
 import { toast } from "sonner"; // Biblioteca para exibir as notificações (alertas de sucesso/erro)
@@ -53,10 +55,26 @@ const showcaseSlides = [
 ];
 
 const quickHighlights = ["Tempo real", "RFID + GPS", "Acesso seguro"];
+const defaultCarouselFocus = { x: 0.5, y: 0.5 };
 
 // Função auxiliar para injetar variáveis CSS de delay nas animações de entrada
 function delayStyle(delay: number): CSSProperties {
   return { "--login-delay": `${delay}ms` } as CSSProperties;
+}
+
+function getRelativePointerPosition(
+  element: HTMLDivElement,
+  clientX: number,
+  clientY: number,
+) {
+  const rect = element.getBoundingClientRect();
+  const x = (clientX - rect.left) / rect.width;
+  const y = (clientY - rect.top) / rect.height;
+
+  return {
+    x: Math.min(Math.max(x, 0), 1),
+    y: Math.min(Math.max(y, 0), 1),
+  };
 }
 
 export default function LoginPage() {
@@ -74,7 +92,9 @@ export default function LoginPage() {
   const [errorModal, setErrorModal] = useState(false); // Controla a exibição do modal de erro customizado
   const [loading, setLoading] = useState(false); // Controla o estado de carregamento do botão de submit
   const [isHoveringCarousel, setIsHoveringCarousel] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
+  const [isZoomedCarousel, setIsZoomedCarousel] = useState(false);
+  const [mousePos, setMousePos] = useState(defaultCarouselFocus);
+  const [zoomOrigin, setZoomOrigin] = useState(defaultCarouselFocus);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   // ==========================================
@@ -90,18 +110,58 @@ export default function LoginPage() {
   // 2. Loop infinito para trocar os slides do carrossel automaticamente a cada 5.2 segundos
   useEffect(() => {
     if (isHoveringCarousel) return; // Pausa quando mouse está em cima
+    if (isZoomedCarousel) return;
     const intervalId = window.setInterval(() => {
       setActiveSlide((current) => (current + 1) % showcaseSlides.length);
     }, 5200);
     return () => window.clearInterval(intervalId);
-  }, [isHoveringCarousel]);
+  }, [isHoveringCarousel, isZoomedCarousel]);
+
+  useEffect(() => {
+    setIsZoomedCarousel(false);
+    setMousePos(defaultCarouselFocus);
+    setZoomOrigin(defaultCarouselFocus);
+  }, [activeSlide]);
 
   // Handler para rastrear posição do mouse
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setMousePos({ x, y });
+    setMousePos(
+      getRelativePointerPosition(e.currentTarget, e.clientX, e.clientY),
+    );
+  }
+
+  function handleCarouselClick(e: React.MouseEvent<HTMLDivElement>) {
+    const nextPosition = getRelativePointerPosition(
+      e.currentTarget,
+      e.clientX,
+      e.clientY,
+    );
+
+    if (isZoomedCarousel) {
+      setIsZoomedCarousel(false);
+      setMousePos(defaultCarouselFocus);
+      setZoomOrigin(defaultCarouselFocus);
+      return;
+    }
+
+    setMousePos(nextPosition);
+    setZoomOrigin(nextPosition);
+    setIsZoomedCarousel(true);
+  }
+
+  function handleCarouselKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+
+    if (isZoomedCarousel) {
+      setIsZoomedCarousel(false);
+      setMousePos(defaultCarouselFocus);
+      setZoomOrigin(defaultCarouselFocus);
+      return;
+    }
+
+    setZoomOrigin(mousePos);
+    setIsZoomedCarousel(true);
   }
 
   // ==========================================
@@ -275,14 +335,37 @@ export default function LoginPage() {
                   <div className="relative overflow-hidden rounded-[20px] border border-white/80 bg-[#eef2f7]">
                     <div
                       ref={carouselRef}
-                      className="relative aspect-16/10 w-full max-h-[59vh]"
+                      className={cn(
+                        "relative aspect-16/10 w-full max-h-[59vh] outline-none",
+                        isZoomedCarousel ? "cursor-zoom-out" : "cursor-zoom-in",
+                      )}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isZoomedCarousel}
+                      aria-label={
+                        isZoomedCarousel
+                          ? "Reduzir zoom da imagem do carrossel"
+                          : "Ampliar imagem do carrossel"
+                      }
                       onMouseEnter={() => setIsHoveringCarousel(true)}
                       onMouseLeave={() => {
                         setIsHoveringCarousel(false);
-                        setMousePos({ x: 0.5, y: 0.5 });
+                        if (!isZoomedCarousel) {
+                          setMousePos(defaultCarouselFocus);
+                        }
                       }}
                       onMouseMove={handleMouseMove}
+                      onClick={handleCarouselClick}
+                      onKeyDown={handleCarouselKeyDown}
                     >
+                      <div className="pointer-events-none absolute left-3 top-3 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/72 text-[#475569] shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+                        {isZoomedCarousel ? (
+                          <ZoomOut className="size-3.5 text-[#0f6aad]" />
+                        ) : (
+                          <ZoomIn className="size-3.5 text-[#ff5c00]" />
+                        )}
+                      </div>
+
                       {showcaseSlides.map((slide, index) => (
                         <figure
                           key={slide.src}
@@ -294,17 +377,7 @@ export default function LoginPage() {
                           )}
                         >
                           {/* Wrapper com overflow hidden para conter o zoom */}
-                          <div
-                            className="absolute inset-0 overflow-hidden rounded-[20px]"
-                            style={{
-                              transform: isHoveringCarousel && index === activeSlide
-                                ? `scale(1.08) translate(${(mousePos.x - 0.5) * -6}px, ${(mousePos.y - 0.5) * -6}px)`
-                                : "scale(1) translate(0px, 0px)",
-                              transition: isHoveringCarousel
-                                ? "transform 0.6s cubic-bezier(0.22,1,0.36,1)"
-                                : "transform 0.8s cubic-bezier(0.22,1,0.36,1)",
-                            }}
-                          >
+                          <div className="absolute inset-0 overflow-hidden rounded-[20px]">
                             <Image
                               src={slide.src}
                               alt={slide.alt}
@@ -313,18 +386,50 @@ export default function LoginPage() {
                               unoptimized
                               sizes="(min-width: 1536px) 760px, (min-width: 1280px) 46vw, (min-width: 768px) 70vw, 92vw"
                               className="object-cover"
+                              draggable={false}
+                              style={{
+                                objectPosition:
+                                  index === activeSlide
+                                    ? `${mousePos.x * 100}% ${mousePos.y * 100}%`
+                                    : "50% 50%",
+                                transform:
+                                  index === activeSlide
+                                    ? `scale(${isZoomedCarousel ? 1.72 : isHoveringCarousel ? 1.08 : 1})`
+                                    : "scale(1.03)",
+                                transformOrigin: `${zoomOrigin.x * 100}% ${zoomOrigin.y * 100}%`,
+                                transition:
+                                  index === activeSlide
+                                    ? isZoomedCarousel
+                                      ? "transform 0.45s cubic-bezier(0.22,1,0.36,1), object-position 100ms linear"
+                                      : "transform 0.65s cubic-bezier(0.22,1,0.36,1), object-position 0.35s ease"
+                                    : "transform 0.65s cubic-bezier(0.22,1,0.36,1), object-position 0.35s ease",
+                              }}
                             />
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,18,0.02),rgba(7,10,18,0.42))]" />
+                            <div
+                              className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,18,0.02),rgba(7,10,18,0.42))] transition-opacity duration-300"
+                              style={{
+                                opacity:
+                                  isZoomedCarousel && index === activeSlide
+                                    ? 0.3
+                                    : 1,
+                              }}
+                            />
                           </div>
 
                           {/* Legenda: sempre visível, desaparece no hover */}
                           <div
                             className="absolute inset-x-3 bottom-3 rounded-[18px] border border-white/20 bg-[#09111d]/72 p-3 text-white shadow-[0_18px_40px_rgba(9,17,29,0.28)] backdrop-blur-xl"
                             style={{
-                              opacity: isHoveringCarousel && index === activeSlide ? 0 : 1,
-                              transform: isHoveringCarousel && index === activeSlide
-                                ? "translateY(6px)"
-                                : "translateY(0px)",
+                              opacity:
+                                (isHoveringCarousel || isZoomedCarousel) &&
+                                index === activeSlide
+                                  ? 0
+                                  : 1,
+                              transform:
+                                (isHoveringCarousel || isZoomedCarousel) &&
+                                index === activeSlide
+                                  ? "translateY(6px)"
+                                  : "translateY(0px)",
                               transition: "opacity 0.4s ease, transform 0.4s ease",
                               pointerEvents: "none",
                             }}

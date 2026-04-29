@@ -25,12 +25,14 @@ export type LiveTelemetry = {
   latitude: number;
   longitude: number;
   lastUpdate: string;
+  heading?: number | null;
 };
 
 export type TelemetryPoint = {
   latitude: number;
   longitude: number;
   timestamp: string;
+  heading?: number | null;
 };
 
 export type LiveBusState =

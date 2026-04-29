@@ -16,6 +16,7 @@ type BusesResponse = {
 };
 
 const MAX_TRAIL_POINTS = 24;
+const TRAIL_SESSION_GAP_MS = 60_000;
 
 function samePoint(a: TelemetryPoint, b: TelemetryPoint) {
   return a.latitude === b.latitude && a.longitude === b.longitude && a.timestamp === b.timestamp;
@@ -27,10 +28,46 @@ function toTelemetryPoint(response: LiveBusResponse): TelemetryPoint | null {
   }
 
   return {
+    heading: response.telemetry.heading ?? null,
     latitude: response.telemetry.latitude,
     longitude: response.telemetry.longitude,
     timestamp: response.telemetry.lastUpdate,
   };
+}
+
+function shouldResetTrailSession(
+  previousPoint: TelemetryPoint | undefined,
+  nextPoint: TelemetryPoint,
+) {
+  if (!previousPoint) {
+    return false;
+  }
+
+  const previousTimestamp = new Date(previousPoint.timestamp).getTime();
+  const nextTimestamp = new Date(nextPoint.timestamp).getTime();
+  const elapsedMs = nextTimestamp - previousTimestamp;
+
+  return elapsedMs <= 0 || elapsedMs > TRAIL_SESSION_GAP_MS;
+}
+
+function normalizeBearing(value: number) {
+  return ((value % 360) + 360) % 360;
+}
+
+function calculateBearing(from: TelemetryPoint, to: TelemetryPoint) {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const toDeg = (value: number) => (value * 180) / Math.PI;
+
+  const latitudeFrom = toRad(from.latitude);
+  const latitudeTo = toRad(to.latitude);
+  const longitudeDelta = toRad(to.longitude - from.longitude);
+
+  const y = Math.sin(longitudeDelta) * Math.cos(latitudeTo);
+  const x =
+    Math.cos(latitudeFrom) * Math.sin(latitudeTo) -
+    Math.sin(latitudeFrom) * Math.cos(latitudeTo) * Math.cos(longitudeDelta);
+
+  return normalizeBearing(toDeg(Math.atan2(y, x)));
 }
 
 function haversineKm(
@@ -126,6 +163,7 @@ export function useLocationOverview() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const trailByBusRef = useRef<Record<string, TelemetryPoint[]>>({});
+  const lastStateByBusRef = useRef<Record<string, LocationViewModel["state"]>>({});
 
   const fetchBuses = useCallback(async () => {
     const response = await api.get<BusesResponse>("/buses", {
@@ -152,16 +190,45 @@ export function useLocationOverview() {
     const busId = response.bus.id;
     const nextPoint = toTelemetryPoint(response);
     const currentTrail = trailByBusRef.current[busId] ?? [];
+    const previousState = lastStateByBusRef.current[busId];
+    const isLiveSession = response.state === "live";
+    const lastKnownHeading = currentTrail[currentTrail.length - 1]?.heading ?? null;
 
-    let nextTrail = currentTrail;
+    let nextTrail: TelemetryPoint[] = [];
 
-    if (nextPoint) {
+    if (nextPoint && isLiveSession) {
       const lastPoint = currentTrail[currentTrail.length - 1];
-      nextTrail = lastPoint && samePoint(lastPoint, nextPoint)
-        ? currentTrail
-        : [...currentTrail, nextPoint].slice(-MAX_TRAIL_POINTS);
-      trailByBusRef.current[busId] = nextTrail;
+      const shouldStartNewTrail =
+        previousState !== "live" || shouldResetTrailSession(lastPoint, nextPoint);
+      const baseTrail = shouldStartNewTrail ? [] : currentTrail;
+      const previousTrailPoint = baseTrail[baseTrail.length - 1];
+      const derivedHeading =
+        nextPoint.heading ??
+        (previousTrailPoint &&
+        (previousTrailPoint.latitude !== nextPoint.latitude ||
+          previousTrailPoint.longitude !== nextPoint.longitude)
+          ? calculateBearing(previousTrailPoint, nextPoint)
+          : lastKnownHeading);
+      const normalizedPoint = {
+        ...nextPoint,
+        heading: derivedHeading,
+      };
+
+      nextTrail =
+        previousTrailPoint && samePoint(previousTrailPoint, normalizedPoint)
+          ? baseTrail
+          : [...baseTrail, normalizedPoint].slice(-MAX_TRAIL_POINTS);
+    } else if (nextPoint) {
+      nextTrail = [
+        {
+          ...nextPoint,
+          heading: nextPoint.heading ?? lastKnownHeading,
+        },
+      ];
     }
+
+    trailByBusRef.current[busId] = nextTrail;
+    lastStateByBusRef.current[busId] = response.state;
 
     setViewModel({
       selectedBus: response.bus,

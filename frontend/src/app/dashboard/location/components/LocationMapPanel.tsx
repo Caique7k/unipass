@@ -74,6 +74,7 @@ export function LocationMapPanel({
       viewModel.telemetry &&
       viewModel.selectedBus ? (
         <InteractiveBusMap
+          heading={viewModel.telemetry.heading ?? null}
           latitude={viewModel.telemetry.latitude}
           longitude={viewModel.telemetry.longitude}
           plate={viewModel.selectedBus.plate}

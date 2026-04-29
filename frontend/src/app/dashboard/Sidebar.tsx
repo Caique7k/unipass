@@ -16,6 +16,7 @@ import {
   SmartphoneNfcIcon,
   Truck,
   Users,
+  Wallet,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/app/contexts/SidebarContext";
@@ -110,6 +111,24 @@ export default function Sidebar() {
           />
         </div>
 
+        {!isPlatformAdmin && (
+          <div>
+            {isOpen && (
+              <p className="mb-2 text-xs uppercase text-muted-foreground">
+                Financeiro
+              </p>
+            )}
+
+            <SidebarItem
+              href="/dashboard/billing"
+              icon={<Wallet size={25} />}
+              label="Boletos"
+              isOpen={isOpen}
+              active={pathname === "/dashboard/billing"}
+            />
+          </div>
+        )}
+
         {canViewOperations && (
           <div>
             {isOpen && (
@@ -171,13 +190,13 @@ export default function Sidebar() {
               <SidebarItem
                 href="/dashboard/routes"
                 icon={<Route size={25} />}
-              label="Rotas"
-              isOpen={isOpen}
-              active={
-                pathname === "/dashboard/routes" ||
-                pathname.startsWith("/dashboard/routes/")
-              }
-            />
+                label="Rotas"
+                isOpen={isOpen}
+                active={
+                  pathname === "/dashboard/routes" ||
+                  pathname.startsWith("/dashboard/routes/")
+                }
+              />
             )}
 
             {canManageCompany && (

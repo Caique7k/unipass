@@ -325,8 +325,19 @@ function findLabelLayerId(map: MapRef) {
   const layers = map.getStyle().layers ?? [];
 
   for (const layer of layers) {
-    const textField = "layout" in layer ? layer.layout?.["text-field"] : undefined;
-    if (layer.type === "symbol" && textField) {
+    if (layer.type !== "symbol") {
+      continue;
+    }
+
+    const textField = (
+      layer as {
+        layout?: {
+          "text-field"?: unknown;
+        };
+      }
+    ).layout?.["text-field"];
+
+    if (textField) {
       return layer.id;
     }
   }

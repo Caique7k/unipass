@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { NotificationPromptsModule } from './notification-prompts/notification-prompts.module';
 import { GroupsModule } from './groups/groups.module';
 import { SecurityModule } from './security/security.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { SecurityModule } from './security/security.module';
     ConfirmationsModule,
     NotificationsModule,
     NotificationPromptsModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

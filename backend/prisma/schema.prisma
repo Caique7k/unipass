@@ -21,12 +21,43 @@ enum CompanyPlan {
   SCALE
 }
 
+enum BillingGatewayMode {
+  EXTERNAL
+  PLATFORM_GATEWAY
+}
+
+enum BillingOnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  UNDER_REVIEW
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum BillingTargetScope {
+  STUDENTS
+  COORDINATORS
+  STUDENTS_AND_COORDINATORS
+}
+
+enum BillingChargeStatus {
+  DRAFT
+  SCHEDULED
+  ISSUED
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+  FAILED
+}
+
 model Company {
-  id                         String      @id @default(uuid())
+  id                         String       @id @default(uuid())
   name                       String
-  cnpj                       String      @unique
-  emailDomain                String      @unique
-  plan                       CompanyPlan @default(ESSENTIAL)
+  cnpj                       String       @unique
+  emailDomain                String       @unique
+  plan                       CompanyPlan  @default(ESSENTIAL)
   requestedPlan              CompanyPlan?
   planChangeRequestedAt      DateTime?
   planChangeRequestedByName  String?
@@ -34,34 +65,38 @@ model Company {
   contactName                String?
   contactPhone               String?
   smsVerifiedAt              DateTime?
-  createdAt                  DateTime    @default(now())
+  createdAt                  DateTime     @default(now())
 
-  users           User[]
-  students        Student[]
-  buses           Bus[]
-  devices         Device[]
-  rfidCards       RfidCard[]
-  transportEvents TransportEvent[]
-  trips           Trip[]
-  routes          Route[]
-  groups          Group[]
+  users            User[]
+  students         Student[]
+  buses            Bus[]
+  devices          Device[]
+  rfidCards        RfidCard[]
+  transportEvents  TransportEvent[]
+  trips            Trip[]
+  routes           Route[]
+  groups           Group[]
+  billingSettings  CompanyBillingSettings?
+  billingTemplates BillingTemplate[]
+  billingCharges   BillingCharge[]
 
   @@index([requestedPlan, planChangeRequestedAt])
 }
 
 model User {
-  id            String                 @id @default(uuid())
-  name          String
-  email         String                 @unique
-  password      String
-  role          UserRole
-  active        Boolean                @default(true)
-  studentId     String?                @unique
-  companyId     String?
-  student       Student?               @relation(fields: [studentId], references: [id])
-  company       Company?               @relation(fields: [companyId], references: [id])
-  confirmations ScheduleConfirmation[]
+  id                  String                 @id @default(uuid())
+  name                String
+  email               String                 @unique
+  password            String
+  role                UserRole
+  active              Boolean                @default(true)
+  studentId           String?                @unique
+  companyId           String?
+  student             Student?               @relation(fields: [studentId], references: [id])
+  company             Company?               @relation(fields: [companyId], references: [id])
+  confirmations       ScheduleConfirmation[]
   notificationPrompts NotificationPrompt[]
+  ownedBillingCharges BillingCharge[]        @relation("BillingChargeOwner")
 
   createdAt DateTime @default(now())
 
@@ -96,12 +131,13 @@ model Student {
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
   groupId   String?
-  group     Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  group     Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
   user      User?
 
   rfidCards       RfidCard[]
   transportEvents TransportEvent[]
   routes          StudentRoute[]
+  billingCharges  BillingCharge[]
   createdAt       DateTime         @default(now())
 
   @@unique([registration, companyId])
@@ -117,10 +153,10 @@ model Group {
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
 
-  name String
+  name           String
   nameNormalized String
-  active Boolean @default(true)
-  students Student[]
+  active         Boolean   @default(true)
+  students       Student[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -237,8 +273,8 @@ model Trip {
 }
 
 model Route {
-  id   String @id @default(uuid())
-  name String
+  id     String  @id @default(uuid())
+  name   String
   active Boolean @default(true)
 
   companyId String
@@ -266,17 +302,17 @@ model RouteSchedule {
   title String?
 
   // horário da saída
-  departureTime DateTime
+  departureTime    DateTime
   departureMinutes Int
-  dayOfWeeks    Int[] // 0=domingo até 6=sábado
+  dayOfWeeks       Int[] // 0=domingo até 6=sábado
 
   // quantos minutos antes notificar
-  notifyBeforeMinutes Int @default(30)
+  notifyBeforeMinutes     Int   @default(30)
   notificationTimeMinutes Int
-  notificationDayOfWeeks Int[]
+  notificationDayOfWeeks  Int[]
 
-  active        Boolean                @default(true)
-  confirmations ScheduleConfirmation[]
+  active              Boolean                @default(true)
+  confirmations       ScheduleConfirmation[]
   notificationPrompts NotificationPrompt[]
 
   createdAt DateTime @default(now())
@@ -302,8 +338,8 @@ model StudentRoute {
 model ScheduleConfirmation {
   id String @id @default(uuid())
 
-  userId     String
-  scheduleId String
+  userId        String
+  scheduleId    String
   occurrenceKey String
 
   user     User          @relation(fields: [userId], references: [id])
@@ -320,25 +356,99 @@ model ScheduleConfirmation {
 model NotificationPrompt {
   id String @id @default(uuid())
 
-  userId String
-  scheduleId String
-  occurrenceKey String
-  message String
-  deliveryChannel NotificationChannel @default(IN_APP)
-  status NotificationPromptStatus @default(PENDING)
-  response Boolean?
-  dispatchedAt DateTime?
-  answeredAt DateTime?
-  lastError String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId          String
+  scheduleId      String
+  occurrenceKey   String
+  message         String
+  deliveryChannel NotificationChannel      @default(IN_APP)
+  status          NotificationPromptStatus @default(PENDING)
+  response        Boolean?
+  dispatchedAt    DateTime?
+  answeredAt      DateTime?
+  lastError       String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user     User          @relation(fields: [userId], references: [id])
   schedule RouteSchedule @relation(fields: [scheduleId], references: [id])
 
   @@unique([userId, scheduleId, occurrenceKey])
   @@index([userId, status, createdAt])
   @@index([scheduleId, occurrenceKey])
+}
+
+model CompanyBillingSettings {
+  id                      String                  @id @default(uuid())
+  companyId               String                  @unique
+  company                 Company                 @relation(fields: [companyId], references: [id])
+  gatewayMode             BillingGatewayMode      @default(EXTERNAL)
+  onboardingStatus        BillingOnboardingStatus @default(NOT_STARTED)
+  gatewayContactName      String?
+  gatewayContactEmail     String?
+  gatewayContactPhone     String?
+  legalEntityName         String?
+  legalDocument           String?
+  bankInfoSummary         String?
+  defaultAmountCents      Int?
+  defaultDueDay           Int?
+  lgpdAcceptedAt          DateTime?
+  platformTermsAcceptedAt DateTime?
+  submittedAt             DateTime?
+  reviewedAt              DateTime?
+  reviewNotes             String?
+  asaasAccountId          String?                 @unique
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  @@index([gatewayMode, onboardingStatus])
+}
+
+model BillingTemplate {
+  id                 String             @id @default(uuid())
+  companyId          String
+  company            Company            @relation(fields: [companyId], references: [id])
+  name               String
+  description        String?
+  active             Boolean            @default(true)
+  targetScope        BillingTargetScope @default(STUDENTS)
+  amountCents        Int
+  dueDay             Int
+  notifyOnGeneration Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  charges BillingCharge[]
+
+  @@index([companyId, active, createdAt])
+}
+
+model BillingCharge {
+  id                String              @id @default(uuid())
+  companyId         String
+  company           Company             @relation(fields: [companyId], references: [id])
+  templateId        String?
+  template          BillingTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  ownerUserId       String?
+  ownerUser         User?               @relation("BillingChargeOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  studentId         String?
+  student           Student?            @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  recipientName     String
+  recipientEmail    String?
+  recipientDocument String?
+  description       String
+  amountCents       Int
+  dueDate           DateTime
+  status            BillingChargeStatus @default(DRAFT)
+  gatewayChargeId   String?             @unique
+  bankSlipUrl       String?
+  paidAt            DateTime?
+  lastNotifiedAt    DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([companyId, status, dueDate])
+  @@index([ownerUserId, status, dueDate])
+  @@index([studentId, dueDate])
 }
 
 enum ScheduleType {

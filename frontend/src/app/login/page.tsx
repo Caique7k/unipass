@@ -3,7 +3,16 @@
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -12,6 +21,8 @@ import {
   Lock,
   Mail,
   Sparkles,
+  ZoomIn,
+  ZoomOut,
   X,
 } from "lucide-react"; // Ícones usados em botões e inputs
 import { toast } from "sonner"; // Biblioteca para exibir as notificações (alertas de sucesso/erro)
@@ -37,15 +48,15 @@ const showcaseSlides = [
     badge: "Ao vivo",
   },
   {
-    src: "/unipass/unipass-student.png",
-    alt: "Tela de acompanhamento de alunos no UniPass",
+    src: "/unipass/unipass-gestao-alunos.png",
+    alt: "Gestão de alunos no UniPass",
     eyebrow: "Gestão de alunos",
     title: "Cadastros mais organizados.",
     badge: "Fluxo rápido",
   },
   {
-    src: "/unipass/unipass-bus.png",
-    alt: "Tela de acompanhamento da frota no UniPass",
+    src: "/unipass/unipass-monitoramento-frota.png",
+    alt: "Monitoramento da frota no UniPass",
     eyebrow: "Monitoramento de frota",
     title: "Frota e telemetria no mesmo lugar.",
     badge: "Visão completa",
@@ -53,15 +64,50 @@ const showcaseSlides = [
 ];
 
 const quickHighlights = ["Tempo real", "RFID + GPS", "Acesso seguro"];
+const defaultCarouselFocus = { x: 0.5, y: 0.5 };
+
+type LoginDialogState = {
+  title: string;
+  description: string;
+};
 
 // Função auxiliar para injetar variáveis CSS de delay nas animações de entrada
 function delayStyle(delay: number): CSSProperties {
   return { "--login-delay": `${delay}ms` } as CSSProperties;
 }
 
+function getRelativePointerPosition(
+  element: HTMLDivElement,
+  clientX: number,
+  clientY: number,
+) {
+  const rect = element.getBoundingClientRect();
+  const x = (clientX - rect.left) / rect.width;
+  const y = (clientY - rect.top) / rect.height;
+
+  return {
+    x: Math.min(Math.max(x, 0), 1),
+    y: Math.min(Math.max(y, 0), 1),
+  };
+}
+
+function getApiErrorMessage(error: unknown) {
+  const message = axios.isAxiosError(error)
+    ? error.response?.data?.message
+    : null;
+
+  if (Array.isArray(message)) {
+    return message.find((item): item is string => typeof item === "string") ?? null;
+  }
+
+  return typeof message === "string" ? message : null;
+}
+
 export default function LoginPage() {
-  const router = useRouter(); // Navegação programática do Next.js
-  const { refreshUser } = useAuth(); // Função do seu AuthContext para atualizar o estado global do usuário
+  const router = useRouter();
+  const { refreshUser } = useAuth();
+  const emailInputId = useId();
+  const passwordInputId = useId();
 
   // ==========================================
   // ESTADOS DO COMPONENTE
@@ -71,11 +117,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false); // Alterna entre ver e ocultar a senha (Eye/EyeOff)
   const [rememberMe, setRememberMe] = useState(false); // Estado do checkbox de "Manter conectado"
-  const [errorModal, setErrorModal] = useState(false); // Controla a exibição do modal de erro customizado
+  const [loginError, setLoginError] = useState<LoginDialogState | null>(null);
   const [loading, setLoading] = useState(false); // Controla o estado de carregamento do botão de submit
   const [isHoveringCarousel, setIsHoveringCarousel] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const [isZoomedCarousel, setIsZoomedCarousel] = useState(false);
+  const [mousePos, setMousePos] = useState(defaultCarouselFocus);
+  const [zoomOrigin, setZoomOrigin] = useState(defaultCarouselFocus);
+  const resetCarouselZoom = useCallback(() => {
+    setIsZoomedCarousel(false);
+    setMousePos(defaultCarouselFocus);
+    setZoomOrigin(defaultCarouselFocus);
+  }, []);
 
   // ==========================================
   // EFEITOS COLATERAIS (useEffect)
@@ -90,18 +142,52 @@ export default function LoginPage() {
   // 2. Loop infinito para trocar os slides do carrossel automaticamente a cada 5.2 segundos
   useEffect(() => {
     if (isHoveringCarousel) return; // Pausa quando mouse está em cima
+    if (isZoomedCarousel) return;
     const intervalId = window.setInterval(() => {
       setActiveSlide((current) => (current + 1) % showcaseSlides.length);
     }, 5200);
     return () => window.clearInterval(intervalId);
-  }, [isHoveringCarousel]);
+  }, [isHoveringCarousel, isZoomedCarousel]);
+
+  useEffect(() => {
+    resetCarouselZoom();
+  }, [activeSlide, resetCarouselZoom]);
 
   // Handler para rastrear posição do mouse
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setMousePos({ x, y });
+  function handleMouseMove(e: MouseEvent<HTMLDivElement>) {
+    setMousePos(
+      getRelativePointerPosition(e.currentTarget, e.clientX, e.clientY),
+    );
+  }
+
+  function handleCarouselClick(e: MouseEvent<HTMLDivElement>) {
+    const nextPosition = getRelativePointerPosition(
+      e.currentTarget,
+      e.clientX,
+      e.clientY,
+    );
+
+    if (isZoomedCarousel) {
+      resetCarouselZoom();
+      return;
+    }
+
+    setMousePos(nextPosition);
+    setZoomOrigin(nextPosition);
+    setIsZoomedCarousel(true);
+  }
+
+  function handleCarouselKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+
+    if (isZoomedCarousel) {
+      resetCarouselZoom();
+      return;
+    }
+
+    setZoomOrigin(mousePos);
+    setIsZoomedCarousel(true);
   }
 
   // ==========================================
@@ -109,9 +195,10 @@ export default function LoginPage() {
   // ==========================================
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); // Evita que a página recarregue ao dar submit no formulário
+    const normalizedEmail = email.trim();
 
     // Validações básicas de front-end
-    if (!email.trim()) {
+    if (!normalizedEmail) {
       toast.error("Informe seu e-mail para entrar.");
       return;
     }
@@ -122,70 +209,34 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const payload = {
-        email: email.trim(),
+      setLoginError(null);
+      await api.post("/auth/login", {
+        email: normalizedEmail,
         password,
-        ...(rememberMe ? { rememberMe: true } : {}), // Só envia a flag de rememberMe se estiver ativa
-      };
-
-      try {
-        // Tenta fazer o login completo
-        await api.post("/auth/login", payload);
-      } catch (error) {
-        // Bloco engenhoso: Tratamento de erro específico para caso o backend 
-        // ainda não suporte o campo "rememberMe" no contrato da API.
-        const message = axios.isAxiosError(error)
-          ? error.response?.data?.message
-          : null;
-
-        const unknownRememberField =
-          error &&
-          axios.isAxiosError(error) &&
-          error.response?.status === 400 &&
-          ((Array.isArray(message) &&
-            message.some(
-              (item) => typeof item === "string" && item.includes("rememberMe"),
-            )) ||
-            (typeof message === "string" && message.includes("rememberMe")));
-
-        if (!unknownRememberField) {
-          throw error; // Se for um erro real (senha errada, etc), lança para o catch principal
-        }
-
-        // Se o erro foi só por causa do rememberMe, tenta logar de novo sem o campo
-        await api.post("/auth/login", {
-          email: email.trim(),
-          password,
-        });
-        toast.warning(
-          "O backend ainda não aplicou 'Manter conectado'. Entrando sem persistência.",
-        );
-      }
+        ...(rememberMe ? { rememberMe: true } : {}),
+      });
 
       // Sucesso no login: salva a preferência, atualiza contexto e redireciona pro dashboard
       window.localStorage.setItem(REMEMBER_STORAGE_KEY, String(rememberMe));
       toast.success("Login realizado com sucesso.");
       await refreshUser();
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       // Captura e tratamento de erros reais (401 Não Autorizado, etc)
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error("E-mail ou senha inválidos.");
+        setLoginError({
+          title: "Login inválido",
+          description: "O e-mail ou a senha informados estão incorretos.",
+        });
       } else {
-        const message = axios.isAxiosError(error)
-          ? error.response?.data?.message
-          : null;
-
-        if (Array.isArray(message) && typeof message[0] === "string") {
-          toast.error(message[0]);
-        } else if (typeof message === "string") {
-          toast.error(message);
-        } else {
-          toast.error("Não foi possível entrar agora.");
-        }
+        const message = getApiErrorMessage(error) ?? "Não foi possível entrar agora.";
+        toast.error(message);
+        setLoginError({
+          title: "Não foi possível entrar",
+          description: message,
+        });
       }
-
-      setErrorModal(true); // Abre o modal visual de erro
     } finally {
       setLoading(false); // Desativa o estado de carregamento do botão independente de sucesso ou falha
     }
@@ -274,15 +325,37 @@ export default function LoginPage() {
                   {/* Área onde as Imagens trocam */}
                   <div className="relative overflow-hidden rounded-[20px] border border-white/80 bg-[#eef2f7]">
                     <div
-                      ref={carouselRef}
-                      className="relative aspect-16/10 w-full max-h-[59vh]"
+                      className={cn(
+                        "relative aspect-16/10 w-full max-h-[59vh] outline-none",
+                        isZoomedCarousel ? "cursor-zoom-out" : "cursor-zoom-in",
+                      )}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isZoomedCarousel}
+                      aria-label={
+                        isZoomedCarousel
+                          ? "Reduzir zoom da imagem do carrossel"
+                          : "Ampliar imagem do carrossel"
+                      }
                       onMouseEnter={() => setIsHoveringCarousel(true)}
                       onMouseLeave={() => {
                         setIsHoveringCarousel(false);
-                        setMousePos({ x: 0.5, y: 0.5 });
+                        if (!isZoomedCarousel) {
+                          setMousePos(defaultCarouselFocus);
+                        }
                       }}
                       onMouseMove={handleMouseMove}
+                      onClick={handleCarouselClick}
+                      onKeyDown={handleCarouselKeyDown}
                     >
+                      <div className="pointer-events-none absolute left-3 top-3 z-30 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/72 text-[#475569] shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+                        {isZoomedCarousel ? (
+                          <ZoomOut className="size-3.5 text-[#0f6aad]" />
+                        ) : (
+                          <ZoomIn className="size-3.5 text-[#ff5c00]" />
+                        )}
+                      </div>
+
                       {showcaseSlides.map((slide, index) => (
                         <figure
                           key={slide.src}
@@ -294,17 +367,7 @@ export default function LoginPage() {
                           )}
                         >
                           {/* Wrapper com overflow hidden para conter o zoom */}
-                          <div
-                            className="absolute inset-0 overflow-hidden rounded-[20px]"
-                            style={{
-                              transform: isHoveringCarousel && index === activeSlide
-                                ? `scale(1.08) translate(${(mousePos.x - 0.5) * -6}px, ${(mousePos.y - 0.5) * -6}px)`
-                                : "scale(1) translate(0px, 0px)",
-                              transition: isHoveringCarousel
-                                ? "transform 0.6s cubic-bezier(0.22,1,0.36,1)"
-                                : "transform 0.8s cubic-bezier(0.22,1,0.36,1)",
-                            }}
-                          >
+                          <div className="absolute inset-0 overflow-hidden rounded-[20px]">
                             <Image
                               src={slide.src}
                               alt={slide.alt}
@@ -313,18 +376,50 @@ export default function LoginPage() {
                               unoptimized
                               sizes="(min-width: 1536px) 760px, (min-width: 1280px) 46vw, (min-width: 768px) 70vw, 92vw"
                               className="object-cover"
+                              draggable={false}
+                              style={{
+                                objectPosition:
+                                  index === activeSlide
+                                    ? `${mousePos.x * 100}% ${mousePos.y * 100}%`
+                                    : "50% 50%",
+                                transform:
+                                  index === activeSlide
+                                    ? `scale(${isZoomedCarousel ? 1.72 : isHoveringCarousel ? 1.08 : 1})`
+                                    : "scale(1.03)",
+                                transformOrigin: `${zoomOrigin.x * 100}% ${zoomOrigin.y * 100}%`,
+                                transition:
+                                  index === activeSlide
+                                    ? isZoomedCarousel
+                                      ? "transform 0.45s cubic-bezier(0.22,1,0.36,1), object-position 100ms linear"
+                                      : "transform 0.65s cubic-bezier(0.22,1,0.36,1), object-position 0.35s ease"
+                                    : "transform 0.65s cubic-bezier(0.22,1,0.36,1), object-position 0.35s ease",
+                              }}
                             />
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,18,0.02),rgba(7,10,18,0.42))]" />
+                            <div
+                              className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,18,0.02),rgba(7,10,18,0.42))] transition-opacity duration-300"
+                              style={{
+                                opacity:
+                                  isZoomedCarousel && index === activeSlide
+                                    ? 0.3
+                                    : 1,
+                              }}
+                            />
                           </div>
 
                           {/* Legenda: sempre visível, desaparece no hover */}
                           <div
                             className="absolute inset-x-3 bottom-3 rounded-[18px] border border-white/20 bg-[#09111d]/72 p-3 text-white shadow-[0_18px_40px_rgba(9,17,29,0.28)] backdrop-blur-xl"
                             style={{
-                              opacity: isHoveringCarousel && index === activeSlide ? 0 : 1,
-                              transform: isHoveringCarousel && index === activeSlide
-                                ? "translateY(6px)"
-                                : "translateY(0px)",
+                              opacity:
+                                (isHoveringCarousel || isZoomedCarousel) &&
+                                index === activeSlide
+                                  ? 0
+                                  : 1,
+                              transform:
+                                (isHoveringCarousel || isZoomedCarousel) &&
+                                index === activeSlide
+                                  ? "translateY(6px)"
+                                  : "translateY(0px)",
                               transition: "opacity 0.4s ease, transform 0.4s ease",
                               pointerEvents: "none",
                             }}
@@ -426,12 +521,16 @@ export default function LoginPage() {
                   
                   {/* Input E-mail */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-[#111827]">
+                    <label
+                      htmlFor={emailInputId}
+                      className="text-sm font-semibold text-[#111827]"
+                    >
                       E-mail
                     </label>
                     <div className="relative">
                       <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#7c8899]" />
                       <Input
+                        id={emailInputId}
                         type="email"
                         placeholder="voce@empresa.com"
                         autoComplete="email"
@@ -444,12 +543,16 @@ export default function LoginPage() {
 
                   {/* Input Senha */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-[#111827]">
+                    <label
+                      htmlFor={passwordInputId}
+                      className="text-sm font-semibold text-[#111827]"
+                    >
                       Senha
                     </label>
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#7c8899]" />
                       <Input
+                        id={passwordInputId}
                         type={showPassword ? "text" : "password"} // Altera o tipo do input dependendo do estado do "olhinho"
                         placeholder="Digite sua senha"
                         autoComplete="current-password"
@@ -523,23 +626,31 @@ export default function LoginPage() {
 
       {/* ==========================================
           MODAL DE ERRO CUSTOMIZADO
-          Renderizado condicionalmente apenas se errorModal for 'true'
+          Renderizado condicionalmente apenas se loginError existir
           ========================================== */}
-      {errorModal && (
+      {loginError && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           
           {/* Fundo escuro (Overlay) - Clicar nele também fecha o modal */}
           <div
             className="absolute inset-0 animate-[fadeIn_0.2s_ease] bg-[#09111d]/42 backdrop-blur-sm"
-            onClick={() => setErrorModal(false)}
+            onClick={() => setLoginError(null)}
           />
 
           {/* O Modal em si */}
-          <div className="relative w-full max-w-sm animate-[scaleIn_0.28s_cubic-bezier(0.22,1,0.36,1)] rounded-[30px] border border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f2_100%)] p-6 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-error-title"
+            aria-describedby="login-error-description"
+            className="relative w-full max-w-sm animate-[scaleIn_0.28s_cubic-bezier(0.22,1,0.36,1)] rounded-[30px] border border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f2_100%)] p-6 shadow-[0_30px_90px_rgba(15,23,42,0.18)]"
+          >
             
             {/* Ícone de Fechar no canto superior direito */}
             <button
-              onClick={() => setErrorModal(false)}
+              type="button"
+              aria-label="Fechar modal de erro"
+              onClick={() => setLoginError(null)}
               className="absolute right-4 top-4 cursor-pointer text-[#7c8899] transition hover:text-[#334155]"
             >
               <X className="size-4" />
@@ -550,17 +661,24 @@ export default function LoginPage() {
               <Lock className="size-5" />
             </div>
 
-            <h3 className="mt-5 text-xl font-semibold tracking-[-0.04em] text-[#111827]">
-              Login inválido
+            <h3
+              id="login-error-title"
+              className="mt-5 text-xl font-semibold tracking-[-0.04em] text-[#111827]"
+            >
+              {loginError.title}
             </h3>
 
-            <p className="mt-2 text-sm leading-6 text-[#5b6472]">
-              O e-mail ou a senha informados estão incorretos.
+            <p
+              id="login-error-description"
+              className="mt-2 text-sm leading-6 text-[#5b6472]"
+            >
+              {loginError.description}
             </p>
 
             {/* Botão de Fechar o modal dentro dele */}
             <Button
-              onClick={() => setErrorModal(false)}
+              type="button"
+              onClick={() => setLoginError(null)}
               className="mt-6 h-11 w-full rounded-2xl bg-[linear-gradient(135deg,#ff5c00_0%,#ff7a1a_100%)] text-white hover:opacity-95 dark:text-white"
             >
               Tentar novamente

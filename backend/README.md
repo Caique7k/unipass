@@ -19,6 +19,14 @@ Por padrao a API sobe em `http://localhost:4000`.
 - `APP_TIMEZONE`: timezone oficial usada para calcular dia/horario das notificacoes.
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`: configuracao da fila BullMQ.
 - `NOTIFICATION_WORKER_CONCURRENCY`: quantidade de jobs processados em paralelo pelo worker.
+- `BILLING_WEBHOOK_WORKER_CONCURRENCY`: quantidade de webhooks financeiros processados em paralelo pelo worker.
+- `BILLING_WEBHOOK_PENDING_AGE_SECONDS`: idade minima, em segundos, para o cron reprocessar webhooks pendentes.
+- `BILLING_WEBHOOK_RETRY_BATCH_SIZE`: quantidade maxima de webhooks pendentes reprocessados por minuto.
+- `ASAAS_WEBHOOK_TOKEN`: token legado do Asaas, se voce quiser manter uma checagem adicional por header.
+- `ASAAS_WEBHOOK_IP_WHITELIST`: lista separada por virgula com IPs autorizados a chamar o webhook.
+- `ASAAS_WEBHOOK_HMAC_SECRET`: segredo usado para validar a assinatura HMAC do payload bruto.
+- `ASAAS_WEBHOOK_SIGNATURE_HEADER`: nome do header que carrega a assinatura HMAC. Padrao: `asaas-signature`.
+- `ASAAS_WEBHOOK_HMAC_ALGORITHM`: algoritmo da assinatura HMAC. Padrao: `sha256`.
 - `COOKIE_SECURE`: use `true` em producao com HTTPS.
 - `COOKIE_SAME_SITE`: use `none` quando frontend e backend estiverem em dominios diferentes e com HTTPS.
 - `COOKIE_DOMAIN`: defina apenas se voce realmente precisar compartilhar cookie entre subdominios.

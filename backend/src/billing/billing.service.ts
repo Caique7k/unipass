@@ -100,6 +100,15 @@ export class BillingService {
                 registration: true,
               },
             },
+            customer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                document: true,
+                asaasCustomerId: true,
+              },
+            },
           },
           orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }],
           take: 20,
@@ -129,14 +138,18 @@ export class BillingService {
         amountCents: charge.amountCents,
         dueDate: charge.dueDate,
         status: charge.status,
+        gatewayStatus: charge.gatewayStatus,
         paidAt: charge.paidAt,
-        bankSlipUrl: charge.bankSlipUrl,
+        bankSlipUrl: charge.bankSlipUrl ?? charge.gatewayInvoiceUrl,
+        gatewayInvoiceUrl: charge.gatewayInvoiceUrl,
+        externalReference: charge.externalReference,
         recipientName: charge.recipientName,
         recipientEmail: charge.recipientEmail,
         isOverdue:
           charge.dueDate.getTime() < now.getTime() &&
           !OVERDUE_IGNORED_STATUSES.includes(charge.status),
         student: charge.student,
+        customer: charge.customer,
         ownerUser: charge.ownerUser
           ? {
               id: charge.ownerUser.id,
@@ -287,7 +300,7 @@ export class BillingService {
   }
 
   private getAccessScope(role: UserRole): BillingAccessScope {
-    if (role === UserRole.ADMIN || role === UserRole.DRIVER) {
+    if (role === UserRole.ADMIN) {
       return 'company';
     }
 
@@ -478,7 +491,7 @@ export class BillingService {
         id: 'privacy',
         title: 'Proteção de dados e rastreabilidade',
         description:
-          'Toda cobrança precisa ter trilha de auditoria, aceite de dados e uma política clara de quem pode ver inadimplência. No UniPass, admin e motorista veem a visão da empresa; aluno e coordenador veem apenas seus próprios boletos.',
+          'Toda cobrança precisa ter trilha de auditoria, aceite de dados e uma política clara de quem pode ver inadimplência. No UniPass, apenas administradores veem a visão consolidada da empresa; os demais perfis ficam restritos às cobranças próprias.',
       },
       {
         id: 'automation',

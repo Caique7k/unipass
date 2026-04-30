@@ -11,7 +11,7 @@ async function bootstrap() {
   );
   const logger = new Logger('NotificationWorkerBootstrap');
 
-  logger.log('Worker de notificacoes iniciado.');
+  logger.log('Workers de fila iniciados.');
 
   const shutdown = async (signal: string) => {
     logger.log(`Encerrando worker por sinal ${signal}.`);

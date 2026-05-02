@@ -1,38 +1,81 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
+import { BillingTargetScope, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
+import { StudentBillingCustomerDto } from './dto/student-billing-customer.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
-import { Prisma } from '@prisma/client';
+
+const studentDetailsInclude = {
+  rfidCards: true,
+  group: {
+    select: {
+      id: true,
+      name: true,
+      active: true,
+    },
+  },
+  billingTemplate: {
+    select: {
+      id: true,
+      name: true,
+      active: true,
+      amountCents: true,
+      dueDay: true,
+      recurrence: true,
+    },
+  },
+  billingCustomers: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      document: true,
+      phone: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    take: 1,
+  },
+  routes: {
+    select: {
+      route: {
+        select: {
+          id: true,
+          name: true,
+          active: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.StudentInclude;
+
+type StudentWithDetails = Prisma.StudentGetPayload<{
+  include: typeof studentDetailsInclude;
+}>;
+
+type StudentResponse = Omit<StudentWithDetails, 'billingCustomers'> & {
+  billingCustomer: StudentWithDetails['billingCustomers'][number] | null;
+};
+
+type StudentBillingCustomerInput =
+  | StudentBillingCustomerDto
+  | {
+      name?: string | null;
+      email?: string | null;
+      document?: string | null;
+      phone?: string | null;
+    }
+  | null
+  | undefined;
 
 @Injectable()
 export class StudentsService {
   constructor(private prisma: PrismaService) {}
-
-  private readonly studentDetailsInclude = {
-    rfidCards: true,
-    group: {
-      select: {
-        id: true,
-        name: true,
-        active: true,
-      },
-    },
-    routes: {
-      select: {
-        route: {
-          select: {
-            id: true,
-            name: true,
-            active: true,
-          },
-        },
-      },
-    },
-  } satisfies Prisma.StudentInclude;
 
   async findAll({
     companyId,
@@ -67,7 +110,6 @@ export class StudentsService {
           },
         ],
       }),
-
       ...(active !== undefined && {
         active,
       }),
@@ -79,13 +121,13 @@ export class StudentsService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: this.studentDetailsInclude,
+        include: studentDetailsInclude,
       }),
       this.prisma.student.count({ where }),
     ]);
 
     return {
-      data,
+      data: data.map((student) => this.mapStudent(student)),
       total,
       page,
       lastPage: limit > 0 ? Math.ceil(total / limit) : 1,
@@ -95,17 +137,21 @@ export class StudentsService {
   async findOne(companyId: string, id: string) {
     const student = await this.prisma.student.findFirst({
       where: { id, companyId },
-      include: this.studentDetailsInclude,
+      include: studentDetailsInclude,
     });
 
-    if (!student) throw new NotFoundException('Aluno não encontrado');
+    if (!student) throw new NotFoundException('Aluno nao encontrado');
 
-    return student;
+    return this.mapStudent(student);
   }
 
   async create(companyId: string, dto: CreateStudentDto) {
     const company = await this.getCompanyOrFail(companyId);
     const group = await this.getAssignableGroupOrFail(companyId, dto.groupId);
+    const billingTemplate = await this.getAssignableBillingTemplateOrFail(
+      companyId,
+      dto.billingTemplateId,
+    );
     const routeIds = await this.getAssignableRouteIdsOrFail(
       companyId,
       dto.routeIds,
@@ -124,7 +170,7 @@ export class StudentsService {
       });
 
       if (exists) {
-        throw new BadRequestException('Matrícula já cadastrada');
+        throw new BadRequestException('Matricula ja cadastrada');
       }
 
       if (dto.rfidTag) {
@@ -133,7 +179,7 @@ export class StudentsService {
         });
 
         if (existingTag) {
-          throw new BadRequestException('RFID já cadastrado');
+          throw new BadRequestException('RFID ja cadastrado');
         }
       }
 
@@ -144,6 +190,7 @@ export class StudentsService {
           data: {
             companyId,
             groupId: group.id,
+            billingTemplateId: billingTemplate.id,
             name: dto.name,
             registration: dto.registration,
             active: dto.active ?? true,
@@ -155,7 +202,6 @@ export class StudentsService {
               },
             },
           },
-          include: this.studentDetailsInclude,
         });
       } catch (error) {
         if (
@@ -164,8 +210,8 @@ export class StudentsService {
         ) {
           throw new BadRequestException(
             normalizedEmail
-              ? 'Já existe um aluno com esse e-mail neste domínio.'
-              : 'Matrícula já cadastrada.',
+              ? 'Ja existe um aluno com esse e-mail neste dominio.'
+              : 'Matricula ja cadastrada.',
           );
         }
 
@@ -182,7 +228,21 @@ export class StudentsService {
         });
       }
 
-      return student;
+      await this.syncBillingCustomer(tx, {
+        companyId,
+        studentId: student.id,
+        studentName: student.name,
+        studentEmail: student.email,
+        studentPhone: student.phone,
+        billingCustomer: dto.billingCustomer,
+      });
+
+      const createdStudent = await tx.student.findUniqueOrThrow({
+        where: { id: student.id },
+        include: studentDetailsInclude,
+      });
+
+      return this.mapStudent(createdStudent);
     });
   }
 
@@ -193,26 +253,39 @@ export class StudentsService {
       dto.groupId === undefined
         ? student.groupId
         : await this.resolveNextGroupId(companyId, student, dto.groupId);
+    const nextBillingTemplateId =
+      dto.billingTemplateId === undefined
+        ? student.billingTemplateId
+        : await this.resolveNextBillingTemplateId(
+            companyId,
+            student,
+            dto.billingTemplateId,
+          );
     const nextRouteIds =
       dto.routeIds === undefined
         ? student.routes.map((studentRoute) => studentRoute.route.id)
-        : await this.getAssignableRouteIdsOrFail(companyId, dto.routeIds);
+        : await this.getAssignableRouteIdsOrFail(companyId, dto.routeIds, {
+            allowCurrentStudentId: id,
+          });
     const nextEmail =
       dto.email !== undefined
         ? this.normalizeStudentEmail(dto.email, company.emailDomain)
         : student.email;
+    const nextName = dto.name ?? student.name;
+    const nextPhone = dto.phone ?? student.phone;
 
     try {
       return await this.prisma.$transaction(async (tx) => {
         await tx.student.update({
           where: { id },
           data: {
-            name: dto.name ?? student.name,
+            name: nextName,
             registration: dto.registration ?? student.registration,
             active: dto.active ?? student.active,
             groupId: nextGroupId,
+            billingTemplateId: nextBillingTemplateId,
             email: nextEmail,
-            phone: dto.phone ?? student.phone,
+            phone: nextPhone,
           },
         });
 
@@ -229,17 +302,28 @@ export class StudentsService {
           })),
         });
 
-        return tx.student.findUniqueOrThrow({
-          where: { id },
-          include: this.studentDetailsInclude,
+        await this.syncBillingCustomer(tx, {
+          companyId,
+          studentId: id,
+          studentName: nextName,
+          studentEmail: nextEmail,
+          studentPhone: nextPhone,
+          billingCustomer: dto.billingCustomer ?? student.billingCustomer,
         });
+
+        const updatedStudent = await tx.student.findUniqueOrThrow({
+          where: { id },
+          include: studentDetailsInclude,
+        });
+
+        return this.mapStudent(updatedStudent);
       });
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new BadRequestException('Matrícula já cadastrada');
+        throw new BadRequestException('Matricula ja cadastrada');
       }
 
       throw error;
@@ -256,6 +340,7 @@ export class StudentsService {
       },
     });
   }
+
   async desactivateMany(companyId: string, ids: string[]) {
     const result = await this.prisma.student.updateMany({
       where: {
@@ -313,6 +398,15 @@ export class StudentsService {
     });
   }
 
+  private mapStudent(student: StudentWithDetails): StudentResponse {
+    const { billingCustomers, ...studentData } = student;
+
+    return {
+      ...studentData,
+      billingCustomer: billingCustomers[0] ?? null,
+    };
+  }
+
   private async getCompanyOrFail(companyId: string) {
     const company = await this.prisma.company.findUnique({
       where: {
@@ -325,7 +419,7 @@ export class StudentsService {
     });
 
     if (!company) {
-      throw new NotFoundException('Empresa não encontrada.');
+      throw new NotFoundException('Empresa nao encontrada.');
     }
 
     return company;
@@ -345,7 +439,7 @@ export class StudentsService {
 
     if (!group) {
       throw new BadRequestException(
-        'Selecione um grupo ativo e válido para o colaborador.',
+        'Selecione um grupo ativo e valido para o aluno.',
       );
     }
 
@@ -366,9 +460,59 @@ export class StudentsService {
     return group.id;
   }
 
+  private async getAssignableBillingTemplateOrFail(
+    companyId: string,
+    billingTemplateId: string,
+  ) {
+    const billingTemplate = await this.prisma.billingTemplate.findFirst({
+      where: {
+        id: billingTemplateId,
+        companyId,
+        active: true,
+        targetScope: {
+          in: [
+            BillingTargetScope.STUDENTS,
+            BillingTargetScope.STUDENTS_AND_COORDINATORS,
+          ],
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!billingTemplate) {
+      throw new BadRequestException(
+        'Selecione um grupo de boletos ativo e valido para o aluno.',
+      );
+    }
+
+    return billingTemplate;
+  }
+
+  private async resolveNextBillingTemplateId(
+    companyId: string,
+    student: Awaited<ReturnType<StudentsService['findOne']>>,
+    billingTemplateId: string,
+  ) {
+    if (billingTemplateId === student.billingTemplateId) {
+      return student.billingTemplateId;
+    }
+
+    const billingTemplate = await this.getAssignableBillingTemplateOrFail(
+      companyId,
+      billingTemplateId,
+    );
+
+    return billingTemplate.id;
+  }
+
   private async getAssignableRouteIdsOrFail(
     companyId: string,
     routeIds: string[],
+    options?: {
+      allowCurrentStudentId?: string;
+    },
   ) {
     const uniqueRouteIds = Array.from(
       new Set(routeIds.map((routeId) => routeId.trim()).filter(Boolean)),
@@ -376,7 +520,7 @@ export class StudentsService {
 
     if (uniqueRouteIds.length === 0) {
       throw new BadRequestException(
-        'Selecione pelo menos uma rota ativa para o colaborador.',
+        'Selecione pelo menos uma rota ativa para o aluno.',
       );
     }
 
@@ -386,7 +530,22 @@ export class StudentsService {
           in: uniqueRouteIds,
         },
         companyId,
-        active: true,
+        OR: [
+          {
+            active: true,
+          },
+          ...(options?.allowCurrentStudentId
+            ? [
+                {
+                  students: {
+                    some: {
+                      studentId: options.allowCurrentStudentId,
+                    },
+                  },
+                },
+              ]
+            : []),
+        ],
       },
       select: {
         id: true,
@@ -395,7 +554,7 @@ export class StudentsService {
 
     if (routes.length !== uniqueRouteIds.length) {
       throw new BadRequestException(
-        'Selecione apenas rotas ativas e validas para o colaborador.',
+        'Selecione apenas rotas ativas e validas para o aluno.',
       );
     }
 
@@ -413,7 +572,7 @@ export class StudentsService {
     if (normalized.includes('@')) {
       if (!normalized.endsWith(expectedSuffix)) {
         throw new BadRequestException(
-          `O e-mail do aluno deve usar o domínio da empresa (${expectedSuffix}).`,
+          `O e-mail do aluno deve usar o dominio da empresa (${expectedSuffix}).`,
         );
       }
 
@@ -422,10 +581,100 @@ export class StudentsService {
 
     if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(normalized)) {
       throw new BadRequestException(
-        'Use apenas letras, números, ponto, underline ou hífen antes do domínio.',
+        'Use apenas letras, numeros, ponto, underline ou hifen antes do dominio.',
       );
     }
 
     return `${normalized}${expectedSuffix}`;
+  }
+
+  private async syncBillingCustomer(
+    tx: Prisma.TransactionClient,
+    params: {
+      companyId: string;
+      studentId: string;
+      studentName: string;
+      studentEmail: string | null;
+      studentPhone: string | null;
+      billingCustomer?: StudentBillingCustomerInput;
+    },
+  ) {
+    const existingCustomer = await tx.billingCustomer.findFirst({
+      where: {
+        companyId: params.companyId,
+        studentId: params.studentId,
+      },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+      },
+    });
+
+    const customerData = this.buildBillingCustomerData(params);
+
+    if (existingCustomer) {
+      await tx.billingCustomer.update({
+        where: {
+          id: existingCustomer.id,
+        },
+        data: customerData,
+      });
+      return;
+    }
+
+    await tx.billingCustomer.create({
+      data: {
+        companyId: params.companyId,
+        studentId: params.studentId,
+        ...customerData,
+      },
+    });
+  }
+
+  private buildBillingCustomerData(params: {
+    studentName: string;
+    studentEmail: string | null;
+    studentPhone: string | null;
+    billingCustomer?: StudentBillingCustomerInput;
+  }) {
+    const providedName = this.normalizeOptionalString(
+      params.billingCustomer?.name,
+    );
+    const providedEmail = this.normalizeOptionalEmail(
+      params.billingCustomer?.email,
+    );
+    const providedDocument = this.normalizeOptionalString(
+      params.billingCustomer?.document,
+    );
+    const providedPhone = this.normalizeOptionalString(
+      params.billingCustomer?.phone,
+    );
+
+    if (!providedName && (providedEmail || providedDocument || providedPhone)) {
+      throw new BadRequestException(
+        'Informe o nome do responsavel financeiro.',
+      );
+    }
+
+    return {
+      name: providedName ?? params.studentName,
+      email: providedEmail ?? params.studentEmail ?? null,
+      document: providedDocument,
+      phone: providedPhone ?? params.studentPhone ?? null,
+    };
+  }
+
+  private normalizeOptionalEmail(value?: string | null) {
+    const normalized = this.normalizeOptionalString(value);
+    return normalized ? normalized.toLowerCase() : null;
+  }
+
+  private normalizeOptionalString(value?: string | null) {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
   }
 }

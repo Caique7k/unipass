@@ -99,7 +99,11 @@ export class OpaqueIdService {
     if (Array.isArray(value)) {
       if (this.shouldTransformArrayKey(key)) {
         return value.map((item) =>
-          typeof item === 'string' ? this.transformString(key, item, direction) : item,
+          typeof item === 'string'
+            ? direction === 'encode'
+              ? this.encode(item)
+              : this.decode(item)
+            : item,
         );
       }
 

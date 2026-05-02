@@ -13,6 +13,7 @@ import { StudentModal } from "./components/StudentsFormModal";
 import { DeleteStudentsDialog } from "./components/DeleteDialog";
 import { PageTableSkeleton } from "../components/DashboardSkeletons";
 import { buildApiUrl } from "@/services/api";
+import type { BillingTemplateRecurrence } from "../billing-groups/types/billing-group";
 
 type Student = {
   id?: string;
@@ -22,10 +23,26 @@ type Student = {
   phone?: string | null;
   active?: boolean;
   groupId?: string | null;
+  billingTemplateId?: string | null;
   group?: {
     id: string;
     name: string;
     active: boolean;
+  } | null;
+  billingTemplate?: {
+    id: string;
+    name: string;
+    active: boolean;
+    amountCents: number;
+    dueDay: number;
+    recurrence: BillingTemplateRecurrence;
+  } | null;
+  billingCustomer?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    document?: string | null;
+    phone?: string | null;
   } | null;
   routes?: {
     route: {
@@ -46,6 +63,15 @@ type RouteOption = {
   id: string;
   name: string;
   active: boolean;
+};
+
+type BillingTemplateOption = {
+  id: string;
+  name: string;
+  active: boolean;
+  amountCents: number;
+  dueDay: number;
+  recurrence: BillingTemplateRecurrence;
 };
 
 export default function StudentsPage() {
@@ -74,6 +100,11 @@ export default function StudentsPage() {
   const [routeOptions, setRouteOptions] = useState<RouteOption[]>([]);
   const [routesLoading, setRoutesLoading] = useState(false);
   const [routesLoaded, setRoutesLoaded] = useState(false);
+  const [billingTemplateOptions, setBillingTemplateOptions] = useState<
+    BillingTemplateOption[]
+  >([]);
+  const [billingTemplatesLoading, setBillingTemplatesLoading] = useState(false);
+  const [billingTemplatesLoaded, setBillingTemplatesLoaded] = useState(false);
 
   useEffect(() => {
     if (!canManage || !open) {
@@ -166,8 +197,53 @@ export default function StudentsPage() {
       }
     }
 
+    async function loadBillingTemplates() {
+      try {
+        setBillingTemplatesLoading(true);
+        setBillingTemplatesLoaded(false);
+
+        const params = new URLSearchParams({
+          page: "1",
+          limit: "1000",
+          active: "true",
+        });
+
+        const response = await fetch(
+          `${buildApiUrl("/billing/templates")}?${params.toString()}`,
+          {
+            credentials: "include",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error();
+        }
+
+        const json = (await response.json()) as {
+          data: BillingTemplateOption[];
+        };
+
+        if (!isMounted) {
+          return;
+        }
+
+        setBillingTemplateOptions(json.data);
+      } catch {
+        if (isMounted) {
+          toast.error("Erro ao buscar grupos de boletos cadastrados.");
+          setBillingTemplateOptions([]);
+        }
+      } finally {
+        if (isMounted) {
+          setBillingTemplatesLoading(false);
+          setBillingTemplatesLoaded(true);
+        }
+      }
+    }
+
     void loadGroups();
     void loadRoutes();
+    void loadBillingTemplates();
 
     return () => {
       isMounted = false;
@@ -303,6 +379,9 @@ export default function StudentsPage() {
             routes={routeOptions}
             routesLoading={routesLoading}
             routesLoaded={routesLoaded}
+            billingTemplates={billingTemplateOptions}
+            billingTemplatesLoading={billingTemplatesLoading}
+            billingTemplatesLoaded={billingTemplatesLoaded}
             onSuccess={() => refetch()}
           />
         </>

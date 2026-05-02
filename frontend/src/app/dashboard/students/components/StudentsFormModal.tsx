@@ -15,6 +15,10 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { buildApiUrl } from "@/services/api";
+import {
+  billingRecurrenceLabels,
+  type BillingTemplateRecurrence,
+} from "@/app/dashboard/billing-groups/types/billing-group";
 
 type GroupOption = {
   id: string;
@@ -28,6 +32,22 @@ type RouteOption = {
   active: boolean;
 };
 
+type BillingTemplateOption = {
+  id: string;
+  name: string;
+  active: boolean;
+  amountCents: number;
+  dueDay: number;
+  recurrence: BillingTemplateRecurrence;
+};
+
+type BillingCustomerForm = {
+  name: string;
+  email: string;
+  document: string;
+  phone: string;
+};
+
 type Student = {
   id?: string;
   name?: string;
@@ -36,7 +56,16 @@ type Student = {
   phone?: string | null;
   active?: boolean;
   groupId?: string | null;
+  billingTemplateId?: string | null;
   group?: GroupOption | null;
+  billingTemplate?: BillingTemplateOption | null;
+  billingCustomer?: {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    document?: string | null;
+    phone?: string | null;
+  } | null;
   routeIds?: string[];
   routes?: {
     route: RouteOption;
@@ -48,12 +77,22 @@ type Errors = Partial<
     | "name"
     | "registration"
     | "groupId"
+    | "billingTemplateId"
     | "routeIds"
     | "emailLocalPart"
-    | "phone",
+    | "phone"
+    | "billingCustomerName"
+    | "billingCustomerEmail",
     string
   >
 >;
+
+const emptyBillingCustomer: BillingCustomerForm = {
+  name: "",
+  email: "",
+  document: "",
+  phone: "",
+};
 
 const emptyForm: Student = {
   name: "",
@@ -61,6 +100,7 @@ const emptyForm: Student = {
   email: "",
   phone: "",
   groupId: "",
+  billingTemplateId: "",
   routeIds: [],
   active: true,
 };
@@ -68,6 +108,50 @@ const emptyForm: Student = {
 function extractEmailLocalPart(email?: string | null) {
   if (!email) return "";
   return email.split("@")[0] ?? "";
+}
+
+function formatCurrency(amountCents: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(amountCents / 100);
+}
+
+function hasBillingCustomerData(data: BillingCustomerForm) {
+  return Object.values(data).some((value) => value.trim().length > 0);
+}
+
+function deriveBillingCustomerForm(student?: Student | null): BillingCustomerForm {
+  const customer = student?.billingCustomer;
+
+  if (!customer) {
+    return emptyBillingCustomer;
+  }
+
+  const matchesStudentName =
+    !!student?.name && customer.name?.trim() === student.name.trim();
+  const matchesStudentEmail =
+    !!student?.email &&
+    customer.email?.trim().toLowerCase() === student.email.trim().toLowerCase();
+  const matchesStudentPhone =
+    !!student?.phone && customer.phone?.trim() === student.phone.trim();
+  const hasDocument = !!customer.document?.trim();
+
+  if (
+    matchesStudentName &&
+    matchesStudentEmail &&
+    matchesStudentPhone &&
+    !hasDocument
+  ) {
+    return emptyBillingCustomer;
+  }
+
+  return {
+    name: customer.name ?? "",
+    email: customer.email ?? "",
+    document: customer.document ?? "",
+    phone: customer.phone ?? "",
+  };
 }
 
 export function StudentModal({
@@ -81,6 +165,9 @@ export function StudentModal({
   routes,
   routesLoading,
   routesLoaded,
+  billingTemplates,
+  billingTemplatesLoading,
+  billingTemplatesLoaded,
   onSuccess,
 }: {
   open: boolean;
@@ -93,10 +180,15 @@ export function StudentModal({
   routes: RouteOption[];
   routesLoading: boolean;
   routesLoaded: boolean;
+  billingTemplates: BillingTemplateOption[];
+  billingTemplatesLoading: boolean;
+  billingTemplatesLoaded: boolean;
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState<Student>(emptyForm);
   const [emailLocalPart, setEmailLocalPart] = useState("");
+  const [billingCustomerForm, setBillingCustomerForm] =
+    useState<BillingCustomerForm>(emptyBillingCustomer);
   const [errors, setErrors] = useState<Errors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
@@ -105,6 +197,9 @@ export function StudentModal({
   const [serverError, setServerError] = useState("");
   const [groupSearch, setGroupSearch] = useState("");
   const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
+  const [billingTemplateSearch, setBillingTemplateSearch] = useState("");
+  const [billingTemplateDropdownOpen, setBillingTemplateDropdownOpen] =
+    useState(false);
   const [routeSearch, setRouteSearch] = useState("");
   const [routeDropdownOpen, setRouteDropdownOpen] = useState(false);
 
@@ -122,10 +217,32 @@ export function StudentModal({
 
     return Array.from(options.values());
   }, [groups, student?.group]);
+  const availableBillingTemplates = useMemo(() => {
+    const options = new Map<string, BillingTemplateOption>();
 
+    billingTemplates.forEach((billingTemplate) => {
+      options.set(billingTemplate.id, billingTemplate);
+    });
+
+    if (
+      student?.billingTemplate?.id &&
+      !options.has(student.billingTemplate.id)
+    ) {
+      options.set(student.billingTemplate.id, student.billingTemplate);
+    }
+
+    return Array.from(options.values());
+  }, [billingTemplates, student?.billingTemplate]);
   const selectedGroup = useMemo(
     () => availableGroups.find((group) => group.id === form.groupId),
     [availableGroups, form.groupId],
+  );
+  const selectedBillingTemplate = useMemo(
+    () =>
+      availableBillingTemplates.find(
+        (billingTemplate) => billingTemplate.id === form.billingTemplateId,
+      ),
+    [availableBillingTemplates, form.billingTemplateId],
   );
   const filteredGroups = useMemo(() => {
     const search = groupSearch.trim().toLowerCase();
@@ -138,6 +255,17 @@ export function StudentModal({
       group.name.toLowerCase().includes(search),
     );
   }, [availableGroups, groupSearch]);
+  const filteredBillingTemplates = useMemo(() => {
+    const search = billingTemplateSearch.trim().toLowerCase();
+
+    if (!search) {
+      return availableBillingTemplates;
+    }
+
+    return availableBillingTemplates.filter((billingTemplate) =>
+      billingTemplate.name.toLowerCase().includes(search),
+    );
+  }, [availableBillingTemplates, billingTemplateSearch]);
   const availableRoutes = useMemo(() => {
     const options = new Map<string, RouteOption>();
 
@@ -154,6 +282,10 @@ export function StudentModal({
   const selectedRoutes = useMemo(
     () => availableRoutes.filter((route) => form.routeIds?.includes(route.id)),
     [availableRoutes, form.routeIds],
+  );
+  const selectedInactiveRoutes = useMemo(
+    () => selectedRoutes.filter((route) => !route.active),
+    [selectedRoutes],
   );
   const filteredRoutes = useMemo(() => {
     const search = routeSearch.trim().toLowerCase();
@@ -189,6 +321,7 @@ export function StudentModal({
         : emptyForm,
     );
     setEmailLocalPart(extractEmailLocalPart(student?.email));
+    setBillingCustomerForm(deriveBillingCustomerForm(student));
     setErrors({});
     setServerError("");
     setIsLinking(false);
@@ -196,6 +329,8 @@ export function StudentModal({
     setRfidTag("");
     setGroupSearch("");
     setGroupDropdownOpen(false);
+    setBillingTemplateSearch("");
+    setBillingTemplateDropdownOpen(false);
     setRouteSearch("");
     setRouteDropdownOpen(false);
   }, [student, open]);
@@ -207,19 +342,30 @@ export function StudentModal({
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleBillingCustomerChange = (
+    field: keyof BillingCustomerForm,
+    value: string,
+  ) => {
+    setBillingCustomerForm((prev) => ({ ...prev, [field]: value }));
+  };
+
   const validate = (): boolean => {
     const newErrors: Errors = {};
 
     if (!form.name || form.name.length < 3) {
-      newErrors.name = "Nome inválido.";
+      newErrors.name = "Nome invalido.";
     }
 
     if (!form.registration || form.registration.length < 3) {
-      newErrors.registration = "Matrícula inválida.";
+      newErrors.registration = "Matricula invalida.";
     }
 
     if (!form.groupId) {
       newErrors.groupId = "Selecione um grupo";
+    }
+
+    if (!form.billingTemplateId) {
+      newErrors.billingTemplateId = "Selecione um grupo de boletos";
     }
 
     if (!form.routeIds?.length) {
@@ -230,11 +376,25 @@ export function StudentModal({
       newErrors.emailLocalPart = "Informe o login do e-mail";
     } else if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/i.test(emailLocalPart.trim())) {
       newErrors.emailLocalPart =
-        "Use apenas letras, números, ponto, hífen ou underline.";
+        "Use apenas letras, numeros, ponto, hifen ou underline.";
     }
 
     if (!form.phone || form.phone.replace(/\D/g, "").length < 10) {
-      newErrors.phone = "Telefone inválido.";
+      newErrors.phone = "Telefone invalido.";
+    }
+
+    if (hasBillingCustomerData(billingCustomerForm)) {
+      if (!billingCustomerForm.name.trim()) {
+        newErrors.billingCustomerName =
+          "Informe o nome do responsavel financeiro.";
+      }
+
+      if (
+        billingCustomerForm.email.trim() &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingCustomerForm.email.trim())
+      ) {
+        newErrors.billingCustomerEmail = "Informe um e-mail valido.";
+      }
     }
 
     setErrors(newErrors);
@@ -245,10 +405,19 @@ export function StudentModal({
     name: form.name?.trim(),
     registration: form.registration?.trim(),
     groupId: form.groupId,
+    billingTemplateId: form.billingTemplateId,
     routeIds: form.routeIds ?? [],
     email: emailLocalPart.trim().toLowerCase(),
     phone: form.phone?.trim(),
     active: form.active ?? true,
+    billingCustomer: hasBillingCustomerData(billingCustomerForm)
+      ? {
+          name: billingCustomerForm.name.trim(),
+          email: billingCustomerForm.email.trim(),
+          document: billingCustomerForm.document.trim(),
+          phone: billingCustomerForm.phone.trim(),
+        }
+      : undefined,
   });
 
   const createStudent = async () => {
@@ -317,14 +486,14 @@ export function StudentModal({
 
   const handleConfirmLink = async () => {
     if (!rfidTag.trim()) {
-      toast.error("Informe o código RFID para concluir o vínculo.");
+      toast.error("Informe o codigo RFID para concluir o vinculo.");
       return;
     }
 
     const studentId = createdStudent?.id ?? student?.id;
 
     if (!studentId) {
-      toast.error("Não foi possível identificar o aluno para vincular o RFID.");
+      toast.error("Nao foi possivel identificar o aluno para vincular o RFID.");
       return;
     }
 
@@ -362,6 +531,10 @@ export function StudentModal({
     groupsLoaded && !groupsLoading && availableGroups.length === 0;
   const isMissingRoutes =
     routesLoaded && !routesLoading && availableRoutes.length === 0;
+  const isMissingBillingTemplates =
+    billingTemplatesLoaded &&
+    !billingTemplatesLoading &&
+    availableBillingTemplates.length === 0;
 
   const toggleRoute = (routeId: string) => {
     setForm((prev) => {
@@ -378,7 +551,7 @@ export function StudentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[620px]">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col overflow-hidden border-0 p-0 shadow-2xl sm:max-w-[720px]">
         <div className="border-b border-[#ff5c00]/10 bg-[#ff5c00]/[0.04] px-6 py-5">
           <DialogHeader className="gap-1">
             <DialogTitle className="text-2xl font-bold text-foreground">
@@ -386,8 +559,8 @@ export function StudentModal({
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               {isEdit
-                ? "Atualize os dados cadastrais deste aluno."
-                : "Preencha os dados para criar um aluno, definir o grupo e vincular o RFID."}
+                ? "Atualize os dados cadastrais, financeiros e operacionais deste aluno."
+                : "Preencha os dados, escolha o grupo de boletos e vincule o RFID no final."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -395,7 +568,7 @@ export function StudentModal({
         <div className="unipass-scrollbar min-h-0 space-y-6 overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-6">
           {!isLinking ? (
             <>
-              <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-2">
+              <div className="grid gap-4 rounded-2xl border border-border/60 bg-card/70 p-4 sm:grid-cols-3">
                 <div className="rounded-2xl bg-[#ff5c00]/8 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5c00]">
                     Cadastro
@@ -404,7 +577,7 @@ export function StudentModal({
                     {isEdit ? "Edicao de aluno" : "Novo aluno"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    O e-mail do aluno fica sempre amarrado ao domínio da
+                    O e-mail do aluno fica sempre amarrado ao dominio da
                     empresa.
                   </p>
                 </div>
@@ -418,8 +591,22 @@ export function StudentModal({
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {emailDomain
-                      ? `Domínio fixo da empresa: @${emailDomain}`
+                      ? `Dominio fixo da empresa: @${emailDomain}`
                       : "Use o login que o aluno vai usar para acessar."}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-dashed border-border bg-background/80 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Grupo de boletos
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-foreground">
+                    {selectedBillingTemplate?.name || "Selecione uma regra"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {selectedBillingTemplate
+                      ? `${formatCurrency(selectedBillingTemplate.amountCents)} • dia ${selectedBillingTemplate.dueDay} • ${billingRecurrenceLabels[selectedBillingTemplate.recurrence]}`
+                      : "Essa regra define valor e recorrencia da cobranca."}
                   </p>
                 </div>
               </div>
@@ -440,7 +627,7 @@ export function StudentModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Matrícula</Label>
+                  <Label className="text-sm font-medium">Matricula</Label>
                   <Input
                     value={form.registration || ""}
                     onChange={(e) =>
@@ -529,17 +716,147 @@ export function StudentModal({
                   </div>
                   {isMissingGroups ? (
                     <p className="text-sm text-amber-600">
-                      Antes de cadastrar um colaborador, e preciso cadastrar um
-                      grupo.
+                      Antes de cadastrar um aluno, e preciso cadastrar um grupo.
                     </p>
                   ) : null}
                   {selectedGroup && !selectedGroup.active ? (
                     <p className="text-sm text-amber-600">
-                      Este colaborador esta vinculado a um grupo inativo. Para
-                      trocar o grupo, selecione um grupo ativo.
+                      Este aluno esta vinculado a um grupo inativo. Para trocar,
+                      selecione um grupo ativo.
                     </p>
                   ) : null}
                   {renderError("groupId")}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-sm font-medium">
+                    Grupo de boletos
+                  </Label>
+                  <div className="relative">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-11 w-full justify-between rounded-xl border-border/70 bg-background px-3",
+                        errors.billingTemplateId && "border-red-500",
+                      )}
+                      disabled={
+                        billingTemplatesLoading || isMissingBillingTemplates
+                      }
+                      onClick={() =>
+                        setBillingTemplateDropdownOpen((prev) => !prev)
+                      }
+                    >
+                      <span className="truncate">
+                        {billingTemplatesLoading
+                          ? "Carregando grupos de boletos..."
+                          : selectedBillingTemplate
+                            ? `${selectedBillingTemplate.name}${!selectedBillingTemplate.active ? " (inativo)" : ""}`
+                            : isMissingBillingTemplates
+                              ? "Cadastre um grupo de boletos primeiro"
+                              : "Selecione um grupo de boletos"}
+                      </span>
+                      <ChevronsUpDown className="size-4 opacity-60" />
+                    </Button>
+
+                    {billingTemplateDropdownOpen &&
+                      !billingTemplatesLoading &&
+                      !isMissingBillingTemplates && (
+                        <div className="absolute z-50 mt-2 w-full rounded-xl border border-border/60 bg-background p-2 shadow-md">
+                          <Input
+                            placeholder="Buscar grupo de boletos..."
+                            value={billingTemplateSearch}
+                            onChange={(e) =>
+                              setBillingTemplateSearch(e.target.value)
+                            }
+                            className="h-10 rounded-lg"
+                          />
+
+                          <div className="mt-2 max-h-56 overflow-y-auto">
+                            {filteredBillingTemplates.length === 0 ? (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">
+                                Nenhum grupo de boletos encontrado.
+                              </div>
+                            ) : (
+                              filteredBillingTemplates.map((billingTemplate) => (
+                                <button
+                                  key={billingTemplate.id}
+                                  type="button"
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                                  onClick={() => {
+                                    handleChange(
+                                      "billingTemplateId",
+                                      billingTemplate.id,
+                                    );
+                                    setBillingTemplateDropdownOpen(false);
+                                    setBillingTemplateSearch("");
+                                  }}
+                                >
+                                  <span className="min-w-0">
+                                    <span className="block truncate">
+                                      {billingTemplate.name}
+                                      {!billingTemplate.active
+                                        ? " (inativo)"
+                                        : ""}
+                                    </span>
+                                    <span className="block text-xs text-muted-foreground">
+                                      {formatCurrency(
+                                        billingTemplate.amountCents,
+                                      )}{" "}
+                                      • dia {billingTemplate.dueDay} •{" "}
+                                      {
+                                        billingRecurrenceLabels[
+                                          billingTemplate.recurrence
+                                        ]
+                                      }
+                                    </span>
+                                  </span>
+                                  <Check
+                                    className={cn(
+                                      "size-4 shrink-0",
+                                      billingTemplate.id ===
+                                        form.billingTemplateId
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                  />
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                  {selectedBillingTemplate ? (
+                    <div className="rounded-2xl border border-border/60 bg-card/60 p-4 text-sm text-muted-foreground">
+                      <p className="font-medium text-foreground">
+                        {selectedBillingTemplate.name}
+                      </p>
+                      <p className="mt-1">
+                        Valor:{" "}
+                        {formatCurrency(selectedBillingTemplate.amountCents)} •
+                        vencimento no dia {selectedBillingTemplate.dueDay} •{" "}
+                        {
+                          billingRecurrenceLabels[
+                            selectedBillingTemplate.recurrence
+                          ]
+                        }
+                      </p>
+                    </div>
+                  ) : null}
+                  {isMissingBillingTemplates ? (
+                    <p className="text-sm text-amber-600">
+                      Antes de cadastrar um aluno, e preciso cadastrar um grupo
+                      de boletos.
+                    </p>
+                  ) : null}
+                  {selectedBillingTemplate && !selectedBillingTemplate.active ? (
+                    <p className="text-sm text-amber-600">
+                      Este aluno esta vinculado a um grupo de boletos inativo.
+                      Para trocar, selecione um grupo ativo.
+                    </p>
+                  ) : null}
+                  {renderError("billingTemplateId")}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -620,9 +937,17 @@ export function StudentModal({
                           className="rounded-full bg-muted px-3 py-1 text-xs text-foreground"
                         >
                           {route.name}
+                          {!route.active ? " (inativa)" : ""}
                         </span>
                       ))}
                     </div>
+                  ) : null}
+                  {selectedInactiveRoutes.length > 0 ? (
+                    <p className="text-sm text-amber-600">
+                      Este aluno ainda possui rota(s) inativa(s) vinculada(s).
+                      Voce pode salvar normalmente ou remover essas rotas se
+                      quiser limpar o cadastro.
+                    </p>
                   ) : null}
                   {isMissingRoutes ? (
                     <p className="text-sm text-amber-600">
@@ -674,6 +999,84 @@ export function StudentModal({
                 </div>
               </div>
 
+              <div className="space-y-4 rounded-2xl border border-border/60 bg-card/60 p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">
+                    Responsavel financeiro
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Se voce deixar em branco, o proprio aluno sera usado como
+                    pagador padrao na geracao dos boletos.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Nome do responsavel
+                    </Label>
+                    <Input
+                      value={billingCustomerForm.name}
+                      onChange={(e) =>
+                        handleBillingCustomerChange("name", e.target.value)
+                      }
+                      className={cn(
+                        "h-11 rounded-xl border-border/70 bg-background px-3",
+                        errors.billingCustomerName && "border-red-500",
+                      )}
+                      placeholder="Ex.: Maria da Silva"
+                    />
+                    {renderError("billingCustomerName")}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      E-mail do responsavel
+                    </Label>
+                    <Input
+                      value={billingCustomerForm.email}
+                      onChange={(e) =>
+                        handleBillingCustomerChange("email", e.target.value)
+                      }
+                      className={cn(
+                        "h-11 rounded-xl border-border/70 bg-background px-3",
+                        errors.billingCustomerEmail && "border-red-500",
+                      )}
+                      placeholder="financeiro@familia.com"
+                    />
+                    {renderError("billingCustomerEmail")}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      CPF/CNPJ do responsavel
+                    </Label>
+                    <Input
+                      value={billingCustomerForm.document}
+                      onChange={(e) =>
+                        handleBillingCustomerChange("document", e.target.value)
+                      }
+                      className="h-11 rounded-xl border-border/70 bg-background px-3"
+                      placeholder="Somente numeros"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Telefone do responsavel
+                    </Label>
+                    <Input
+                      value={billingCustomerForm.phone}
+                      onChange={(e) =>
+                        handleBillingCustomerChange("phone", e.target.value)
+                      }
+                      className="h-11 rounded-xl border-border/70 bg-background px-3"
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {serverError && (
                 <p className="text-sm text-red-500">{serverError}</p>
               )}
@@ -685,6 +1088,8 @@ export function StudentModal({
                     isSaving ||
                     groupsLoading ||
                     isMissingGroups ||
+                    billingTemplatesLoading ||
+                    isMissingBillingTemplates ||
                     routesLoading ||
                     isMissingRoutes
                   }
@@ -692,17 +1097,21 @@ export function StudentModal({
                 >
                   {groupsLoading
                     ? "Carregando grupos..."
-                    : routesLoading
-                      ? "Carregando rotas..."
-                      : isMissingGroups
-                        ? "Cadastre um grupo primeiro"
-                        : isMissingRoutes
-                          ? "Cadastre uma rota primeiro"
-                          : isSaving
-                            ? "Salvando..."
-                            : isEdit
-                              ? "Salvar alterações"
-                              : "Criar e vincular RFID"}
+                    : billingTemplatesLoading
+                      ? "Carregando grupos de boletos..."
+                      : routesLoading
+                        ? "Carregando rotas..."
+                        : isMissingGroups
+                          ? "Cadastre um grupo primeiro"
+                          : isMissingBillingTemplates
+                            ? "Cadastre um grupo de boletos primeiro"
+                            : isMissingRoutes
+                              ? "Cadastre uma rota primeiro"
+                              : isSaving
+                                ? "Salvando..."
+                                : isEdit
+                                  ? "Salvar alteracoes"
+                                  : "Criar e vincular RFID"}
                 </Button>
               </div>
             </>
@@ -717,7 +1126,7 @@ export function StudentModal({
                     Cartao do aluno
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Aproxime o cartão ou informe o código RFID manualmente.
+                    Aproxime o cartao ou informe o codigo RFID manualmente.
                   </p>
                 </div>
 
@@ -736,7 +1145,7 @@ export function StudentModal({
 
               <div className="space-y-2 text-center">
                 <p className="text-sm font-medium text-foreground">
-                  Aproxime o cartão ou insira o código abaixo.
+                  Aproxime o cartao ou insira o codigo abaixo.
                 </p>
 
                 <Input

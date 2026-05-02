@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { BillingTemplateRecurrence } from "@/app/dashboard/billing-groups/types/billing-group";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -28,65 +27,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RowEditButton } from "../../components/RowEditButton";
+import {
+  billingRecurrenceLabels,
+  type BillingGroup,
+} from "../types/billing-group";
 
-type Student = {
-  id: string;
-  name: string;
-  registration: string;
-  email?: string | null;
-  phone?: string | null;
-  active: boolean;
-  group?: {
-    id: string;
-    name: string;
-    active: boolean;
-  } | null;
-  billingTemplate?: {
-    id: string;
-    name: string;
-    active: boolean;
-    amountCents: number;
-    dueDay: number;
-    recurrence: BillingTemplateRecurrence;
-  } | null;
-  routes?: {
-    route: {
-      id: string;
-      name: string;
-      active: boolean;
-    };
-  }[];
-  rfidCards?: {
-    tag: string;
-  }[];
-};
+function formatCurrency(amountCents: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(amountCents / 100);
+}
 
-export function StudentsTable({
+export function BillingGroupsTable({
   data,
   canManage,
-  onDelete,
-  onEdit,
   page,
   setPage,
   lastPage,
   status,
   setStatus,
+  onDelete,
+  onEdit,
 }: {
-  data: Student[];
+  data: BillingGroup[];
   canManage: boolean;
-  onDelete: (ids: string[]) => void;
-  onEdit: (student?: Student | null) => void;
   page: number;
   setPage: (page: number) => void;
   lastPage: number;
   status: "Todos" | "Ativos" | "Inativos";
   setStatus: (value: "Todos" | "Ativos" | "Inativos") => void;
+  onDelete: (ids: string[]) => void;
+  onEdit: (billingGroup?: BillingGroup | null) => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const validSelected = useMemo(
     () =>
       selected.filter((id) =>
-        data.some((student) => student.id === id && student.active),
+        data.some((billingGroup) => billingGroup.id === id && billingGroup.active),
       ),
     [data, selected],
   );
@@ -101,8 +79,8 @@ export function StudentsTable({
   const start = Math.max(1, page - 2);
   const end = Math.min(lastPage, page + 2);
 
-  for (let i = start; i <= end; i++) {
-    pages.push(i);
+  for (let index = start; index <= end; index++) {
+    pages.push(index);
   }
 
   return (
@@ -153,13 +131,10 @@ export function StudentsTable({
             <TableRow>
               {canManage && <TableHead />}
               <TableHead>Nome</TableHead>
-              <TableHead>Matricula</TableHead>
-              <TableHead>Grupo</TableHead>
-              <TableHead>Grupo de boleto</TableHead>
-              <TableHead>Rotas</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>RFID</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead>Recorrencia</TableHead>
+              <TableHead>Alunos vinculados</TableHead>
               <TableHead>Status</TableHead>
               {canManage && (
                 <TableHead className="w-[68px] text-right">Editar</TableHead>
@@ -171,64 +146,61 @@ export function StudentsTable({
             {data.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={canManage ? 11 : 9}
+                  colSpan={canManage ? 8 : 6}
                   className="py-6 text-center"
                 >
-                  Nenhum aluno encontrado
+                  Nenhum grupo de boletos encontrado
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((student) => (
+              data.map((billingGroup) => (
                 <TableRow
-                  key={student.id}
-                  onDoubleClick={() => canManage && onEdit(student)}
+                  key={billingGroup.id}
+                  onDoubleClick={() => canManage && onEdit(billingGroup)}
                   className={canManage ? "cursor-pointer" : ""}
                 >
                   {canManage && (
                     <TableCell>
                       <Checkbox
-                        checked={validSelected.includes(student.id)}
-                        onCheckedChange={() => toggleSelect(student.id)}
+                        checked={validSelected.includes(billingGroup.id)}
+                        disabled={!billingGroup.active}
+                        onCheckedChange={() => toggleSelect(billingGroup.id)}
                       />
                     </TableCell>
                   )}
 
-                  <TableCell className="max-w-[150px] truncate">
-                    {student.name}
+                  <TableCell>
+                    <div className="space-y-1">
+                      <p>{billingGroup.name}</p>
+                      {billingGroup.description ? (
+                        <p className="max-w-[280px] truncate text-xs text-muted-foreground">
+                          {billingGroup.description}
+                        </p>
+                      ) : null}
+                    </div>
                   </TableCell>
-                  <TableCell>{student.registration}</TableCell>
-                  <TableCell>{student.group?.name || "-"}</TableCell>
-                  <TableCell className="max-w-[220px] truncate">
-                    {student.billingTemplate?.name || "-"}
+                  <TableCell>{formatCurrency(billingGroup.amountCents)}</TableCell>
+                  <TableCell>Dia {billingGroup.dueDay}</TableCell>
+                  <TableCell>
+                    {billingRecurrenceLabels[billingGroup.recurrence]}
                   </TableCell>
-                  <TableCell className="max-w-[220px] truncate">
-                    {student.routes?.length
-                      ? student.routes.map(({ route }) => route.name).join(", ")
-                      : "-"}
-                  </TableCell>
-                  <TableCell>{student.email || "-"}</TableCell>
-                  <TableCell>{student.phone || "-"}</TableCell>
-                  <TableCell className="max-w-[120px] truncate">
-                    {student.rfidCards && student.rfidCards.length > 0
-                      ? student.rfidCards.map((card) => card.tag).join(", ")
-                      : "-"}
-                  </TableCell>
+                  <TableCell>{billingGroup._count.students}</TableCell>
                   <TableCell>
                     <span
                       className={`rounded px-2 py-1 text-xs ${
-                        student.active
+                        billingGroup.active
                           ? "bg-green-100 text-green-600"
                           : "bg-red-100 text-red-600"
                       }`}
                     >
-                      {student.active ? "Ativo" : "Inativo"}
+                      {billingGroup.active ? "Ativo" : "Inativo"}
                     </span>
                   </TableCell>
                   {canManage && (
                     <TableCell className="text-right">
                       <RowEditButton
-                        label={`Editar ${student.name}`}
-                        onClick={() => onEdit(student)}
+                        label={`Editar grupo de boletos ${billingGroup.name}`}
+                        onClick={() => onEdit(billingGroup)}
                       />
                     </TableCell>
                   )}

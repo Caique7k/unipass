@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Compass,
   FileBarChart2,
+  FileText,
   Home,
   Layers3,
   LogOut,
@@ -117,6 +118,16 @@ export default function Sidebar() {
               <p className="mb-2 text-xs uppercase text-muted-foreground">
                 Financeiro
               </p>
+            )}
+
+            {canViewOperations && (
+              <SidebarItem
+                href="/dashboard/billing-groups"
+                icon={<FileText size={25} />}
+                label="Grupos de boletos"
+                isOpen={isOpen}
+                active={pathname === "/dashboard/billing-groups"}
+              />
             )}
 
             <SidebarItem

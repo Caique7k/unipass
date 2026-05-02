@@ -1,4 +1,12 @@
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { StudentBillingCustomerDto } from './student-billing-customer.dto';
 
 export class CreateStudentDto {
   @IsString()
@@ -9,6 +17,9 @@ export class CreateStudentDto {
 
   @IsString()
   groupId: string;
+
+  @IsString()
+  billingTemplateId: string;
 
   @IsArray()
   @IsString({ each: true })
@@ -29,4 +40,9 @@ export class CreateStudentDto {
   @IsOptional()
   @IsString()
   rfidTag?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StudentBillingCustomerDto)
+  billingCustomer?: StudentBillingCustomerDto;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { BillingTemplateRecurrence } from "@/app/dashboard/billing-groups/types/billing-group";
 import { buildApiUrl } from "@/services/api";
 
 type Student = {
@@ -13,10 +14,26 @@ type Student = {
   companyId: string;
   createdAt: string;
   groupId?: string | null;
+  billingTemplateId?: string | null;
   group?: {
     id: string;
     name: string;
     active: boolean;
+  } | null;
+  billingTemplate?: {
+    id: string;
+    name: string;
+    active: boolean;
+    amountCents: number;
+    dueDay: number;
+    recurrence: BillingTemplateRecurrence;
+  } | null;
+  billingCustomer?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    document?: string | null;
+    phone?: string | null;
   } | null;
   routes?: {
     route: {

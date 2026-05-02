@@ -41,6 +41,14 @@ enum BillingTargetScope {
   STUDENTS_AND_COORDINATORS
 }
 
+enum BillingTemplateRecurrence {
+  MONTHLY
+  BIMONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  YEARLY
+}
+
 enum BillingChargeStatus {
   DRAFT
   SCHEDULED
@@ -136,11 +144,13 @@ model Student {
   email String?
   phone String?
 
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-  groupId   String?
-  group     Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  user      User?
+  companyId         String
+  company           Company          @relation(fields: [companyId], references: [id])
+  groupId           String?
+  group             Group?           @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  billingTemplateId String?
+  billingTemplate   BillingTemplate? @relation("StudentBillingTemplate", fields: [billingTemplateId], references: [id], onDelete: SetNull)
+  user              User?
 
   rfidCards        RfidCard[]
   transportEvents  TransportEvent[]
@@ -153,6 +163,7 @@ model Student {
   @@unique([companyId, email])
   @@index([companyId])
   @@index([groupId])
+  @@index([billingTemplateId])
   @@index([companyId, createdAt])
 }
 
@@ -413,20 +424,22 @@ model CompanyBillingSettings {
 }
 
 model BillingTemplate {
-  id                 String             @id @default(uuid())
+  id                 String                    @id @default(uuid())
   companyId          String
-  company            Company            @relation(fields: [companyId], references: [id])
+  company            Company                   @relation(fields: [companyId], references: [id])
   name               String
   description        String?
-  active             Boolean            @default(true)
-  targetScope        BillingTargetScope @default(STUDENTS)
+  active             Boolean                   @default(true)
+  targetScope        BillingTargetScope        @default(STUDENTS)
   amountCents        Int
   dueDay             Int
-  notifyOnGeneration Boolean            @default(true)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  recurrence         BillingTemplateRecurrence @default(MONTHLY)
+  notifyOnGeneration Boolean                   @default(true)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
 
-  charges BillingCharge[]
+  charges  BillingCharge[]
+  students Student[]       @relation("StudentBillingTemplate")
 
   @@index([companyId, active, createdAt])
 }

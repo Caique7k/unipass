@@ -1,4 +1,12 @@
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { StudentBillingCustomerDto } from './student-billing-customer.dto';
 
 export class UpdateStudentDto {
   @IsOptional()
@@ -8,6 +16,10 @@ export class UpdateStudentDto {
   @IsOptional()
   @IsString()
   groupId?: string;
+
+  @IsOptional()
+  @IsString()
+  billingTemplateId?: string;
 
   @IsOptional()
   @IsArray()
@@ -29,4 +41,9 @@ export class UpdateStudentDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StudentBillingCustomerDto)
+  billingCustomer?: StudentBillingCustomerDto;
 }

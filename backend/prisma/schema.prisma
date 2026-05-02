@@ -481,6 +481,7 @@ model BillingCharge {
   recipientDocument      String?
   description            String
   amountCents            Int
+  issueDate              DateTime
   dueDate                DateTime
   status                 BillingChargeStatus @default(DRAFT)
   gatewayChargeId        String?             @unique

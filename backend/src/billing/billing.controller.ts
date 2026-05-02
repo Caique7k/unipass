@@ -5,6 +5,7 @@ import {
   Get,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +17,8 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { BillingService } from './billing.service';
 import { BillingWebhookService } from './billing-webhook.service';
+import { FindBillingChargesDto } from './dto/find-billing-charges.dto';
+import { IssueBillingChargesDto } from './dto/issue-billing-charges.dto';
 import { UpdateCompanyBillingSettingsDto } from './dto/update-company-billing-settings.dto';
 
 type AuthenticatedRequest = Request & {
@@ -61,6 +64,34 @@ export class BillingController {
       userId: req.user.id,
       role: req.user.role,
     });
+  }
+
+  @Get('charges')
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR', 'USER')
+  findCharges(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: FindBillingChargesDto,
+  ) {
+    return this.billingService.findCharges({
+      companyId: req.user.companyId,
+      userId: req.user.id,
+      role: req.user.role,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      search: query.search,
+      templateId: query.templateId,
+      month: query.month,
+      status: query.status,
+    });
+  }
+
+  @Post('charges/issue')
+  @Roles('ADMIN')
+  issueCharges(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: IssueBillingChargesDto,
+  ) {
+    return this.billingService.issueCharges(req.user.companyId, dto);
   }
 
   @Patch('settings')

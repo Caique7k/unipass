@@ -1097,7 +1097,7 @@ export class BillingWebhookService {
     const forwardedFor = this.readHeaderValue(headers, 'x-forwarded-for');
     const realIp = this.readHeaderValue(headers, 'x-real-ip');
     const candidate =
-      forwardedFor?.split(',')[0]?.trim() || realIp || remoteIp || null;
+      realIp || remoteIp || forwardedFor?.split(',')[0]?.trim() || null;
 
     return candidate ? this.normalizeIp(candidate) : null;
   }

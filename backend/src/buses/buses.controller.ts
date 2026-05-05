@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Delete,
+  ParseUUIDPipe,
   Put,
   Req,
   Query,
@@ -32,35 +33,34 @@ export class BusesController {
 
   @Get()
   @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
-  findAll(
-    @Query('page') page: string,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Req() req: any,
-  ) {
+  findAll(@Query() query: FindBusesDto, @Req() req: any) {
     return this.busesService.findAll({
-      page: Number(page) || 1,
-      limit: Number(limit) || 10,
-      search,
+      page: query.page ?? 1,
+      limit: query.limit ?? 10,
+      search: query.search,
       companyId: req.user.companyId,
     });
   }
 
   @Get(':id')
   @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
-  findOne(@Req() req, @Param('id') id: string) {
+  findOne(@Req() req, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.busesService.findOne(req.user.companyId, id);
   }
 
   @Put(':id')
   @Roles('ADMIN')
-  update(@Req() req, @Param('id') id: string, @Body() dto: UpdateBusDto) {
+  update(
+    @Req() req,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateBusDto,
+  ) {
     return this.busesService.update(req.user.companyId, id, dto);
   }
 
   @Delete()
   @Roles('ADMIN')
-  deleteMany(@Body() body: { ids: string[] }) {
-    return this.busesService.deleteMany(body.ids);
+  deleteMany(@Req() req: any, @Body() dto: DeleteBusesDto) {
+    return this.busesService.deleteMany(req.user.companyId, dto.ids);
   }
 }

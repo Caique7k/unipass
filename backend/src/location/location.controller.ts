@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Roles } from 'src/auth/roles.decorator';
 import { RolesGuard } from 'src/auth/roles.guard';
@@ -28,7 +37,10 @@ export class LocationController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('buses/:busId/live')
   @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
-  getLiveBusLocation(@Req() req: any, @Param('busId') busId: string) {
+  getLiveBusLocation(
+    @Req() req: any,
+    @Param('busId', new ParseUUIDPipe()) busId: string,
+  ) {
     return this.locationService.getLiveBusLocation(req.user.companyId, busId);
   }
 }

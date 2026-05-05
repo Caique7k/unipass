@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Req,
@@ -60,7 +61,7 @@ export class CompaniesController {
   @Patch(':id/apply-requested-plan')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('PLATFORM_ADMIN')
-  applyRequestedPlan(@Param('id') id: string) {
+  applyRequestedPlan(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.companiesService.applyRequestedPlan(id);
   }
 

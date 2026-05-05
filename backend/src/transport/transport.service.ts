@@ -11,6 +11,7 @@ import {
   getAppTimeZone,
   getZonedDateParts,
 } from 'src/notifications/notification-time.util';
+import { safeCompareStrings } from 'src/security/secure-compare.util';
 import { BoardingDto } from './dto/boarding.dto';
 import { IotBoardingDto } from './dto/iot-boarding.dto';
 
@@ -98,7 +99,7 @@ export class TransportService {
       where: { code },
     });
 
-    if (!device || device.secret !== secret) {
+    if (!device || !safeCompareStrings(device.secret, secret)) {
       throw new NotFoundException('Credenciais do dispositivo inválidas.');
     }
 
@@ -107,7 +108,9 @@ export class TransportService {
     }
 
     if (!device.companyId) {
-      throw new BadRequestException('O dispositivo ainda não foi vinculado no painel.');
+      throw new BadRequestException(
+        'O dispositivo ainda não foi vinculado no painel.',
+      );
     }
 
     return device;
@@ -135,7 +138,10 @@ export class TransportService {
 
     const student = card.student;
 
-    if (card.companyId !== device.companyId || student.companyId !== device.companyId) {
+    if (
+      card.companyId !== device.companyId ||
+      student.companyId !== device.companyId
+    ) {
       await this.logDenied(device, card, student.id);
       throw new ForbiddenException(
         'A TAG não pertence à mesma empresa do dispositivo.',
@@ -189,7 +195,10 @@ export class TransportService {
 
     const student = card.student;
 
-    if (card.companyId !== device.companyId || student.companyId !== device.companyId) {
+    if (
+      card.companyId !== device.companyId ||
+      student.companyId !== device.companyId
+    ) {
       await this.logDenied(device, card, student.id);
       throw new ForbiddenException(
         'A TAG não pertence à mesma empresa do dispositivo.',
@@ -231,7 +240,10 @@ export class TransportService {
     };
   }
 
-  async registerBoarding(companyId: string | null | undefined, dto: BoardingDto) {
+  async registerBoarding(
+    companyId: string | null | undefined,
+    dto: BoardingDto,
+  ) {
     const device = await this.validateDevice(dto.deviceIdentifier);
     this.ensureDeviceBelongsToCompany(device, companyId);
     return this.processBoarding(device, dto.rfidTag);
@@ -348,7 +360,9 @@ export class TransportService {
       current.events.push(event);
     }
 
-    const activeStudentIds = new Set(activeStudents.map((student) => student.id));
+    const activeStudentIds = new Set(
+      activeStudents.map((student) => student.id),
+    );
     const notBoardedStudents: Array<{
       id: string;
       name: string;
@@ -422,7 +436,8 @@ export class TransportService {
           firstDeviceCode: firstBoarding.device.code,
           firstDeviceName: firstBoarding.device.name,
           firstBusId: firstBoarding.device.bus?.id ?? null,
-          firstBusPlate: firstBoarding.device.bus?.plate ?? 'Sem ônibus vinculado',
+          firstBusPlate:
+            firstBoarding.device.bus?.plate ?? 'Sem ônibus vinculado',
         });
         continue;
       }

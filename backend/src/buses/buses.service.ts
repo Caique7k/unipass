@@ -106,9 +106,10 @@ export class BusesService {
     }
   }
 
-  async deleteMany(ids: string[]) {
+  async deleteMany(companyId: string, ids: string[]) {
     const result = await this.prisma.bus.deleteMany({
       where: {
+        companyId,
         id: {
           in: ids,
         },

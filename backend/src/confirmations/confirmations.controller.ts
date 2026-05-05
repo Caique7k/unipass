@@ -12,6 +12,7 @@ export class ConfirmationsController {
   confirm(@Req() req, @Body() dto: ConfirmScheduleDto) {
     return this.service.confirm(
       req.user.id,
+      req.user.companyId,
       dto.scheduleId,
       dto.willGo,
       dto.occurrenceKey,

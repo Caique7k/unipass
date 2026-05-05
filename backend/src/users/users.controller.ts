@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -12,6 +13,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { IdListDto } from 'src/common/dto/id-list.dto';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -33,8 +35,7 @@ export class UsersController {
   ) {
     return this.usersService.findAll(req.user, {
       search,
-      active:
-        active === undefined ? undefined : active === 'true',
+      active: active === undefined ? undefined : active === 'true',
       role,
       page: Number(page),
       limit: Number(limit),
@@ -49,13 +50,17 @@ export class UsersController {
 
   @Patch('deactivate')
   @Roles('ADMIN')
-  deactivateMany(@Req() req: any, @Body() body: { ids: string[] }) {
-    return this.usersService.deactivateMany(req.user, body.ids);
+  deactivateMany(@Req() req: any, @Body() dto: IdListDto) {
+    return this.usersService.deactivateMany(req.user, dto.ids);
   }
 
   @Patch(':id')
   @Roles('ADMIN')
-  update(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateUserDto) {
+  update(
+    @Req() req: any,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateUserDto,
+  ) {
     return this.usersService.update(req.user, id, dto);
   }
 }

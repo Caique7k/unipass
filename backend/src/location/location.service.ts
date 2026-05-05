@@ -3,10 +3,24 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { safeCompareStrings } from 'src/security/secure-compare.util';
 import { DeviceTelemetryDto } from './dto/device-telemetry.dto';
 
 const DEVICE_ONLINE_THRESHOLD_MS = 45_000;
+const liveLocationDeviceSelect = {
+  id: true,
+  code: true,
+  name: true,
+  active: true,
+  busId: true,
+  pairedAt: true,
+  lastUpdate: true,
+  createdAt: true,
+  lastLat: true,
+  lastLng: true,
+} satisfies Prisma.DeviceSelect;
 
 @Injectable()
 export class LocationService {
@@ -17,7 +31,7 @@ export class LocationService {
       where: { code: dto.code },
     });
 
-    if (!device || device.secret !== dto.secret) {
+    if (!device || !safeCompareStrings(device.secret, dto.secret)) {
       throw new NotFoundException('Credenciais do dispositivo inválidas');
     }
 
@@ -63,6 +77,7 @@ export class LocationService {
         busId,
       },
       orderBy: [{ lastUpdate: 'desc' }, { createdAt: 'desc' }],
+      select: liveLocationDeviceSelect,
     });
 
     if (!linkedDevice) {

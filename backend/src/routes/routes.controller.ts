@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -13,6 +14,7 @@ import {
 import { RoutesService } from './routes.service';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { IdListDto } from 'src/common/dto/id-list.dto';
 import { Roles } from 'src/auth/roles.decorator';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { FindRoutesDto } from './dto/find-routes.dto';
@@ -43,7 +45,7 @@ export class RoutesController {
 
   @Get(':id')
   @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
-  findOne(@Req() req: any, @Param('id') id: string) {
+  findOne(@Req() req: any, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.service.findOne(req.user.companyId, id);
   }
 
@@ -51,7 +53,7 @@ export class RoutesController {
   @Roles('ADMIN')
   update(
     @Req() req: any,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateRouteDto,
   ) {
     return this.service.update(req.user.companyId, id, dto);
@@ -59,7 +61,7 @@ export class RoutesController {
 
   @Patch('deactivate')
   @Roles('ADMIN')
-  deactivateMany(@Req() req: any, @Body() body: { ids: string[] }) {
-    return this.service.deactivateMany(req.user.companyId, body.ids);
+  deactivateMany(@Req() req: any, @Body() dto: IdListDto) {
+    return this.service.deactivateMany(req.user.companyId, dto.ids);
   }
 }

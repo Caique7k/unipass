@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  ParseUUIDPipe,
   Req,
   Query,
   UseGuards,
@@ -13,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { IdListDto } from 'src/common/dto/id-list.dto';
 import { Roles } from 'src/auth/roles.decorator';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -55,7 +57,7 @@ export class StudentsController {
 
   @Get(':id')
   @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
-  findOne(@Req() req: any, @Param('id') id: string) {
+  findOne(@Req() req: any, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.studentsService.findOne(req.user.companyId, id);
   }
 
@@ -69,7 +71,7 @@ export class StudentsController {
   @Roles('ADMIN')
   update(
     @Req() req: any,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateStudentDto,
   ) {
     return this.studentsService.update(req.user.companyId, id, dto);
@@ -77,13 +79,13 @@ export class StudentsController {
 
   @Delete()
   @Roles('ADMIN')
-  deleteMany(@Req() req: any, @Body() body: { ids: string[] }) {
-    return this.studentsService.deleteMany(req.user.companyId, body.ids);
+  deleteMany(@Req() req: any, @Body() dto: IdListDto) {
+    return this.studentsService.deleteMany(req.user.companyId, dto.ids);
   }
 
   @Patch('desactivate')
   @Roles('ADMIN')
-  desactivateMany(@Req() req: any, @Body() body: { ids: string[] }) {
-    return this.studentsService.desactivateMany(req.user.companyId, body.ids);
+  desactivateMany(@Req() req: any, @Body() dto: IdListDto) {
+    return this.studentsService.desactivateMany(req.user.companyId, dto.ids);
   }
 }

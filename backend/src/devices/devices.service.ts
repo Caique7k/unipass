@@ -4,12 +4,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { safeCompareStrings } from 'src/security/secure-compare.util';
 import { ClaimDevicePairingDto } from './dto/claim-device-pairing.dto';
 import { DeleteDevicesDto } from './dto/delete-devices.dto';
 import { LinkDeviceDto } from './dto/link-device.dto';
 import { ListDevicesDto } from './dto/find-devices.dto';
+import { LinkDeviceBusDto } from './dto/link-device-bus.dto';
 import { StartDevicePairingDto } from './dto/start-device-pairing.dto';
+import { UpdateDeviceDto } from './dto/update-device.dto';
 
 const PAIRING_TTL_MINUTES = 10;
 
@@ -24,6 +28,25 @@ function generateSecret() {
 function generatePairingCode() {
   return randomBytes(3).toString('hex').toUpperCase();
 }
+
+const deviceSafeSelect = {
+  id: true,
+  code: true,
+  name: true,
+  active: true,
+  companyId: true,
+  busId: true,
+  pairedAt: true,
+  lastUpdate: true,
+  createdAt: true,
+  bus: {
+    select: {
+      id: true,
+      plate: true,
+      capacity: true,
+    },
+  },
+} satisfies Prisma.DeviceSelect;
 
 @Injectable()
 export class DevicesService {
@@ -170,7 +193,7 @@ export class DevicesService {
     }
 
     if (
-      device.pairingCode !== dto.pairingCode ||
+      !safeCompareStrings(device.pairingCode, dto.pairingCode) ||
       !device.pairingCodeExpiresAt ||
       device.pairingCodeExpiresAt <= new Date()
     ) {
@@ -219,7 +242,9 @@ export class DevicesService {
     }
 
     if (device.companyId && device.companyId !== user.companyId) {
-      throw new BadRequestException('Dispositivo já vinculado a outra empresa.');
+      throw new BadRequestException(
+        'Dispositivo já vinculado a outra empresa.',
+      );
     }
 
     const bus = await this.prisma.bus.findFirst({
@@ -259,6 +284,7 @@ export class DevicesService {
     return this.prisma.device.update({
       where: { id: device.id },
       data,
+      select: deviceSafeSelect,
     });
   }
 
@@ -301,7 +327,7 @@ export class DevicesService {
         where,
         skip: (page - 1) * limit,
         take: Number(limit),
-        include: { bus: true },
+        select: deviceSafeSelect,
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.device.count({ where }),
@@ -333,7 +359,7 @@ export class DevicesService {
     return result;
   }
 
-  async update(user, id: string, dto: { name: string }) {
+  async update(user, id: string, dto: UpdateDeviceDto) {
     const device = await this.prisma.device.findFirst({
       where: {
         id,
@@ -350,10 +376,11 @@ export class DevicesService {
       data: {
         name: dto.name,
       },
+      select: deviceSafeSelect,
     });
   }
 
-  async linkBus(user, id: string, dto: { busId: string }) {
+  async linkBus(user, id: string, dto: LinkDeviceBusDto) {
     const [device, bus] = await Promise.all([
       this.prisma.device.findFirst({
         where: {
@@ -383,6 +410,7 @@ export class DevicesService {
         busId: dto.busId,
         name: bus.plate,
       },
+      select: deviceSafeSelect,
     });
   }
 }

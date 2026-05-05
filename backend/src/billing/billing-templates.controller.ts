@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -12,6 +13,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { IdListDto } from 'src/common/dto/id-list.dto';
 import { BillingTemplatesService } from './billing-templates.service';
 import { CreateBillingTemplateDto } from './dto/create-billing-template.dto';
 import { FindBillingTemplatesDto } from './dto/find-billing-templates.dto';
@@ -38,20 +40,19 @@ export class BillingTemplatesController {
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 10,
       search: query.search,
-      active:
-        query.active === undefined ? undefined : query.active === 'true',
+      active: query.active === undefined ? undefined : query.active === 'true',
     });
   }
 
   @Get(':id')
   @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
-  findOne(@Req() req: any, @Param('id') id: string) {
+  findOne(@Req() req: any, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.billingTemplatesService.findOne(req.user.companyId, id);
   }
 
   @Patch('deactivate')
   @Roles('ADMIN')
-  deactivateMany(@Req() req: any, @Body() body: { ids: string[] }) {
+  deactivateMany(@Req() req: any, @Body() body: IdListDto) {
     return this.billingTemplatesService.deactivateMany(
       req.user.companyId,
       body.ids,
@@ -62,7 +63,7 @@ export class BillingTemplatesController {
   @Roles('ADMIN')
   update(
     @Req() req: any,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateBillingTemplateDto,
   ) {
     return this.billingTemplatesService.update(req.user.companyId, id, dto);

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Post,
   Req,
   UseGuards,
@@ -28,7 +29,7 @@ export class NotificationPromptsController {
   @Post(':id/respond')
   respond(
     @Req() req: any,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: RespondNotificationPromptDto,
   ) {
     return this.notificationPromptsService.respondToPrompt(

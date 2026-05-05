@@ -9,6 +9,7 @@ import { CompanyPlan, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { safeCompareStrings } from 'src/security/secure-compare.util';
 import { CreateCompanyOnboardingDto } from './dto/create-company-onboarding.dto';
 import { RequestCompanyPlanChangeDto } from './dto/request-company-plan-change.dto';
 import { UpdateCompanyProfileDto } from './dto/update-company-profile.dto';
@@ -240,7 +241,7 @@ export class CompaniesService {
       throw new BadRequestException('O código expirou. Solicite um novo SMS.');
     }
 
-    if (challenge.code !== code.trim()) {
+    if (!safeCompareStrings(challenge.code, code.trim())) {
       throw new BadRequestException('Código inválido.');
     }
 
@@ -281,7 +282,7 @@ export class CompaniesService {
           name: dto.companyName.trim(),
           cnpj: this.normalizeCnpj(dto.cnpj),
           emailDomain: normalizedDomain,
-          plan: dto.plan as CompanyPlan,
+          plan: dto.plan,
           contactName: dto.contactName.trim(),
           contactPhone: normalizedPhone,
           smsVerifiedAt: challenge.verifiedAt,
@@ -522,8 +523,18 @@ export class CompaniesService {
       .get<string>('SMS_PROVIDER')
       ?.trim()
       .toLowerCase();
+    const nodeEnv = this.configService
+      .get<string>('NODE_ENV')
+      ?.trim()
+      .toLowerCase();
 
     if (!provider || provider === 'dev' || provider === 'mock') {
+      if (nodeEnv === 'production') {
+        throw new ServiceUnavailableException(
+          'O envio de SMS nao esta configurado no servidor.',
+        );
+      }
+
       return 'mock';
     }
 

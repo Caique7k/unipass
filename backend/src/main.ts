@@ -1,27 +1,21 @@
-import { ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
+import { CookieOriginGuard } from './security/cookie-origin.guard';
+import {
+  normalizeOrigin,
+  parseAllowedOrigins,
+} from './security/allowed-origins.util';
 import { OpaqueIdRequestInterceptor } from './security/opaque-id-request.interceptor';
 import { OpaqueIdResponseInterceptor } from './security/opaque-id-response.interceptor';
 import { SecurityThrottlerGuard } from './security/security-throttler.guard';
 
-function parseAllowedOrigins(value?: string) {
-  const fallback = ['http://localhost:3000', 'http://localhost:3001'];
-
-  const origins = value
-    ?.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  return origins?.length ? origins : fallback;
-}
-
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<INestApplication>(AppModule, {
     rawBody: true,
   });
   const configService = app.get(ConfigService);
@@ -31,10 +25,19 @@ async function bootstrap() {
   const port = Number(configService.get<string>('PORT') ?? '4000');
   const host = configService.get<string>('HOST') ?? '0.0.0.0';
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   app.use(cookieParser());
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+    origin: (
+      origin: string | undefined,
+      callback: (error: Error | null, allow?: boolean) => void,
+    ) => {
+      const normalizedOrigin = normalizeOrigin(origin);
+
+      if (
+        !origin ||
+        (normalizedOrigin && allowedOrigins.includes(normalizedOrigin))
+      ) {
         callback(null, true);
         return;
       }
@@ -56,6 +59,7 @@ async function bootstrap() {
   );
   app.useGlobalGuards(
     app.get(SecurityThrottlerGuard),
+    app.get(CookieOriginGuard),
     app.get(JwtAuthGuard),
     app.get(RolesGuard),
   );
@@ -63,4 +67,4 @@ async function bootstrap() {
   await app.listen(port, host);
 }
 
-bootstrap();
+void bootstrap();

@@ -1,20 +1,22 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
+type TrackerRequest = {
+  ips?: string[];
+  ip?: string;
+  socket?: {
+    remoteAddress?: string;
+  };
+};
+
 @Injectable()
 export class SecurityThrottlerGuard extends ThrottlerGuard {
-  protected async getTracker(req: Record<string, any>): Promise<string> {
-    const forwardedFor = req.headers?.['x-forwarded-for'];
-
-    if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-      return forwardedFor.split(',')[0].trim();
+  protected getTracker(req: TrackerRequest): Promise<string> {
+    if (Array.isArray(req.ips) && req.ips.length > 0) {
+      return Promise.resolve(req.ips[0]);
     }
 
-    if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-      return forwardedFor[0];
-    }
-
-    return req.ip ?? req.socket?.remoteAddress ?? 'unknown';
+    return Promise.resolve(req.ip ?? req.socket?.remoteAddress ?? 'unknown');
   }
 
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {

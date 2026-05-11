@@ -23,6 +23,7 @@ import { NotificationPromptsModule } from './notification-prompts/notification-p
 import { GroupsModule } from './groups/groups.module';
 import { SecurityModule } from './security/security.module';
 import { BillingModule } from './billing/billing.module';
+import { PushNotificationsModule } from './push-notifications/push-notifications.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { BillingModule } from './billing/billing.module';
     NotificationsModule,
     NotificationPromptsModule,
     BillingModule,
+    PushNotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -19,6 +19,8 @@ Por padrao a API sobe em `http://localhost:4000`.
 - `APP_TIMEZONE`: timezone oficial usada para calcular dia/horario das notificacoes.
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`: configuracao da fila BullMQ.
 - `NOTIFICATION_WORKER_CONCURRENCY`: quantidade de jobs processados em paralelo pelo worker.
+- `EXPO_PUSH_API_URL`: endpoint do provider Expo Push. Padrao: `https://exp.host/--/api/v2/push/send`.
+- `EXPO_PUSH_ACCESS_TOKEN`: token opcional para Expo Push Security, caso o projeto mobile exija autenticacao no provider.
 - `BILLING_WEBHOOK_WORKER_CONCURRENCY`: quantidade de webhooks financeiros processados em paralelo pelo worker.
 - `BILLING_WEBHOOK_PENDING_AGE_SECONDS`: idade minima, em segundos, para o cron reprocessar webhooks pendentes.
 - `BILLING_WEBHOOK_RETRY_BATCH_SIZE`: quantidade maxima de webhooks pendentes reprocessados por minuto.
@@ -50,3 +52,13 @@ COOKIE_SAME_SITE=none
 ```
 
 Se frontend e backend ficarem no mesmo dominio, voce pode manter `COOKIE_SAME_SITE=lax`.
+
+## Push notifications
+
+O backend agora expoe endpoints autenticados para o app mobile registrar subscriptions push por usuario:
+
+- `GET /push-notifications/subscriptions`
+- `POST /push-notifications/subscriptions`
+- `POST /push-notifications/subscriptions/deactivate`
+
+Quando um `NotificationPrompt` entra em dispatch, o worker tenta enviar push primeiro para subscriptions ativas e, se nao houver provider/token utilizavel, mantem o fallback atual via prompt pendente `IN_APP`.

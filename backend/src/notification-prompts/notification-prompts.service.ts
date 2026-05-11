@@ -5,13 +5,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NotificationPromptStatus, Prisma } from '@prisma/client';
+import {
+  NotificationChannel,
+  NotificationPromptStatus,
+  Prisma,
+} from '@prisma/client';
 import { buildNotificationMessage } from 'src/notifications/notification-message.util';
 import {
   getAppTimeZone,
   isPromptExpired,
 } from 'src/notifications/notification-time.util';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { PushNotificationsService } from 'src/push-notifications/push-notifications.service';
 
 @Injectable()
 export class NotificationPromptsService {
@@ -20,6 +25,7 @@ export class NotificationPromptsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly pushNotificationsService: PushNotificationsService,
   ) {}
 
   async preparePromptForDispatch(params: {
@@ -109,7 +115,7 @@ export class NotificationPromptsService {
     });
 
     if (!prompt) {
-      this.logger.warn(`Prompt ${promptId} não encontrado para dispatch.`);
+      this.logger.warn(`Prompt ${promptId} nao encontrado para dispatch.`);
       return;
     }
 
@@ -136,17 +142,30 @@ export class NotificationPromptsService {
     }
 
     try {
+      const dispatchResult =
+        await this.pushNotificationsService.dispatchPromptNotification({
+          promptId: prompt.id,
+          userId: prompt.userId,
+          message: prompt.message,
+          occurrenceKey: prompt.occurrenceKey,
+          scheduleId: prompt.scheduleId,
+          scheduleType: prompt.schedule.type,
+        });
+
       await this.prisma.notificationPrompt.update({
         where: { id: prompt.id },
         data: {
           status: NotificationPromptStatus.DISPATCHED,
+          deliveryChannel: dispatchResult.deliveryChannel,
           dispatchedAt: new Date(),
           lastError: null,
         },
       });
 
       this.logger.log(
-        `Prompt ${prompt.id} liberado para o usuário ${prompt.userId}.`,
+        dispatchResult.deliveryChannel === NotificationChannel.PUSH
+          ? `Prompt ${prompt.id} enviado por push para o usuario ${prompt.userId} em ${dispatchResult.sentCount} device(s).`
+          : `Prompt ${prompt.id} liberado no fallback in-app para o usuario ${prompt.userId}.`,
       );
     } catch (error) {
       const message =
@@ -259,7 +278,7 @@ export class NotificationPromptsService {
     });
 
     if (!prompt) {
-      throw new NotFoundException('Prompt de notificação não encontrado.');
+      throw new NotFoundException('Prompt de notificacao nao encontrado.');
     }
 
     if (this.isExpired(prompt)) {
@@ -270,8 +289,10 @@ export class NotificationPromptsService {
         },
       });
 
-      throw new BadRequestException('Esse prompt já expirou.');
+      throw new BadRequestException('Esse prompt ja expirou.');
     }
+
+    const answeredAt = new Date();
 
     const [, confirmation] = await this.prisma.$transaction([
       this.prisma.notificationPrompt.update({
@@ -279,7 +300,7 @@ export class NotificationPromptsService {
         data: {
           status: NotificationPromptStatus.ANSWERED,
           response: willGo,
-          answeredAt: new Date(),
+          answeredAt,
           lastError: null,
         },
       }),
@@ -307,7 +328,7 @@ export class NotificationPromptsService {
       promptId: prompt.id,
       occurrenceKey: prompt.occurrenceKey,
       willGo: confirmation.willGo,
-      answeredAt: new Date(),
+      answeredAt,
     };
   }
 

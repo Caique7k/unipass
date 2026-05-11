@@ -112,6 +112,7 @@ model User {
   company             Company?               @relation(fields: [companyId], references: [id])
   confirmations       ScheduleConfirmation[]
   notificationPrompts NotificationPrompt[]
+  pushSubscriptions   PushSubscription[]
   ownedBillingCharges BillingCharge[]        @relation("BillingChargeOwner")
 
   createdAt DateTime @default(now())
@@ -397,6 +398,31 @@ model NotificationPrompt {
   @@index([scheduleId, occurrenceKey])
 }
 
+model PushSubscription {
+  id String @id @default(uuid())
+
+  userId          String
+  provider        PushNotificationProvider
+  platform        PushPlatform @default(UNKNOWN)
+  token           String
+  installationKey String?
+  deviceName      String?
+  appVersion      String?
+  active          Boolean      @default(true)
+  lastSeenAt      DateTime     @default(now())
+  lastSentAt      DateTime?
+  lastError       String?
+  deactivatedAt   DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, token])
+  @@unique([provider, installationKey])
+  @@index([userId, active, updatedAt])
+}
+
 model CompanyBillingSettings {
   id                      String                  @id @default(uuid())
   companyId               String                  @unique
@@ -542,4 +568,17 @@ enum NotificationPromptStatus {
   ANSWERED
   EXPIRED
   FAILED
+}
+
+enum PushNotificationProvider {
+  EXPO
+  FCM
+  APNS
+}
+
+enum PushPlatform {
+  IOS
+  ANDROID
+  WEB
+  UNKNOWN
 }

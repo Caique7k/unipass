@@ -32,7 +32,7 @@ export class LocationService {
     });
 
     if (!device || !safeCompareStrings(device.secret, dto.secret)) {
-      throw new NotFoundException('Credenciais do dispositivo inválidas');
+      throw new NotFoundException('Credenciais do dispositivo invalidas');
     }
 
     if (!device.active) {
@@ -40,7 +40,7 @@ export class LocationService {
     }
 
     if (!device.companyId) {
-      throw new BadRequestException('Dispositivo ainda não vinculado');
+      throw new BadRequestException('Dispositivo ainda nao vinculado');
     }
 
     const updatedDevice = await this.prisma.device.update({
@@ -68,7 +68,7 @@ export class LocationService {
     });
 
     if (!bus) {
-      throw new NotFoundException('Ônibus não encontrado');
+      throw new NotFoundException('Onibus nao encontrado');
     }
 
     const linkedDevice = await this.prisma.device.findFirst({

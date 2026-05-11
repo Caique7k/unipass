@@ -32,7 +32,7 @@ export class BusesController {
   }
 
   @Get()
-  @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR', 'USER')
   findAll(@Query() query: FindBusesDto, @Req() req: any) {
     return this.busesService.findAll({
       page: query.page ?? 1,
@@ -43,7 +43,7 @@ export class BusesController {
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR', 'USER')
   findOne(@Req() req, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.busesService.findOne(req.user.companyId, id);
   }

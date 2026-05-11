@@ -36,7 +36,7 @@ export class LocationController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('buses/:busId/live')
-  @Roles('ADMIN', 'DRIVER', 'COORDINATOR')
+  @Roles('ADMIN', 'DRIVER', 'COORDINATOR', 'USER')
   getLiveBusLocation(
     @Req() req: any,
     @Param('busId', new ParseUUIDPipe()) busId: string,

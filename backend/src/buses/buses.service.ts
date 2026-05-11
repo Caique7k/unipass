@@ -22,7 +22,7 @@ export class BusesService {
       });
     } catch (err) {
       if (err.code === 'P2002') {
-        throw new BadRequestException('Placa já cadastrada');
+        throw new BadRequestException('Placa ja cadastrada');
       }
       throw err;
     }
@@ -54,6 +54,7 @@ export class BusesService {
         },
         skip,
         take: limit,
+        orderBy: [{ plate: 'asc' }, { createdAt: 'asc' }],
       }),
       this.prisma.bus.count({
         where: {
@@ -81,7 +82,7 @@ export class BusesService {
     });
 
     if (!bus) {
-      throw new BadRequestException('Ônibus não encontrado');
+      throw new BadRequestException('Onibus nao encontrado');
     }
 
     return bus;
@@ -100,7 +101,7 @@ export class BusesService {
       });
     } catch (err) {
       if (err.code === 'P2002') {
-        throw new BadRequestException('Placa já cadastrada');
+        throw new BadRequestException('Placa ja cadastrada');
       }
       throw err;
     }
@@ -117,7 +118,7 @@ export class BusesService {
     });
 
     if (result.count === 0) {
-      throw new NotFoundException('Nenhum ônibus encontrado para remover.');
+      throw new NotFoundException('Nenhum onibus encontrado para remover.');
     }
 
     return result;

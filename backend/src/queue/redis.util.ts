@@ -6,8 +6,9 @@ export function getRedisOptions(configService: ConfigService): RedisOptions {
     lazyConnect: true,
     maxRetriesPerRequest: null,
 
-    // URL COMPLETA DO REDIS
     url: configService.get<string>('REDIS_URL'),
+
+    tls: {},
   } as RedisOptions & {
     url?: string;
   };

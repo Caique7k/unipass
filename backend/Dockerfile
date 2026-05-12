@@ -13,11 +13,12 @@ RUN npm ci
 
 FROM deps AS builder
 
-ARG PRISMA_GENERATE_DATABASE_URL
+ARG PRISMA_GENERATE_DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/unipass"
 
 COPY . .
-RUN test -n "$PRISMA_GENERATE_DATABASE_URL"
+
 RUN DATABASE_URL="$PRISMA_GENERATE_DATABASE_URL" npx prisma generate
+
 RUN npm run build
 
 FROM base AS runner
@@ -31,8 +32,8 @@ RUN npm ci --omit=dev \
 COPY --chown=node:node prisma ./prisma
 COPY --from=builder --chown=node:node /app/dist ./dist
 
-ARG PRISMA_GENERATE_DATABASE_URL
-RUN test -n "$PRISMA_GENERATE_DATABASE_URL"
+ARG PRISMA_GENERATE_DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/unipass"
+
 RUN DATABASE_URL="$PRISMA_GENERATE_DATABASE_URL" npx prisma generate
 
 USER node

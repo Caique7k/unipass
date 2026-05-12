@@ -1,5 +1,7 @@
 .env
 !.env.example
-node_module
-/dist
+backend/.env
+frontend/.env.local
+node_modules/
+dist/
 backend/prisma/seed.ts

@@ -2,11 +2,8 @@ FROM node:20-bookworm-slim AS base
 
 WORKDIR /app
 
-ARG DATABASE_URL=postgresql://unipass:unipass123@localhost:5432/unipass_db
-ENV DATABASE_URL=$DATABASE_URL
-
 RUN apt-get update -y \
-  && apt-get install -y openssl \
+  && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
@@ -16,8 +13,11 @@ RUN npm ci
 
 FROM deps AS builder
 
+ARG PRISMA_GENERATE_DATABASE_URL
+
 COPY . .
-RUN npx prisma generate
+RUN test -n "$PRISMA_GENERATE_DATABASE_URL"
+RUN DATABASE_URL="$PRISMA_GENERATE_DATABASE_URL" npx prisma generate
 RUN npm run build
 
 FROM base AS runner
@@ -25,12 +25,17 @@ FROM base AS runner
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+  && npm cache clean --force
 
-COPY prisma ./prisma
-COPY --from=builder /app/dist ./dist
+COPY --chown=node:node prisma ./prisma
+COPY --from=builder --chown=node:node /app/dist ./dist
 
-RUN npx prisma generate
+ARG PRISMA_GENERATE_DATABASE_URL
+RUN test -n "$PRISMA_GENERATE_DATABASE_URL"
+RUN DATABASE_URL="$PRISMA_GENERATE_DATABASE_URL" npx prisma generate
+
+USER node
 
 EXPOSE 4000
 

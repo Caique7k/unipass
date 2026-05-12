@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
+import type { Express } from 'express';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
@@ -14,16 +15,44 @@ import { OpaqueIdRequestInterceptor } from './security/opaque-id-request.interce
 import { OpaqueIdResponseInterceptor } from './security/opaque-id-response.interceptor';
 import { SecurityThrottlerGuard } from './security/security-throttler.guard';
 
+function resolveTrustProxy(value?: string) {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized || ['0', 'false', 'no', 'off'].includes(normalized)) {
+    return null;
+  }
+
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return 1;
+  }
+
+  const numericValue = Number(normalized);
+
+  if (Number.isInteger(numericValue) && numericValue > 0) {
+    return numericValue;
+  }
+
+  return 1;
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<INestApplication>(AppModule, {
     rawBody: true,
   });
   const configService = app.get(ConfigService);
+  const trustProxy = resolveTrustProxy(
+    configService.get<string>('TRUST_PROXY'),
+  );
   const allowedOrigins = parseAllowedOrigins(
     configService.get<string>('FRONTEND_URLS'),
   );
   const port = Number(configService.get<string>('PORT') ?? '4000');
   const host = configService.get<string>('HOST') ?? '0.0.0.0';
+
+  if (trustProxy) {
+    const expressApp = app.getHttpAdapter().getInstance() as Express;
+    expressApp.set('trust proxy', trustProxy);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   app.use(cookieParser());

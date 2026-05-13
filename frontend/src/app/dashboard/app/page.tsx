@@ -14,15 +14,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const DEFAULT_ANDROID_APP_URL =
   "https://expo.dev/artifacts/eas/d3DFFq5EMswNioqQDbL3X8.apk";
 const PLACEHOLDER_DOMAIN_PATTERN = /seu-dominio\.com/i;
+const ENV_REFERENCE_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 
 function resolveDownloadUrl(url: string | undefined, fallback = "") {
   const normalizedUrl = url?.trim() ?? "";
 
-  if (!normalizedUrl || PLACEHOLDER_DOMAIN_PATTERN.test(normalizedUrl)) {
+  if (
+    !normalizedUrl ||
+    PLACEHOLDER_DOMAIN_PATTERN.test(normalizedUrl) ||
+    ENV_REFERENCE_PATTERN.test(normalizedUrl)
+  ) {
     return fallback;
   }
 
-  return normalizedUrl;
+  try {
+    const parsedUrl = new URL(normalizedUrl);
+
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      return fallback;
+    }
+
+    return parsedUrl.toString().replace(/\/+$/, "");
+  } catch {
+    return fallback;
+  }
 }
 
 const androidUrl = resolveDownloadUrl(

@@ -11,8 +11,25 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const androidUrl = process.env.NEXT_PUBLIC_ANDROID_APP_URL?.trim() ?? "";
-const iosUrl = process.env.NEXT_PUBLIC_IOS_APP_URL?.trim() ?? "";
+const DEFAULT_ANDROID_APP_URL =
+  "https://expo.dev/artifacts/eas/d3DFFq5EMswNioqQDbL3X8.apk";
+const PLACEHOLDER_DOMAIN_PATTERN = /seu-dominio\.com/i;
+
+function resolveDownloadUrl(url: string | undefined, fallback = "") {
+  const normalizedUrl = url?.trim() ?? "";
+
+  if (!normalizedUrl || PLACEHOLDER_DOMAIN_PATTERN.test(normalizedUrl)) {
+    return fallback;
+  }
+
+  return normalizedUrl;
+}
+
+const androidUrl = resolveDownloadUrl(
+  process.env.NEXT_PUBLIC_ANDROID_APP_URL,
+  DEFAULT_ANDROID_APP_URL,
+);
+const iosUrl = resolveDownloadUrl(process.env.NEXT_PUBLIC_IOS_APP_URL);
 
 async function buildQrCode(url: string) {
   if (!url) {

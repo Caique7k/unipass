@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { IS_PUBLIC_KEY } from 'src/auth/public.decorator';
+import { IS_PUBLIC_KEY } from '../auth/public.decorator';
 import { normalizeOrigin, parseAllowedOrigins } from './allowed-origins.util';
 
 @Injectable()
@@ -38,14 +38,6 @@ export class CookieOriginGuard implements CanActivate {
       return true;
     }
 
-    const fetchSite = this.readHeaderValue(request, 'sec-fetch-site');
-
-    if (fetchSite === 'cross-site') {
-      throw new ForbiddenException(
-        'Cross-site session requests are not allowed',
-      );
-    }
-
     const allowedOrigins = new Set(
       parseAllowedOrigins(this.configService.get<string>('FRONTEND_URLS')),
     );
@@ -74,6 +66,15 @@ export class CookieOriginGuard implements CanActivate {
     if (refererOrigin && !allowedOrigins.has(refererOrigin)) {
       throw new ForbiddenException(
         'Referer not allowed for authenticated request',
+      );
+    }
+
+    if (
+      this.readHeaderValue(request, 'sec-fetch-site') === 'cross-site' &&
+      !refererOrigin
+    ) {
+      throw new ForbiddenException(
+        'Cross-site session requests are not allowed',
       );
     }
 

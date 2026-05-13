@@ -105,7 +105,7 @@ function getApiErrorMessage(error: unknown) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { refreshUser } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const emailInputId = useId();
   const passwordInputId = useId();
 
@@ -138,6 +138,12 @@ export default function LoginPage() {
     const savedValue = window.localStorage.getItem(REMEMBER_STORAGE_KEY);
     setRememberMe(savedValue === "true");
   }, []);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, router, user]);
 
   // 2. Loop infinito para trocar os slides do carrossel automaticamente a cada 5.2 segundos
   useEffect(() => {

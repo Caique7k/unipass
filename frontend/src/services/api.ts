@@ -1,9 +1,31 @@
 import axios from "axios";
 
 const DEFAULT_API_URL = "http://localhost:4000";
+const HTTP_PROTOCOL_PATTERN = /^https?:\/\//i;
+const PROTOCOL_RELATIVE_PATTERN = /^\/\//;
+const LEADING_SLASH_PATTERN = /^\/+/;
+
+function ensureAbsoluteBaseUrl(url: string) {
+  if (HTTP_PROTOCOL_PATTERN.test(url)) {
+    return url;
+  }
+
+  if (PROTOCOL_RELATIVE_PATTERN.test(url)) {
+    return `https:${url}`;
+  }
+
+  return `https://${url}`;
+}
 
 function normalizeBaseUrl(url?: string) {
-  const value = url?.trim() || DEFAULT_API_URL;
+  const rawValue = url?.trim();
+  const sanitizedValue =
+    rawValue && !PROTOCOL_RELATIVE_PATTERN.test(rawValue)
+      ? rawValue.replace(LEADING_SLASH_PATTERN, "")
+      : rawValue;
+  const value = sanitizedValue
+    ? ensureAbsoluteBaseUrl(sanitizedValue)
+    : DEFAULT_API_URL;
   return value.replace(/\/+$/, "");
 }
 

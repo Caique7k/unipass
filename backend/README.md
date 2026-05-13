@@ -19,7 +19,7 @@ Por padrao a API sobe em `http://localhost:4000`.
 - `DATABASE_URL`: conexao usada pelo backend fora do Docker, normalmente apontando para `localhost`.
 - `FRONTEND_URLS`: lista separada por virgula com os dominios autorizados no CORS.
 - `APP_TIMEZONE`: timezone oficial usada para calcular dia e horario das notificacoes.
-- `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`: configuracao da fila BullMQ.
+- `REDIS_URL`: string de conexao unica usada por todas as conexoes Redis do backend e dos workers.
 - `NOTIFICATION_WORKER_CONCURRENCY`: quantidade de jobs processados em paralelo pelo worker.
 - `BILLING_WEBHOOK_WORKER_CONCURRENCY`: quantidade de webhooks financeiros processados em paralelo pelo worker.
 - `BILLING_WEBHOOK_PENDING_AGE_SECONDS`: idade minima, em segundos, para o cron reprocessar webhooks pendentes.
@@ -48,6 +48,7 @@ Por padrao a API sobe em `http://localhost:4000`.
 Pontos importantes para producao:
 
 - `DATABASE_URL_DOCKER` na raiz deve apontar para `postgres` como host interno do Compose.
+- `REDIS_URL_DOCKER` na raiz deve apontar para `redis` como host interno do Compose e usar a mesma senha definida em `REDIS_PASSWORD`.
 - `POSTGRES_HOST_BIND` e `REDIS_HOST_BIND` ficam em `127.0.0.1` por seguranca.
 - `BACKEND_HOST_BIND` e `FRONTEND_HOST_BIND` podem continuar em `127.0.0.1`, porque o acesso publico passa pelo Caddy em `80/443`.
 - `COOKIE_SECURE=true` e `COOKIE_SAME_SITE=none` sao a combinacao esperada quando frontend e backend estiverem em dominios diferentes com HTTPS.

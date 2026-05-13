@@ -38,10 +38,7 @@ export class BillingWebhookWorkerService
         );
       },
       {
-        connection: {
-          ...getRedisOptions(this.configService),
-          maxRetriesPerRequest: null,
-        },
+        connection: getRedisOptions(this.configService),
         concurrency: Number(
           this.configService.get<string>(
             'BILLING_WEBHOOK_WORKER_CONCURRENCY',

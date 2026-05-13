@@ -26,10 +26,7 @@ export class NotificationWorkerService
         );
       },
       {
-        connection: {
-          ...getRedisOptions(this.configService),
-          maxRetriesPerRequest: null,
-        },
+        connection: getRedisOptions(this.configService),
         concurrency: Number(
           this.configService.get<string>('NOTIFICATION_WORKER_CONCURRENCY') ??
             '10',

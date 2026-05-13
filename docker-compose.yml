@@ -18,10 +18,7 @@ x-backend-common: &backend-common
     HOST: ${BACKEND_HOST:-0.0.0.0}
     PORT: ${BACKEND_PORT:-4000}
     APP_TIMEZONE: ${APP_TIMEZONE:-America/Sao_Paulo}
-    REDIS_HOST: ${REDIS_HOST_DOCKER:-redis}
-    REDIS_PORT: "6379"
-    REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-    REDIS_DB: ${REDIS_DB:-0}
+    REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
   security_opt:
     - no-new-privileges:true
 

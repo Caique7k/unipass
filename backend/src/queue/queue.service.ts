@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JobsOptions, Queue } from 'bullmq';
 import Redis from 'ioredis';
-import { getRedisOptions } from './redis.util';
+import { createRedisConnection } from './redis.util';
 import {
   BILLING_WEBHOOK_QUEUE,
   NOTIFICATIONS_QUEUE,
@@ -17,7 +17,7 @@ export class QueueService implements OnModuleDestroy {
   private billingWebhookQueue: Queue;
 
   constructor(private readonly configService: ConfigService) {
-    this.connection = new Redis(getRedisOptions(configService));
+    this.connection = createRedisConnection(configService);
 
     this.notificationQueue = new Queue(NOTIFICATIONS_QUEUE, {
       connection: this.connection,
